@@ -32,8 +32,8 @@ jobs:
       DATABASE_PASSWORD_APP: org_brain_app
       AI_MODE: offline
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
