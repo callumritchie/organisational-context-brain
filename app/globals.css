@@ -178,7 +178,7 @@ button, textarea, select { font: inherit; }
 .provenance-panel span { color: #87918d; font-size: 8px; font-weight: 700; text-transform: uppercase; }
 .provenance-panel code { color: #345e52; font-size: 9px; overflow-wrap: anywhere; }
 .provenance-panel p { margin: 0; color: #485951; font-size: 10px; line-height: 1.5; }
-.ranking-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 9px; margin-top: 13px; padding-top: 11px; border-top: 1px solid #edf0ee; }
+.ranking-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 11px 9px; margin-top: 13px; padding-top: 11px; border-top: 1px solid #edf0ee; }
 .ranking-factor { display: grid; grid-template-columns: 1fr auto; gap: 4px; }
 .ranking-factor > span { color: #89958f; font-size: 8px; text-transform: capitalize; }
 .ranking-factor > div { grid-column: 1; height: 3px; overflow: hidden; border-radius: 3px; background: #e9eeeb; }

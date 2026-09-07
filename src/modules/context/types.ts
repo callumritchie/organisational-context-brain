@@ -12,7 +12,21 @@ export interface RankingExplanation {
   authority: number;
   confidence: number;
   freshness: number;
+  engagement: number;
+  affinity: number;
+  epistemicConfidence: number;
+  graphConnectivity: number;
   total: number;
+}
+
+export interface EvidenceSignals {
+  authority: number;
+  freshness: number;
+  engagement: number;
+  affinity: number;
+  epistemicConfidence: number;
+  graphConnectivity: number;
+  snapshotVersion: string;
 }
 
 export interface ContextEvidence {
@@ -34,6 +48,7 @@ export interface ContextEvidence {
     process: string;
     processVersion: string;
   };
+  signals: EvidenceSignals;
   ranking: RankingExplanation;
 }
 

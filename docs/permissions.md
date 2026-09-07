@@ -15,6 +15,8 @@ Ontology versions are workspace-scoped. In the local demo, only the allow-listed
 
 Source identity keys are visible only when their canonical Resource is visible, so a restricted entity cannot leak through alias or source-key resolution.
 
+Signal observations and snapshots carry an access scope and Resource reference. Forced RLS requires both to be actor-visible before a signal can join retrieval. Graph-connectivity scoring queries the already-filtered relationships table, so inaccessible edges cannot contribute to a score or appear as a side channel.
+
 For a future derived content Resource synthesised from several inputs, its base scope will conservatively allow only actors who can read every input actually used. This rule applies to that derived Resource; it does not retroactively restrict the canonical entities it mentions.
 
 ## Actor transaction

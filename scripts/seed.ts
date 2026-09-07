@@ -9,6 +9,7 @@ import { runDocumentSync, runMeetingSync, runMessageSync, runResearchSync, seedI
 import { IDS } from '@/src/modules/canonical/ids';
 import { storeCurrentOntology } from '@/src/modules/ontology/ontology-repository';
 import { runCrmSync } from '@/src/modules/sync/crm-sync';
+import { seedInitialSignals } from '@/src/modules/signals/signal-service';
 
 dotenv.config({ path: '.env.local' });
 
@@ -18,7 +19,8 @@ const ownerClient = await ownerPool.connect();
 try {
   await ownerClient.query('BEGIN');
   await ownerClient.query(`TRUNCATE TABLE
-    trace_stages, query_traces, search_documents, provenance_spans, assertions, relationships,
+    trace_stages, query_traces, signal_snapshots, signal_observations, search_documents,
+    provenance_spans, assertions, relationships,
     resource_identity_keys, ontology_versions,
     entity_aliases, content_objects, content_versions, entities, resources, source_object_versions, source_objects,
     sync_runs, sources, access_scope_grants, access_scopes, group_memberships, groups, users,
@@ -44,9 +46,10 @@ try {
   const crm = await runCrmSync(ingestionClient, new CrmFixtureConnector());
   const documents = await runDocumentSync(ingestionClient, new DocumentFixtureConnector());
   const messages = await runMessageSync(ingestionClient, new MessageFixtureConnector());
+  const signals = await seedInitialSignals(ingestionClient);
   await storeCurrentOntology(ingestionClient);
   await ingestionClient.query('COMMIT');
-  console.log(`Seeded Northstar Labs: ${research.changed} research, ${meetings.changed} meeting, ${crm.changed} CRM, ${documents.changed} document, and ${messages.changed} message records ingested via connectors.`);
+  console.log(`Seeded Northstar Labs: ${research.changed} research, ${meetings.changed} meeting, ${crm.changed} CRM, ${documents.changed} document, ${messages.changed} message, and ${signals.observations} signal observations.`);
 } catch (error) {
   await ingestionClient.query('ROLLBACK');
   throw error;

@@ -19,6 +19,10 @@ describe('context service', () => {
     expect(context.evidence.every((item) => item.source.excerpt.length > 0)).toBe(true);
     expect(context.evidence.every((item) => item.provenance.assertionKind === 'source-backed')).toBe(true);
     expect(context.evidence[0]!.ranking.total).toBeGreaterThan(context.evidence[1]!.ranking.total);
+    expect(context.rankingVersion).toBe('demo-ranking-v2');
+    expect(context.evidence.every((item) => item.signals.snapshotVersion === 'northstar-signal-snapshot-v1')).toBe(true);
+    expect(context.evidence.every((item) => item.signals.graphConnectivity === 1)).toBe(true);
+    expect(context.evidence.every((item) => Object.keys(item.ranking).length === 9)).toBe(true);
     expect(context.graph.edges.some((edge) => edge.type === 'IS_FOR')).toBe(true);
     expect(context.graph.nodes.some((node) => node.type === 'MeetingNote')).toBe(true);
     expect(context.sourceSystems.map((source) => source.type)).toEqual([

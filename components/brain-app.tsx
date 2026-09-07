@@ -12,11 +12,16 @@ import { Input } from '@/components/ui/input';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { PERSONAS } from '@/src/modules/canonical/ids';
 import type { ContextEvidence, ContextResponse } from '@/src/modules/context/types';
+import { DEMO_RANKING_V2, type RankingFactor } from '@/src/modules/ranking/demo-ranking-v2';
 
 const PRESET = "What do we currently know about why users abandon Atlas Bank's onboarding journey?";
 const EMPTY_GRAPH: ContextResponse['graph'] = { nodes: [], edges: [] };
+const RANKING_FACTORS = Object.keys(DEMO_RANKING_V2.weights) as RankingFactor[];
 
 function percentage(value: number) { return `${Math.round(value * 100)}%`; }
+function factorLabel(factor: RankingFactor) {
+  return factor.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
+}
 
 function EvidenceCard({ item, index }: { item: ContextEvidence; index: number }) {
   const [expanded, setExpanded] = useState(false);
@@ -30,6 +35,7 @@ function EvidenceCard({ item, index }: { item: ContextEvidence; index: number })
           </span>
           <span className="signal-pill">{Math.round(item.confidence * 100)}% confidence</span>
           <span className="signal-pill">{item.provenance.assertionKind}</span>
+          <span className="signal-pill">{item.signals.snapshotVersion}</span>
         </div>
         <h3>{item.title}</h3>
         <p className="mt-2 leading-6 text-[var(--muted-foreground)]">{item.summary}</p>
@@ -48,10 +54,10 @@ function EvidenceCard({ item, index }: { item: ContextEvidence; index: number })
           </div>
         ) : null}
         <div className="ranking-grid">
-          {(['lexical', 'authority', 'confidence', 'freshness'] as const).map((factor) => (
+          {RANKING_FACTORS.map((factor) => (
             <div key={factor} className="ranking-factor">
-              <span>{factor}</span>
-              <div><i style={{ width: percentage(item.ranking[factor] / 0.62) }} /></div>
+              <span>{factorLabel(factor)}</span>
+              <div><i style={{ width: percentage(item.ranking[factor] / DEMO_RANKING_V2.weights[factor]) }} /></div>
               <strong>+{item.ranking[factor].toFixed(2)}</strong>
             </div>
           ))}

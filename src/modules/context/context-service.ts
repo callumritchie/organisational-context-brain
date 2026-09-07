@@ -3,7 +3,7 @@ import type { PoolClient } from 'pg';
 import { withActorTransaction } from '@/src/db/actor-transaction';
 import { IDS } from '@/src/modules/canonical/ids';
 import { understandQuery } from '@/src/modules/search/query-understanding';
-import { DEMO_RANKING_V1, scoreCandidate } from '@/src/modules/ranking/demo-ranking-v1';
+import { DEMO_RANKING_V2, scoreCandidate } from '@/src/modules/ranking/demo-ranking-v2';
 import type { ContextEvidence, ContextRequest, ContextResponse } from './types';
 
 interface CandidateRow {
@@ -24,6 +24,11 @@ interface CandidateRow {
   lexical_score: number;
   authority: number;
   freshness: number;
+  engagement: number;
+  affinity: number;
+  epistemic_confidence: number;
+  graph_connectivity: number;
+  signal_snapshot_version: string;
 }
 
 async function retrieve(client: PoolClient, tsQuery: string, maxEvidence: number) {
@@ -44,8 +49,20 @@ async function retrieve(client: PoolClient, tsQuery: string, maxEvidence: number
         source_object.source_updated_at,
         provenance.excerpt,
         ts_rank_cd(document.search_vector, query.value, 32) AS lexical_score,
-        document.authority,
-        greatest(0, 1 - extract(epoch FROM (now() - document.source_updated_at)) / 15552000) AS freshness
+        COALESCE(signal.authority, document.authority) AS authority,
+        COALESCE(signal.freshness,
+          greatest(0, 1 - extract(epoch FROM (now() - document.source_updated_at)) / 15552000)) AS freshness,
+        COALESCE(signal.engagement, 0.5) AS engagement,
+        COALESCE(signal.affinity, 0.5) AS affinity,
+        COALESCE(signal.epistemic_confidence, assertion_row.confidence) AS epistemic_confidence,
+        CASE WHEN EXISTS (
+          SELECT 1 FROM relationships graph_relationship
+          WHERE (graph_relationship.from_resource_id = evidence.id
+              AND graph_relationship.to_resource_id IN ($3, $4))
+             OR (graph_relationship.to_resource_id = evidence.id
+              AND graph_relationship.from_resource_id IN ($3, $4))
+        ) THEN 1 ELSE 0 END AS graph_connectivity,
+        COALESCE(signal.model_version, 'fallback-document-signals') AS signal_snapshot_version
       FROM search_documents document
       CROSS JOIN query
       JOIN resources evidence ON evidence.id = document.resource_id
@@ -56,11 +73,12 @@ async function retrieve(client: PoolClient, tsQuery: string, maxEvidence: number
       JOIN sources source_system ON source_system.id = source_object.source_id
       JOIN content_versions content_version ON content_version.id = document.content_version_id
       JOIN resources source_content ON source_content.id = content_version.content_resource_id
+      LEFT JOIN signal_snapshots signal ON signal.resource_id = evidence.id AND signal.is_current
       WHERE document.search_vector @@ query.value
         AND assertion_row.predicate IN ('SUPPORTS', 'CONTRADICTS')
     )
     SELECT * FROM candidates ORDER BY lexical_score DESC, authority DESC LIMIT $2`,
-    [tsQuery, maxEvidence],
+    [tsQuery, maxEvidence, IDS.resources.project, IDS.resources.hypothesis],
   );
   return result.rows;
 }
@@ -262,13 +280,13 @@ export async function assembleContext(
     await client.query(
       `INSERT INTO query_traces (id, workspace_id, actor_id, query_text, ranking_version)
        VALUES ($1, $2, $3, $4, $5)`,
-      [traceId, actor.workspaceId, actor.id, request.query, DEMO_RANKING_V1.id],
+      [traceId, actor.workspaceId, actor.id, request.query, DEMO_RANKING_V2.id],
     );
     const eligible = await client.query<{ count: string }>(
       `SELECT count(*)::text AS count FROM resources WHERE workspace_id = $1`,
       [actor.workspaceId],
     );
-    const rows = await retrieve(client, parsedQuery.tsQuery, request.maxEvidence);
+    const rows = await retrieve(client, parsedQuery.tsQuery, Math.min(request.maxEvidence * 4, 40));
     const evidence = rows
       .map((row): ContextEvidence => {
         const ranking = scoreCandidate({
@@ -276,6 +294,10 @@ export async function assembleContext(
           authority: row.authority,
           confidence: row.confidence,
           freshness: Number(row.freshness),
+          engagement: row.engagement,
+          affinity: row.affinity,
+          epistemicConfidence: row.epistemic_confidence,
+          graphConnectivity: row.graph_connectivity,
         });
         return {
           id: row.evidence_id,
@@ -296,10 +318,20 @@ export async function assembleContext(
             process: row.process_name,
             processVersion: row.process_version,
           },
+          signals: {
+            authority: row.authority,
+            freshness: Number(row.freshness),
+            engagement: row.engagement,
+            affinity: row.affinity,
+            epistemicConfidence: row.epistemic_confidence,
+            graphConnectivity: row.graph_connectivity,
+            snapshotVersion: row.signal_snapshot_version,
+          },
           ranking: { ...ranking.contributions, total: ranking.total },
         };
       })
-      .sort((a, b) => b.ranking.total - a.ranking.total);
+      .sort((a, b) => b.ranking.total - a.ranking.total)
+      .slice(0, request.maxEvidence);
     const graph = await buildGraph(client, evidence.map((item) => item.id));
     const [ontology, sourceSystems] = await Promise.all([
       readOntology(client),
@@ -311,7 +343,7 @@ export async function assembleContext(
         : 'Detected Atlas Bank, Atlas Onboarding and the active abandonment hypothesis.', count: interpreted.entities.length },
       { stage: 'Actor & security scope', detail: `Workspace verified; user and group ACLs applied. ${eligible.rows[0]?.count ?? 0} resources eligible.`, count: Number(eligible.rows[0]?.count ?? 0) },
       { stage: 'Retrieval', detail: `${rows.length} permitted lexical candidates. Inaccessible candidates never entered the pipeline.`, count: rows.length },
-      { stage: 'Ranking', detail: `${DEMO_RANKING_V1.id} exposed lexical, authority, confidence and freshness contributions.`, count: evidence.length },
+      { stage: 'Ranking', detail: `${DEMO_RANKING_V2.id} exposed lexical, five snapshot signals and permission-filtered graph connectivity.`, count: evidence.length },
       { stage: 'Graph expansion', detail: `${graph.edges.length} actor-visible edges connect selected evidence across sources.`, count: graph.edges.length },
       { stage: 'Context selection', detail: `${evidence.length} evidence items selected within the requested budget.`, count: evidence.length },
     ];
@@ -338,7 +370,7 @@ export async function assembleContext(
       sourceSystems,
       ontology,
       trace,
-      rankingVersion: DEMO_RANKING_V1.id,
+      rankingVersion: DEMO_RANKING_V2.id,
       generatedBy: 'deterministic-extractive',
     };
   });

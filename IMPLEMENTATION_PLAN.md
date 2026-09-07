@@ -13,7 +13,7 @@ This plan supersedes the original horizontal roadmap. Work proceeds as sequentia
 7. Inaccessible candidates never enter application retrieval or normal traces.
 8. Offline means lexical, structured and graph retrieval—not pretend semantic embeddings.
 9. Demo mutations must enter through a source connector and normal sync lifecycle.
-10. `demo-ranking-v1` is transparent and illustrative, with evaluation-based ordering checks.
+10. Ranking models are transparent and illustrative, with evaluation-based ordering checks; `demo-ranking-v2` adds first-class signals and actor-visible graph connectivity.
 
 ## Milestone 0 — Repository foundation
 
@@ -57,8 +57,11 @@ Status: implemented and validated.
 
 ## Milestone 3 — Graph, signals and hybrid retrieval
 
-- Bounded graph expansion and focused `@xyflow/react` UI.
-- Signal observations/snapshots for authority, freshness, engagement, affinity and epistemic confidence.
+Status: first bounded slice implemented and validated.
+
+- Implemented: bounded graph expansion and focused `@xyflow/react` UI.
+- Implemented: RLS-protected signal observations/snapshots for authority, freshness, engagement, affinity and epistemic confidence.
+- Implemented: `demo-ranking-v2`, including transparent signal contributions, a permission-filtered graph-connectivity contribution, and a wider candidate pool before final selection.
 - Genuine configured provider embeddings where available; exact vector retrieval initially.
 - Reciprocal-rank fusion and graph contribution explanations.
 

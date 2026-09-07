@@ -50,7 +50,8 @@ TypeScript fixture
   → PostgreSQL tsvector representation
   → actor-scoped alias/source-key resolution and lexical retrieval
   → bounded actor-visible graph expansion
-  → demo-ranking-v1
+  → signal snapshot join + actor-visible graph feature
+  → demo-ranking-v2
   → ContextResponse
   → Ask view and Brain Inspector
 ```
@@ -75,7 +76,9 @@ The application role does not own protected tables and has `NOBYPASSRLS`. With n
 
 The current slice intentionally implements lexical, structured query interpretation, alias resolution, and permission-constrained graph expansion only. It does not mislabel deterministic test vectors as semantic embeddings.
 
-`demo-ranking-v1` combines normalised lexical rank, source authority, assertion confidence, and freshness. Every contribution is returned. These weights are illustrative; tests verify expected fixture ordering rather than optimisation claims.
+`signal_observations` retains traceable point-in-time measurements for authority, freshness, engagement, affinity, and epistemic confidence. `signal_snapshots` materialises the current values used during retrieval. Both carry the evidence Resource’s access scope, use forced RLS, and are filtered before entering application memory.
+
+`demo-ranking-v2` reranks a bounded lexical candidate pool using those five snapshot signals, assertion confidence, and an actor-visible graph-connectivity feature. Every raw signal and weighted contribution is returned. These weights are illustrative; tests verify expected fixture ordering and graph influence rather than optimisation claims. Provider embeddings and reciprocal-rank fusion remain deferred until a genuine provider is configured.
 
 ## Brain Inspector
 
@@ -87,4 +90,4 @@ Domain work lives under `src/modules`; the application and API may depend on tho
 
 ## Next milestones
 
-Milestone 2 is complete. Milestone 3 adds graph-assisted ranking, provider-semantic retrieval, and first-class signals. Milestone 4 expands the complete permission matrix. Milestone 5 adds the contradiction through the normal research connector. Milestone 6 adds optional AI synthesis over the authorised context packet.
+Milestone 2 is complete. Milestone 3 now has first-class signals and graph-assisted ranking; its remaining work is genuine provider-semantic retrieval, reciprocal-rank fusion, and broader signal producers. Milestone 4 expands the complete permission matrix. Milestone 5 adds the contradiction through the normal research connector. Milestone 6 adds optional AI synthesis over the authorised context packet.

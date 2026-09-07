@@ -237,6 +237,36 @@ export const searchDocuments = pgTable('search_documents', {
   active: boolean('active').notNull().default(true),
 });
 
+export const signalObservations = pgTable('signal_observations', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
+  accessScopeId: uuid('access_scope_id').notNull().references(() => accessScopes.id),
+  resourceId: uuid('resource_id').notNull().references(() => resources.id),
+  signalType: text('signal_type').notNull(),
+  value: real('value').notNull(),
+  sourceKind: text('source_kind').notNull(),
+  sourceObjectVersionId: uuid('source_object_version_id').references(() => sourceObjectVersions.id),
+  observedAt: timestamp('observed_at', { withTimezone: true }).notNull(),
+  metadata: jsonb('metadata').notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const signalSnapshots = pgTable('signal_snapshots', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
+  accessScopeId: uuid('access_scope_id').notNull().references(() => accessScopes.id),
+  resourceId: uuid('resource_id').notNull().references(() => resources.id),
+  authority: real('authority').notNull(),
+  freshness: real('freshness').notNull(),
+  engagement: real('engagement').notNull(),
+  affinity: real('affinity').notNull(),
+  epistemicConfidence: real('epistemic_confidence').notNull(),
+  modelVersion: text('model_version').notNull(),
+  capturedAt: timestamp('captured_at', { withTimezone: true }).notNull(),
+  isCurrent: boolean('is_current').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const queryTraces = pgTable('query_traces', {
   id: uuid('id').primaryKey(),
   workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
