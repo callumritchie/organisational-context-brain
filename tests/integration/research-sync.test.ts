@@ -11,7 +11,7 @@ describe('research connector sync', () => {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      await client.query("SELECT set_config('app.actor_id', $1, true)", [IDS.users.jamie]);
+      await client.query("SELECT set_config('app.actor_id', $1, true)", [IDS.users.ingestion]);
       await client.query("SELECT set_config('app.workspace_id', $1, true)", [IDS.workspace]);
       const result = await runResearchSync(client, new ResearchFixtureConnector());
       await client.query('COMMIT');
@@ -34,7 +34,7 @@ describe('meeting connector sync', () => {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      await client.query("SELECT set_config('app.actor_id', $1, true)", [IDS.users.jamie]);
+      await client.query("SELECT set_config('app.actor_id', $1, true)", [IDS.users.ingestion]);
       await client.query("SELECT set_config('app.workspace_id', $1, true)", [IDS.workspace]);
       const result = await runMeetingSync(client, new MeetingFixtureConnector());
       await client.query('COMMIT');

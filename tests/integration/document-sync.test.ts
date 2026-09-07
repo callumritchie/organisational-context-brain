@@ -10,7 +10,7 @@ describe('Documents connector sync', () => {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      await client.query("SELECT set_config('app.actor_id', $1, true)", [IDS.users.jamie]);
+      await client.query("SELECT set_config('app.actor_id', $1, true)", [IDS.users.ingestion]);
       await client.query("SELECT set_config('app.workspace_id', $1, true)", [IDS.workspace]);
       const result = await runDocumentSync(client, new DocumentFixtureConnector());
       const keys = await client.query<{ resource_id: string; key_type: string; external_key: string }>(
