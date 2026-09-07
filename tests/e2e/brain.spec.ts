@@ -10,7 +10,7 @@ test('resolves evidence and changes safely for Morgan', async ({ page }) => {
   await page.getByLabel('Demo persona').selectOption(IDS.users.morgan);
   await expect(page.getByText('3 permitted results')).toBeVisible();
   await expect(page.getByText('Manual compliance hand-offs compound verification delays')).toHaveCount(0);
-  await expect(page.getByText(/Inaccessible candidates never entered the pipeline/)).toBeVisible();
+  await expect(page.getByText(/inaccessible candidates never entered the pipeline/i)).toBeVisible();
 });
 
 test('context API is independently consumable', async ({ request }) => {
