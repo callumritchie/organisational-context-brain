@@ -138,6 +138,8 @@ function SourceSystems({ systems }: { systems: ContextResponse['sourceSystems'] 
             <span className={`source-status ${system.status}`}><i />{system.status}</span>
             <p>{system.type === 'crm-accounts'
               ? 'Resolves CRM account 381 and atlas-bank to the canonical Atlas Bank resource.'
+              : system.type === 'documents'
+                ? 'Maps the Atlas client folder and its source keys to the same canonical client.'
               : 'Cursor-backed fixture ingestion with immutable source versions and provenance.'}</p>
             <time>{system.lastSuccessfulSyncAt ? `Synced ${new Date(system.lastSuccessfulSyncAt).toLocaleDateString('en-GB')}` : 'Awaiting first sync'}</time>
           </article>
@@ -278,7 +280,7 @@ export function BrainApp() {
         <header className="topbar">
           <div><span className="eyebrow">Northstar Labs</span><h1>Organisational Context Brain</h1></div>
           <div className="topbar-actions">
-            <span className="health"><i /> {result?.sourceSystems?.filter((source) => source.status === 'healthy').length ?? 3} sources healthy</span>
+            <span className="health"><i /> {result?.sourceSystems?.filter((source) => source.status === 'healthy').length ?? 4} sources healthy</span>
             <NativeSelect aria-label="Demo persona" value={actorId} onChange={(event) => changeActor(event.target.value)}>
               {PERSONAS.map((persona) => (
                 <NativeSelectOption key={persona.id} value={persona.id}>{persona.name} · {persona.role}</NativeSelectOption>

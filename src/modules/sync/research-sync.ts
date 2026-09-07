@@ -4,6 +4,7 @@ import { IDS } from '@/src/modules/canonical/ids';
 import { stableId } from '@/src/modules/canonical/stable-id';
 import type {
   Connector,
+  DocumentSourceRecord,
   KnowledgeSourceRecord,
   MeetingSourceRecord,
   ResearchSourceRecord,
@@ -206,7 +207,7 @@ async function mapRecord(
   client: PoolClient,
   record: KnowledgeSourceRecord,
   sourceVersionId: string,
-  contentType: 'ResearchNote' | 'MeetingNote',
+  contentType: 'ResearchNote' | 'MeetingNote' | 'Document',
   processName: string,
 ) {
   const scopeId = scopeFor(record.visibility);
@@ -221,7 +222,11 @@ async function mapRecord(
     type: contentType,
     name: record.title,
     summary: record.body,
-    properties: { sourceUri: record.uri, author: record.author },
+    properties: {
+      sourceUri: record.uri,
+      author: record.author,
+      ...('folder' in record ? { folder: record.folder } : {}),
+    },
   });
   await client.query(
     `INSERT INTO content_objects (resource_id, content_type) VALUES ($1, $2)
@@ -255,6 +260,36 @@ async function mapRecord(
     excerpt: record.body,
     processName,
   });
+
+  if ('folder' in record) {
+    const folderKeys = [
+      { type: 'folder-id', value: record.folder.externalId },
+      { type: 'folder-path', value: record.folder.path },
+    ];
+    for (const key of folderKeys) {
+      await client.query(
+        `INSERT INTO resource_identity_keys
+          (id, workspace_id, resource_id, source_system, key_type, external_key, confidence, source_object_version_id)
+         VALUES ($1, $2, $3, 'documents', $4, $5, 1, $6)
+         ON CONFLICT (workspace_id, source_system, key_type, external_key) DO UPDATE SET
+           resource_id = EXCLUDED.resource_id,
+           confidence = EXCLUDED.confidence,
+           source_object_version_id = EXCLUDED.source_object_version_id`,
+        [stableId('identity-key', `documents:${key.type}:${key.value}`), IDS.workspace, IDS.resources.atlas,
+          key.type, key.value, sourceVersionId],
+      );
+    }
+    await client.query(
+      `INSERT INTO entity_aliases
+        (id, workspace_id, resource_id, alias, normalized_alias, alias_type, source_system)
+       VALUES ($1, $2, $3, $4, $5, 'source-key', 'documents')
+       ON CONFLICT (workspace_id, normalized_alias, alias_type, source_system) DO UPDATE SET
+         resource_id = EXCLUDED.resource_id,
+         alias = EXCLUDED.alias`,
+      [stableId('entity-alias', `documents:folder:${record.folder.externalId}`), IDS.workspace,
+        IDS.resources.atlas, record.folder.alias, normalizeName(record.folder.alias)],
+    );
+  }
   await ensureRelationshipAssertion(client, {
     from: authorResourceId,
     to: contentResourceId,
@@ -349,7 +384,7 @@ async function runSourceSync<T extends KnowledgeSourceRecord>(
   config: {
     sourceId: string;
     sourceName: string;
-    contentType: 'ResearchNote' | 'MeetingNote';
+    contentType: 'ResearchNote' | 'MeetingNote' | 'Document';
     processName: string;
   },
 ) {
@@ -440,5 +475,14 @@ export function runMeetingSync(client: PoolClient, connector: Connector<MeetingS
     sourceName: 'Northstar Meeting Notes',
     contentType: 'MeetingNote',
     processName: 'meeting-semantic-mapper',
+  });
+}
+
+export function runDocumentSync(client: PoolClient, connector: Connector<DocumentSourceRecord>) {
+  return runSourceSync(client, connector, {
+    sourceId: IDS.sources.documents,
+    sourceName: 'Northstar Documents',
+    contentType: 'Document',
+    processName: 'document-semantic-mapper',
   });
 }

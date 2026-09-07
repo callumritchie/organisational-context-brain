@@ -17,7 +17,7 @@ ContextRequest → ContextResponse
 ```text
 Resource
 ├── Entity: Person, Client, Project, Hypothesis, Evidence
-└── ContentObject: ResearchNote, MeetingNote
+└── ContentObject: ResearchNote, MeetingNote, Document
 ```
 
 Documents are content resources, not duplicate document entities. Graph relationships always connect resource IDs.
@@ -40,7 +40,7 @@ Assertion kinds are `source-backed`, `rule-derived`, and `AI-inferred`.
 
 ```text
 TypeScript fixture
-  → ResearchFixtureConnector, MeetingFixtureConnector or CrmFixtureConnector
+  → ResearchFixtureConnector, MeetingFixtureConnector, CrmFixtureConnector or DocumentFixtureConnector
   → SyncRun and immutable SourceObjectVersion
   → semantic mapping
   → canonical content/evidence resources
@@ -56,7 +56,7 @@ TypeScript fixture
 
 Cursor advancement occurs only after mapping succeeds. Replaying an unchanged cursor is idempotent.
 
-CRM account `381` and the `atlas-bank` CRM slug are stored as traceable identity keys backed by the CRM source-object version. They resolve to the existing Atlas Bank Resource rather than creating a second client entity. The ontology is persisted as an immutable, checksummed version and returned from the actor-scoped context service.
+CRM account `381`, the `atlas-bank` CRM slug, document folder `fld-atlas-381`, and `/clients/atlas-bank` folder path are stored as traceable identity keys backed by their source-object versions. They resolve to the existing Atlas Bank Resource rather than creating duplicate client or folder entities. The document itself remains a canonical content Resource. The ontology is persisted as an immutable, checksummed version and returned from the actor-scoped context service.
 
 ## Permission boundary
 
@@ -80,4 +80,4 @@ Domain work lives under `src/modules`; the application and API may depend on tho
 
 ## Next milestones
 
-The remainder of Milestone 2 adds ontology editing plus Messages and Documents connectors, including folder identity. Milestone 3 adds graph-assisted ranking, provider-semantic retrieval, and first-class signals. Milestone 4 expands the complete permission matrix. Milestone 5 adds the contradiction through the normal research connector. Milestone 6 adds optional AI synthesis over the authorised context packet.
+The remainder of Milestone 2 adds ontology editing and a Messages connector. Milestone 3 adds graph-assisted ranking, provider-semantic retrieval, and first-class signals. Milestone 4 expands the complete permission matrix. Milestone 5 adds the contradiction through the normal research connector. Milestone 6 adds optional AI synthesis over the authorised context packet.

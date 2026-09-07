@@ -111,7 +111,7 @@ button, textarea, select { font: inherit; }
 .graph-legend .entity-dot { background: #173b31; }
 .graph-legend strong { margin-left: auto; color: #39715f; font-weight: 650; }
 .graph-legend strong svg { width: 11px; }
-.source-system-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.source-system-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
 .source-system-card { padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: #fff; box-shadow: 0 5px 15px rgba(32,53,46,.035); }
 .source-system-card > div { display: flex; align-items: center; gap: 8px; padding-right: 64px; }
 .source-system-card > div > svg { flex: none; width: 25px; height: 25px; padding: 6px; border-radius: 7px; color: #2e735e; background: #e6f1ec; }

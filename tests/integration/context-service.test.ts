@@ -23,6 +23,7 @@ describe('context service', () => {
     expect(context.graph.nodes.some((node) => node.type === 'MeetingNote')).toBe(true);
     expect(context.sourceSystems.map((source) => source.type)).toEqual([
       'crm-accounts',
+      'documents',
       'meeting-notes',
       'research-repository',
     ]);
@@ -31,10 +32,11 @@ describe('context service', () => {
       status: 'current',
     });
     expect(context.ontology.resourceTypes.some((type) => type.name === 'MeetingNote')).toBe(true);
+    expect(context.ontology.resourceTypes.some((type) => type.name === 'Document')).toBe(true);
   });
 
   it('resolves Atlas aliases to one observable canonical resource', async () => {
-    for (const alias of ['Atlas Bank', 'Atlas', 'atlas-bank', 'CRM account 381']) {
+    for (const alias of ['Atlas Bank', 'Atlas', 'atlas-bank', 'CRM account 381', 'Atlas client folder']) {
       const context = await assembleContext(
         { id: IDS.users.alex, workspaceId: IDS.workspace, name: 'Alex Chen', role: 'Project Lead' },
         { query: `What causes abandonment in ${alias} onboarding?`, maxEvidence: 6 },
@@ -43,6 +45,7 @@ describe('context service', () => {
       expect(client).toMatchObject({ id: IDS.resources.atlas, matchedAlias: alias });
       expect(client?.identityKeys).toEqual(expect.arrayContaining([
         expect.objectContaining({ sourceSystem: 'crm', keyType: 'account-id', externalKey: '381' }),
+        expect.objectContaining({ sourceSystem: 'documents', keyType: 'folder-id', externalKey: 'fld-atlas-381' }),
       ]));
     }
   });

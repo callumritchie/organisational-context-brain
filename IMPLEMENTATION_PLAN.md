@@ -48,9 +48,10 @@ Status: bounded first slice implemented and validated.
 - Implemented: explicit Atlas aliases (`Atlas Bank`, `Atlas`, `atlas-bank`) with observable resolution to one Resource.
 - Implemented: Meetings as the second cursor-based connector, including source versions, assertions and provenance.
 - Implemented: CRM account 381 and `atlas-bank` source keys resolve to the existing Atlas Bank Resource through the normal connector lifecycle.
+- Implemented: Documents as a cursor-based connector; Atlas folder ID/path keys and `Atlas client folder` resolve to the existing Atlas Bank Resource while the document remains a content Resource.
 - Implemented: checksummed ontology persistence and a versioned read-only ontology view.
 - Implemented early from Milestone 3: a focused, permission-filtered Resource graph and graph-connected meeting-evidence eval.
-- Remaining: ontology editing; Messages and Documents connectors; folder identity keys.
+- Remaining: ontology editing and a Messages connector.
 
 ## Milestone 3 — Graph, signals and hybrid retrieval
 

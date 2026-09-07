@@ -8,7 +8,7 @@ This project explores a different model: a shared organisational context layer t
 Sources → Canonical resources + assertions → Permissioned retrieval → Context API → Consumers
 ```
 
-The current Milestone 2 slice is intentionally small but real. Independent research, meeting, and CRM connectors ingest Northstar Labs knowledge about Atlas Bank, store immutable source versions, resolve aliases and source identity keys to canonical resources, create assertion-level provenance, apply forced PostgreSQL row-level security, retrieve lexical evidence, expand a permission-safe resource graph, and expose the result through `POST /api/v1/context` and an evidence-first interface. The same response includes a checksummed ontology version and connector health.
+The current Milestone 2 slice is intentionally small but real. Independent research, meeting, CRM, and document connectors ingest Northstar Labs knowledge about Atlas Bank, store immutable source versions, resolve aliases and source identity keys to canonical resources, create assertion-level provenance, apply forced PostgreSQL row-level security, retrieve lexical evidence, expand a permission-safe resource graph, and expose the result through `POST /api/v1/context` and an evidence-first interface. The same response includes a checksummed ontology version and connector health.
 
 No LLM or API key is required.
 
@@ -39,13 +39,13 @@ npm run build
 
 ## What to try
 
-Ask the preset Atlas Onboarding question as Alex Chen, then switch to Morgan Reed. Alex receives four evidence items across Research and Meetings; Morgan receives the three public items. The internal operations note never enters Morgan’s response, graph, or trace. Try replacing “Atlas Bank” with `Atlas`, `atlas-bank`, or `CRM account 381` to see the same canonical client and its source identity keys.
+Ask the preset Atlas Onboarding question as Alex Chen, then switch to Morgan Reed. Alex receives four evidence items across Research and Meetings; Morgan receives the three public items. The internal operations note never enters Morgan’s response, graph, or trace. Try replacing “Atlas Bank” with `Atlas`, `atlas-bank`, `CRM account 381`, or `Atlas client folder` to see the same canonical client and its source identity keys.
 
 The ranking is named `demo-ranking-v1`. Its weights are illustrative and have not been empirically optimised.
 
 ## Current scope
 
-Completed: Milestones 0 and 1, plus the bounded Milestone 2 slice covering Atlas aliases, Meetings and CRM connectors, source identity keys, a versioned ontology view, focused graph UI, and graph-connected retrieval evaluation. Deliberately deferred: ontology editing, Messages/Documents connectors, graph-assisted ranking, first-class signals, the contradiction ingestion scenario, and provider-backed AI synthesis.
+Completed: Milestones 0 and 1, plus the bounded Milestone 2 slice covering Atlas aliases, Meetings, CRM and Documents connectors, source identity keys including document-folder identity, a versioned ontology view, focused graph UI, and graph-connected retrieval evaluation. Deliberately deferred: ontology editing, a Messages connector, graph-assisted ranking, first-class signals, the contradiction ingestion scenario, and provider-backed AI synthesis.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md), [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md), and [docs/permissions.md](./docs/permissions.md).
 
