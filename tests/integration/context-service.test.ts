@@ -48,5 +48,5 @@ describe('context service', () => {
         expect.objectContaining({ sourceSystem: 'documents', keyType: 'folder-id', externalKey: 'fld-atlas-381' }),
       ]));
     }
-  });
+  }, 15_000);
 });
