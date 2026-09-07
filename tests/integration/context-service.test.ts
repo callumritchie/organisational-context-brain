@@ -25,6 +25,7 @@ describe('context service', () => {
       'crm-accounts',
       'documents',
       'meeting-notes',
+      'messages',
       'research-repository',
     ]);
     expect(context.ontology).toMatchObject({
@@ -33,6 +34,7 @@ describe('context service', () => {
     });
     expect(context.ontology.resourceTypes.some((type) => type.name === 'MeetingNote')).toBe(true);
     expect(context.ontology.resourceTypes.some((type) => type.name === 'Document')).toBe(true);
+    expect(context.ontology.resourceTypes.some((type) => type.name === 'MessageThread')).toBe(true);
   });
 
   it('resolves Atlas aliases to one observable canonical resource', async () => {
@@ -49,4 +51,22 @@ describe('context service', () => {
       ]));
     }
   }, 15_000);
+
+  it('resolves a messaging channel to the project without duplicating it', async () => {
+    const context = await assembleContext(
+      { id: IDS.users.alex, workspaceId: IDS.workspace, name: 'Alex Chen', role: 'Project Lead' },
+      { query: 'What happened in the Atlas onboarding channel?', maxEvidence: 6 },
+    );
+    const projects = context.interpretedQuery.entities.filter((entity) => entity.type === 'Project');
+    expect(projects).toHaveLength(1);
+    expect(projects[0]).toMatchObject({
+      id: IDS.resources.project,
+      matchedAlias: 'Atlas onboarding channel',
+    });
+    expect(projects[0]?.identityKeys).toEqual(expect.arrayContaining([
+      expect.objectContaining({ sourceSystem: 'messages', keyType: 'channel-id', externalKey: 'chn-atlas-onboarding' }),
+      expect.objectContaining({ sourceSystem: 'messages', keyType: 'channel-slug', externalKey: 'atlas-onboarding' }),
+    ]));
+    expect(context.graph.nodes.some((node) => node.type === 'MessageThread')).toBe(true);
+  });
 });

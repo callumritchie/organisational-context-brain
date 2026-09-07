@@ -31,13 +31,17 @@ export function understandQuery(query: string, resolvedAliases: ResolvedAlias[] 
     expanded.add('identity');
     expanded.add('verification');
   }
+  const defaultEntities = [
+    { id: IDS.resources.project, name: 'Atlas Onboarding', type: 'Project' },
+    { id: IDS.resources.hypothesis, name: 'Identity verification drives abandonment', type: 'Hypothesis' },
+  ];
+  const resolvedIds = new Set(resolvedAliases.map((entity) => entity.id));
   return {
     intent: 'Explain current causes of onboarding abandonment using organisational evidence',
     tsQuery: [...expanded].map((term) => `${term}:*`).join(' | '),
     entities: [
       ...(resolvedAliases.length ? resolvedAliases : [{ id: IDS.resources.atlas, name: 'Atlas Bank', type: 'Client' }]),
-      { id: IDS.resources.project, name: 'Atlas Onboarding', type: 'Project' },
-      { id: IDS.resources.hypothesis, name: 'Identity verification drives abandonment', type: 'Hypothesis' },
+      ...defaultEntities.filter((entity) => !resolvedIds.has(entity.id)),
     ],
   };
 }

@@ -68,6 +68,8 @@ function ContextGraph({ graph }: { graph: ContextResponse['graph'] }) {
       Evidence: { x: 0, y: 0 },
       ResearchNote: { x: 245, y: 0 },
       MeetingNote: { x: 245, y: 0 },
+      Document: { x: 245, y: 0 },
+      MessageThread: { x: 245, y: 0 },
       Project: { x: 500, y: 80 },
       Hypothesis: { x: 745, y: 0 },
       Client: { x: 745, y: 190 },
@@ -76,7 +78,7 @@ function ContextGraph({ graph }: { graph: ContextResponse['graph'] }) {
       const index = typeCounts.get(node.type) ?? 0;
       typeCounts.set(node.type, index + 1);
       const base = positions[node.type] ?? { x: 500, y: 280 };
-      const isSource = node.type.endsWith('Note');
+      const isSource = ['ResearchNote', 'MeetingNote', 'Document', 'MessageThread'].includes(node.type);
       return {
         id: node.id,
         position: { x: base.x, y: base.y + index * 105 },
@@ -140,6 +142,8 @@ function SourceSystems({ systems }: { systems: ContextResponse['sourceSystems'] 
               ? 'Resolves CRM account 381 and atlas-bank to the canonical Atlas Bank resource.'
               : system.type === 'documents'
                 ? 'Maps the Atlas client folder and its source keys to the same canonical client.'
+              : system.type === 'messages'
+                ? 'Maps the Atlas project channel while retaining the conversation thread as content.'
               : 'Cursor-backed fixture ingestion with immutable source versions and provenance.'}</p>
             <time>{system.lastSuccessfulSyncAt ? `Synced ${new Date(system.lastSuccessfulSyncAt).toLocaleDateString('en-GB')}` : 'Awaiting first sync'}</time>
           </article>
@@ -280,7 +284,7 @@ export function BrainApp() {
         <header className="topbar">
           <div><span className="eyebrow">Northstar Labs</span><h1>Organisational Context Brain</h1></div>
           <div className="topbar-actions">
-            <span className="health"><i /> {result?.sourceSystems?.filter((source) => source.status === 'healthy').length ?? 4} sources healthy</span>
+            <span className="health"><i /> {result?.sourceSystems?.filter((source) => source.status === 'healthy').length ?? 5} sources healthy</span>
             <NativeSelect aria-label="Demo persona" value={actorId} onChange={(event) => changeActor(event.target.value)}>
               {PERSONAS.map((persona) => (
                 <NativeSelectOption key={persona.id} value={persona.id}>{persona.name} · {persona.role}</NativeSelectOption>

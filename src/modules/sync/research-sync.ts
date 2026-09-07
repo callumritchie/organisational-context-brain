@@ -7,6 +7,7 @@ import type {
   DocumentSourceRecord,
   KnowledgeSourceRecord,
   MeetingSourceRecord,
+  MessageSourceRecord,
   ResearchSourceRecord,
   SourceVisibility,
 } from '@/src/modules/connectors/types';
@@ -207,7 +208,7 @@ async function mapRecord(
   client: PoolClient,
   record: KnowledgeSourceRecord,
   sourceVersionId: string,
-  contentType: 'ResearchNote' | 'MeetingNote' | 'Document',
+  contentType: 'ResearchNote' | 'MeetingNote' | 'Document' | 'MessageThread',
   processName: string,
 ) {
   const scopeId = scopeFor(record.visibility);
@@ -226,6 +227,11 @@ async function mapRecord(
       sourceUri: record.uri,
       author: record.author,
       ...('folder' in record ? { folder: record.folder } : {}),
+      ...('channel' in record ? {
+        channel: record.channel,
+        threadExternalId: record.threadExternalId,
+        participants: record.participants,
+      } : {}),
     },
   });
   await client.query(
@@ -288,6 +294,47 @@ async function mapRecord(
          alias = EXCLUDED.alias`,
       [stableId('entity-alias', `documents:folder:${record.folder.externalId}`), IDS.workspace,
         IDS.resources.atlas, record.folder.alias, normalizeName(record.folder.alias)],
+    );
+  }
+
+  if ('channel' in record) {
+    const projectKeys = [
+      { type: 'channel-id', value: record.channel.externalId },
+      { type: 'channel-slug', value: record.channel.slug },
+    ];
+    for (const key of projectKeys) {
+      await client.query(
+        `INSERT INTO resource_identity_keys
+          (id, workspace_id, resource_id, source_system, key_type, external_key, confidence, source_object_version_id)
+         VALUES ($1, $2, $3, 'messages', $4, $5, 1, $6)
+         ON CONFLICT (workspace_id, source_system, key_type, external_key) DO UPDATE SET
+           resource_id = EXCLUDED.resource_id,
+           confidence = EXCLUDED.confidence,
+           source_object_version_id = EXCLUDED.source_object_version_id`,
+        [stableId('identity-key', `messages:${key.type}:${key.value}`), IDS.workspace, IDS.resources.project,
+          key.type, key.value, sourceVersionId],
+      );
+    }
+    await client.query(
+      `INSERT INTO resource_identity_keys
+        (id, workspace_id, resource_id, source_system, key_type, external_key, confidence, source_object_version_id)
+       VALUES ($1, $2, $3, 'messages', 'thread-id', $4, 1, $5)
+       ON CONFLICT (workspace_id, source_system, key_type, external_key) DO UPDATE SET
+         resource_id = EXCLUDED.resource_id,
+         confidence = EXCLUDED.confidence,
+         source_object_version_id = EXCLUDED.source_object_version_id`,
+      [stableId('identity-key', `messages:thread-id:${record.threadExternalId}`), IDS.workspace,
+        contentResourceId, record.threadExternalId, sourceVersionId],
+    );
+    await client.query(
+      `INSERT INTO entity_aliases
+        (id, workspace_id, resource_id, alias, normalized_alias, alias_type, source_system)
+       VALUES ($1, $2, $3, $4, $5, 'source-key', 'messages')
+       ON CONFLICT (workspace_id, normalized_alias, alias_type, source_system) DO UPDATE SET
+         resource_id = EXCLUDED.resource_id,
+         alias = EXCLUDED.alias`,
+      [stableId('entity-alias', `messages:channel:${record.channel.externalId}`), IDS.workspace,
+        IDS.resources.project, record.channel.alias, normalizeName(record.channel.alias)],
     );
   }
   await ensureRelationshipAssertion(client, {
@@ -384,7 +431,7 @@ async function runSourceSync<T extends KnowledgeSourceRecord>(
   config: {
     sourceId: string;
     sourceName: string;
-    contentType: 'ResearchNote' | 'MeetingNote' | 'Document';
+    contentType: 'ResearchNote' | 'MeetingNote' | 'Document' | 'MessageThread';
     processName: string;
   },
 ) {
@@ -484,5 +531,14 @@ export function runDocumentSync(client: PoolClient, connector: Connector<Documen
     sourceName: 'Northstar Documents',
     contentType: 'Document',
     processName: 'document-semantic-mapper',
+  });
+}
+
+export function runMessageSync(client: PoolClient, connector: Connector<MessageSourceRecord>) {
+  return runSourceSync(client, connector, {
+    sourceId: IDS.sources.messages,
+    sourceName: 'Northstar Messages',
+    contentType: 'MessageThread',
+    processName: 'message-semantic-mapper',
   });
 }

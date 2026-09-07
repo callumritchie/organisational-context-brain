@@ -17,7 +17,7 @@ ContextRequest → ContextResponse
 ```text
 Resource
 ├── Entity: Person, Client, Project, Hypothesis, Evidence
-└── ContentObject: ResearchNote, MeetingNote, Document
+└── ContentObject: ResearchNote, MeetingNote, Document, MessageThread
 ```
 
 Documents are content resources, not duplicate document entities. Graph relationships always connect resource IDs.
@@ -40,7 +40,8 @@ Assertion kinds are `source-backed`, `rule-derived`, and `AI-inferred`.
 
 ```text
 TypeScript fixture
-  → ResearchFixtureConnector, MeetingFixtureConnector, CrmFixtureConnector or DocumentFixtureConnector
+  → ResearchFixtureConnector, MeetingFixtureConnector, CrmFixtureConnector,
+    DocumentFixtureConnector or MessageFixtureConnector
   → SyncRun and immutable SourceObjectVersion
   → semantic mapping
   → canonical content/evidence resources
@@ -56,7 +57,9 @@ TypeScript fixture
 
 Cursor advancement occurs only after mapping succeeds. Replaying an unchanged cursor is idempotent.
 
-CRM account `381`, the `atlas-bank` CRM slug, document folder `fld-atlas-381`, and `/clients/atlas-bank` folder path are stored as traceable identity keys backed by their source-object versions. They resolve to the existing Atlas Bank Resource rather than creating duplicate client or folder entities. The document itself remains a canonical content Resource. The ontology is persisted as an immutable, checksummed version and returned from the actor-scoped context service.
+CRM account `381`, the `atlas-bank` CRM slug, document folder `fld-atlas-381`, and `/clients/atlas-bank` folder path are stored as traceable identity keys backed by their source-object versions. They resolve to the existing Atlas Bank Resource rather than creating duplicate client or folder entities. The document itself remains a canonical content Resource.
+
+Messaging channel `chn-atlas-onboarding` and its `atlas-onboarding` slug resolve to the existing Atlas Onboarding Project. Thread `thr-2026-08-30-synthesis` resolves to a separate `MessageThread` content Resource, avoiding a channel/thread/project identity collapse. The ontology is persisted as an immutable, checksummed version and returned from the actor-scoped context service.
 
 ## Permission boundary
 
@@ -80,4 +83,4 @@ Domain work lives under `src/modules`; the application and API may depend on tho
 
 ## Next milestones
 
-The remainder of Milestone 2 adds ontology editing and a Messages connector. Milestone 3 adds graph-assisted ranking, provider-semantic retrieval, and first-class signals. Milestone 4 expands the complete permission matrix. Milestone 5 adds the contradiction through the normal research connector. Milestone 6 adds optional AI synthesis over the authorised context packet.
+The remaining Milestone 2 item is ontology editing. Milestone 3 adds graph-assisted ranking, provider-semantic retrieval, and first-class signals. Milestone 4 expands the complete permission matrix. Milestone 5 adds the contradiction through the normal research connector. Milestone 6 adds optional AI synthesis over the authorised context packet.

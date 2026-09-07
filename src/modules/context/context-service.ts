@@ -307,7 +307,7 @@ export async function assembleContext(
     ]);
     const trace = [
       { stage: 'Query', detail: aliases.length
-        ? `Resolved “${aliases[0].matchedAlias}” to Atlas Bank, plus Atlas Onboarding and the active hypothesis.`
+        ? `Resolved “${aliases[0].matchedAlias}” to ${aliases[0].name}, plus the active project and hypothesis context.`
         : 'Detected Atlas Bank, Atlas Onboarding and the active abandonment hypothesis.', count: interpreted.entities.length },
       { stage: 'Actor & security scope', detail: `Workspace verified; user and group ACLs applied. ${eligible.rows[0]?.count ?? 0} resources eligible.`, count: Number(eligible.rows[0]?.count ?? 0) },
       { stage: 'Retrieval', detail: `${rows.length} permitted lexical candidates. Inaccessible candidates never entered the pipeline.`, count: rows.length },

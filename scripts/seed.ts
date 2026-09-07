@@ -3,8 +3,9 @@ import { getIngestionPool, getOwnerPool } from '@/src/db/pool';
 import { MeetingFixtureConnector } from '@/src/modules/connectors/meeting-fixture-connector';
 import { CrmFixtureConnector } from '@/src/modules/connectors/crm-fixture-connector';
 import { DocumentFixtureConnector } from '@/src/modules/connectors/document-fixture-connector';
+import { MessageFixtureConnector } from '@/src/modules/connectors/message-fixture-connector';
 import { ResearchFixtureConnector } from '@/src/modules/connectors/research-fixture-connector';
-import { runDocumentSync, runMeetingSync, runResearchSync, seedIdentityAndScopes } from '@/src/modules/sync/research-sync';
+import { runDocumentSync, runMeetingSync, runMessageSync, runResearchSync, seedIdentityAndScopes } from '@/src/modules/sync/research-sync';
 import { IDS } from '@/src/modules/canonical/ids';
 import { storeCurrentOntology } from '@/src/modules/ontology/ontology-repository';
 import { runCrmSync } from '@/src/modules/sync/crm-sync';
@@ -42,9 +43,10 @@ try {
   const meetings = await runMeetingSync(ingestionClient, new MeetingFixtureConnector());
   const crm = await runCrmSync(ingestionClient, new CrmFixtureConnector());
   const documents = await runDocumentSync(ingestionClient, new DocumentFixtureConnector());
+  const messages = await runMessageSync(ingestionClient, new MessageFixtureConnector());
   await storeCurrentOntology(ingestionClient);
   await ingestionClient.query('COMMIT');
-  console.log(`Seeded Northstar Labs: ${research.changed} research, ${meetings.changed} meeting, ${crm.changed} CRM, and ${documents.changed} document records ingested via connectors.`);
+  console.log(`Seeded Northstar Labs: ${research.changed} research, ${meetings.changed} meeting, ${crm.changed} CRM, ${documents.changed} document, and ${messages.changed} message records ingested via connectors.`);
 } catch (error) {
   await ingestionClient.query('ROLLBACK');
   throw error;

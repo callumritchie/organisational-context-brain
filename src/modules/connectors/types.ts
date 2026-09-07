@@ -34,6 +34,17 @@ export interface DocumentSourceRecord extends Omit<ResearchSourceRecord, 'uri'> 
   };
 }
 
+export interface MessageSourceRecord extends Omit<ResearchSourceRecord, 'uri'> {
+  uri: `messages://${string}`;
+  channel: {
+    externalId: string;
+    slug: string;
+    alias: string;
+  };
+  threadExternalId: string;
+  participants: Array<'Alex Chen' | 'Jamie Patel'>;
+}
+
 export interface CrmAccountRecord {
   externalId: 'account-381';
   uri: `crm://${string}`;
@@ -46,7 +57,11 @@ export interface CrmAccountRecord {
   sourceKeys: Array<{ type: 'account-id' | 'account-slug'; value: string }>;
 }
 
-export type KnowledgeSourceRecord = ResearchSourceRecord | MeetingSourceRecord | DocumentSourceRecord;
+export type KnowledgeSourceRecord =
+  | ResearchSourceRecord
+  | MeetingSourceRecord
+  | DocumentSourceRecord
+  | MessageSourceRecord;
 
 export interface ChangePage<T> {
   records: T[];
