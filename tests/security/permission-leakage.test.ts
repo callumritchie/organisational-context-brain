@@ -36,6 +36,37 @@ describe('permission leakage', () => {
     }
   });
 
+  it('forces row-level security on stored embeddings', async () => {
+    const owner = new Pool({ connectionString: process.env.DATABASE_URL_OWNER });
+    try {
+      const result = await owner.query<{
+        relrowsecurity: boolean;
+        relforcerowsecurity: boolean;
+        app_owns_table: boolean;
+        actor_policy: boolean;
+      }>(
+        `SELECT embedding_table.relrowsecurity,
+          embedding_table.relforcerowsecurity,
+          pg_get_userbyid(embedding_table.relowner) = 'org_brain_app' AS app_owns_table,
+          EXISTS (
+            SELECT 1 FROM pg_policies policy
+            WHERE policy.tablename = 'search_embeddings'
+              AND policy.policyname = 'search_embeddings_actor_select'
+          ) AS actor_policy
+         FROM pg_class embedding_table
+         WHERE embedding_table.relname = 'search_embeddings'`,
+      );
+      expect(result.rows[0]).toEqual({
+        relrowsecurity: true,
+        relforcerowsecurity: true,
+        app_owns_table: false,
+        actor_policy: true,
+      });
+    } finally {
+      await owner.end();
+    }
+  });
+
   it('never allows Morgan restricted evidence or side-channel metadata', async () => {
     const context = await assembleContext(
       { id: IDS.users.morgan, workspaceId: IDS.workspace, name: 'Morgan Reed', role: 'External Contractor' },
@@ -45,7 +76,7 @@ describe('permission leakage', () => {
     expect(context.evidence).toHaveLength(3);
     for (const marker of restrictedMarkers) expect(serialized).not.toContain(marker);
     expect(context.trace.find((stage) => stage.stage === 'Retrieval')?.detail)
-      .toBe('3 permitted lexical candidates. Inaccessible candidates never entered the pipeline.');
+      .toBe('3 permitted lexical candidates. Semantic retrieval is disabled; inaccessible candidates never entered the pipeline.');
     for (const marker of restrictedMarkers) expect(JSON.stringify(context.graph)).not.toContain(marker);
   });
 

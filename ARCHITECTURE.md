@@ -49,9 +49,11 @@ TypeScript fixture
   → provenance span and ACL scope
   → PostgreSQL tsvector representation
   → actor-scoped alias/source-key resolution and lexical retrieval
+  → optional genuine provider query embedding + exact pgvector retrieval
+  → reciprocal-rank fusion (or explicit lexical-only fallback)
   → bounded actor-visible graph expansion
   → signal snapshot join + actor-visible graph feature
-  → demo-ranking-v2
+  → demo-ranking-v3
   → ContextResponse
   → Ask view and Brain Inspector
 ```
@@ -74,11 +76,11 @@ The application role does not own protected tables and has `NOBYPASSRLS`. With n
 
 ## Retrieval and ranking
 
-The current slice intentionally implements lexical, structured query interpretation, alias resolution, and permission-constrained graph expansion only. It does not mislabel deterministic test vectors as semantic embeddings.
+The application always supports lexical retrieval. When `EMBEDDING_PROVIDER=openai` and a server-side key are configured, an explicit indexing command stores genuine 1,536-dimensional provider vectors with provider, model, content hash, Resource and access-scope provenance. Query-time exact pgvector similarity and lexical ranks are combined by reciprocal-rank fusion. Provider failure or an empty index degrades to an explicitly reported lexical-only path; offline mode never creates placeholder embeddings.
 
 `signal_observations` retains traceable point-in-time measurements for authority, freshness, engagement, affinity, and epistemic confidence. `signal_snapshots` materialises the current values used during retrieval. Both carry the evidence Resource’s access scope, use forced RLS, and are filtered before entering application memory.
 
-`demo-ranking-v2` reranks a bounded lexical candidate pool using those five snapshot signals, assertion confidence, and an actor-visible graph-connectivity feature. Every raw signal and weighted contribution is returned. These weights are illustrative; tests verify expected fixture ordering and graph influence rather than optimisation claims. Provider embeddings and reciprocal-rank fusion remain deferred until a genuine provider is configured.
+`demo-ranking-v3` reranks the fused candidate pool using retrieval fusion, those five snapshot signals, assertion confidence, and an actor-visible graph-connectivity feature. Every rank, raw signal and weighted contribution is returned. These weights are illustrative; tests verify expected ordering and graph influence rather than optimisation claims.
 
 ## Brain Inspector
 
@@ -90,4 +92,4 @@ Domain work lives under `src/modules`; the application and API may depend on tho
 
 ## Next milestones
 
-Milestone 2 is complete. Milestone 3 now has first-class signals and graph-assisted ranking; its remaining work is genuine provider-semantic retrieval, reciprocal-rank fusion, and broader signal producers. Milestone 4 expands the complete permission matrix. Milestone 5 adds the contradiction through the normal research connector. Milestone 6 adds optional AI synthesis over the authorised context packet.
+Milestone 2 is complete. Milestone 3 now has first-class signals, optional genuine embeddings, exact vector retrieval, reciprocal-rank fusion and graph-assisted ranking; its remaining work is broader signal production and evaluation. Milestone 4 expands the complete permission matrix. Milestone 5 adds the contradiction through the normal research connector. Milestone 6 adds optional AI synthesis over the authorised context packet.

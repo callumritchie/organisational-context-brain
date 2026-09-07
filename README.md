@@ -8,7 +8,7 @@ This project explores a different model: a shared organisational context layer t
 Sources → Canonical resources + assertions → Permissioned retrieval → Context API → Consumers
 ```
 
-The completed Milestone 2 foundation and first Milestone 3 slice are intentionally small but real. Independent research, meeting, CRM, document, and message connectors ingest Northstar Labs knowledge about Atlas Bank, store immutable source versions, resolve aliases and source identity keys to canonical resources, create assertion-level provenance, apply forced PostgreSQL row-level security, retrieve lexical evidence, expand a permission-safe resource graph, and expose the result through `POST /api/v1/context` and an evidence-first interface. The same response includes connector health, an editable checksummed ontology, first-class signal snapshots, and transparent graph-assisted ranking.
+The completed Milestone 2 foundation and current Milestone 3 slices are intentionally small but real. Independent research, meeting, CRM, document, and message connectors ingest Northstar Labs knowledge about Atlas Bank, store immutable source versions, resolve aliases and source identity keys to canonical resources, create assertion-level provenance, apply forced PostgreSQL row-level security, retrieve evidence, expand a permission-safe resource graph, and expose the result through `POST /api/v1/context` and an evidence-first interface. The same response includes connector health, an editable checksummed ontology, first-class signal snapshots, and transparent hybrid ranking.
 
 No LLM or API key is required.
 
@@ -37,17 +37,19 @@ npm run test
 npm run build
 ```
 
+Optional genuine semantic retrieval uses the OpenAI embeddings endpoint documented by [OpenAI](https://developers.openai.com/api/reference/resources/embeddings/methods/create). Put a real key only in ignored `.env.local`, set `EMBEDDING_PROVIDER=openai`, then run `npm run embeddings:sync`. With no provider or key, the app remains explicitly lexical-only; it never fabricates offline vectors.
+
 ## What to try
 
 Ask the preset Atlas Onboarding question as Alex Chen, then switch to Morgan Reed. Alex receives four evidence items across Research and Meetings; Morgan receives the three public items. The internal operations note never enters Morgan’s response, graph, or trace. Try replacing “Atlas Bank” with `Atlas`, `atlas-bank`, `CRM account 381`, or `Atlas client folder` to see the same canonical client and its source identity keys. Ask about `Atlas onboarding channel` to resolve the messaging channel to the canonical project while retaining its thread as a separate content resource.
 
 In the Ontology section, use Alex Chen to add the prepared `COLLABORATES_WITH` rule. The editor validates its endpoints, publishes `northstar-ontology-v2`, records Alex as publisher, and preserves v1 as superseded. Jamie and Morgan cannot publish. Run `npm run demo:setup` to restore the original fixture state.
 
-The ranking is named `demo-ranking-v2`. It exposes lexical relevance, authority, assertion confidence, freshness, engagement, affinity, epistemic confidence, and permission-filtered graph connectivity. The weights and synthetic signal fixtures are illustrative and have not been empirically optimised.
+The ranking is named `demo-ranking-v3`. Its retrieval contribution uses reciprocal-rank fusion when genuine vectors are available, then combines authority, assertion confidence, freshness, engagement, affinity, epistemic confidence, and permission-filtered graph connectivity. Every contribution and retrieval rank is exposed. The weights and synthetic signal fixtures are illustrative and have not been empirically optimised.
 
 ## Current scope
 
-Completed: Milestones 0, 1 and 2, plus the first Milestone 3 slice. This includes source identity resolution, five connectors, governed ontology editing, a focused graph UI, permission-scoped signal observations and snapshots, and `demo-ranking-v2` with a graph-connectivity contribution. Deliberately deferred: provider embeddings and fusion, broader signal producers, the complete permission matrix, the contradiction ingestion scenario, and provider-backed AI synthesis.
+Completed: Milestones 0, 1 and 2, plus the graph/signals and hybrid-retrieval foundations of Milestone 3. This includes source identity resolution, five connectors, governed ontology editing, a focused graph UI, permission-scoped signal observations and snapshots, optional genuine provider embeddings, exact pgvector retrieval, and reciprocal-rank fusion in `demo-ranking-v3`. Deliberately deferred: a populated semantic index until a provider key is supplied, broader signal producers, approximate vector indexing at scale, the complete permission matrix, the contradiction ingestion scenario, and provider-backed AI synthesis.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md), [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md), and [docs/permissions.md](./docs/permissions.md).
 

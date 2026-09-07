@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { DEMO_RANKING_V2, scoreCandidate } from '@/src/modules/ranking/demo-ranking-v2';
+import { DEMO_RANKING_V3, scoreCandidate } from '@/src/modules/ranking/demo-ranking-v3';
 
-describe('demo-ranking-v2', () => {
+describe('demo-ranking-v3', () => {
   const shared = {
-    lexical: 0.7,
+    retrievalFusion: 0.7,
     authority: 0.8,
     confidence: 0.9,
     freshness: 0.7,
@@ -14,13 +14,13 @@ describe('demo-ranking-v2', () => {
   };
 
   it('exposes every signal and graph contribution', () => {
-    const score = scoreCandidate({ ...shared, lexical: 1 });
+    const score = scoreCandidate({ ...shared, retrievalFusion: 1 });
     expect(Object.keys(score.contributions)).toEqual([
-      'lexical', 'authority', 'confidence', 'freshness', 'engagement', 'affinity',
+      'retrievalFusion', 'authority', 'confidence', 'freshness', 'engagement', 'affinity',
       'epistemicConfidence', 'graphConnectivity',
     ]);
     expect(score.total).toBeCloseTo(0.902);
-    expect(DEMO_RANKING_V2.description).toContain('not claimed as empirically optimised');
+    expect(DEMO_RANKING_V3.description).toContain('not claimed as empirically optimised');
   });
 
   it('ranks an otherwise equal higher-authority item above a lower-authority item', () => {

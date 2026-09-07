@@ -1,8 +1,8 @@
-export const DEMO_RANKING_V2 = {
-  id: 'demo-ranking-v2',
-  description: 'Illustrative signal-and-graph weights; expected ordering is tested, not claimed as empirically optimised.',
+export const DEMO_RANKING_V3 = {
+  id: 'demo-ranking-v3',
+  description: 'Illustrative hybrid-retrieval, signal and graph weights; expected ordering is tested, not claimed as empirically optimised.',
   weights: {
-    lexical: 0.5,
+    retrievalFusion: 0.5,
     authority: 0.12,
     confidence: 0.1,
     freshness: 0.08,
@@ -13,13 +13,13 @@ export const DEMO_RANKING_V2 = {
   },
 } as const;
 
-export type RankingFactor = keyof typeof DEMO_RANKING_V2.weights;
+export type RankingFactor = keyof typeof DEMO_RANKING_V3.weights;
 
 export function scoreCandidate(input: Record<RankingFactor, number>) {
   const contributions = Object.fromEntries(
-    (Object.keys(DEMO_RANKING_V2.weights) as RankingFactor[]).map((factor) => [
+    (Object.keys(DEMO_RANKING_V3.weights) as RankingFactor[]).map((factor) => [
       factor,
-      input[factor] * DEMO_RANKING_V2.weights[factor],
+      input[factor] * DEMO_RANKING_V3.weights[factor],
     ]),
   ) as Record<RankingFactor, number>;
   return {

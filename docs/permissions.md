@@ -17,6 +17,8 @@ Source identity keys are visible only when their canonical Resource is visible, 
 
 Signal observations and snapshots carry an access scope and Resource reference. Forced RLS requires both to be actor-visible before a signal can join retrieval. Graph-connectivity scoring queries the already-filtered relationships table, so inaccessible edges cannot contribute to a score or appear as a side channel.
 
+Stored embeddings also carry both access scope and canonical Resource identity. Forced RLS filters the vector table before exact similarity ranking, so inaccessible vectors cannot become candidates or affect reciprocal ranks. Query text leaves the local machine only when an embedding provider and key are explicitly configured.
+
 For a future derived content Resource synthesised from several inputs, its base scope will conservatively allow only actors who can read every input actually used. This rule applies to that derived Resource; it does not retroactively restrict the canonical entities it mentions.
 
 ## Actor transaction

@@ -12,11 +12,11 @@ import { Input } from '@/components/ui/input';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { PERSONAS } from '@/src/modules/canonical/ids';
 import type { ContextEvidence, ContextResponse } from '@/src/modules/context/types';
-import { DEMO_RANKING_V2, type RankingFactor } from '@/src/modules/ranking/demo-ranking-v2';
+import { DEMO_RANKING_V3, type RankingFactor } from '@/src/modules/ranking/demo-ranking-v3';
 
 const PRESET = "What do we currently know about why users abandon Atlas Bank's onboarding journey?";
 const EMPTY_GRAPH: ContextResponse['graph'] = { nodes: [], edges: [] };
-const RANKING_FACTORS = Object.keys(DEMO_RANKING_V2.weights) as RankingFactor[];
+const RANKING_FACTORS = Object.keys(DEMO_RANKING_V3.weights) as RankingFactor[];
 
 function percentage(value: number) { return `${Math.round(value * 100)}%`; }
 function factorLabel(factor: RankingFactor) {
@@ -36,6 +36,7 @@ function EvidenceCard({ item, index }: { item: ContextEvidence; index: number })
           <span className="signal-pill">{Math.round(item.confidence * 100)}% confidence</span>
           <span className="signal-pill">{item.provenance.assertionKind}</span>
           <span className="signal-pill">{item.signals.snapshotVersion}</span>
+          <span className="signal-pill">{item.retrieval.semanticRank ? 'hybrid match' : 'lexical match'}</span>
         </div>
         <h3>{item.title}</h3>
         <p className="mt-2 leading-6 text-[var(--muted-foreground)]">{item.summary}</p>
@@ -57,7 +58,7 @@ function EvidenceCard({ item, index }: { item: ContextEvidence; index: number })
           {RANKING_FACTORS.map((factor) => (
             <div key={factor} className="ranking-factor">
               <span>{factorLabel(factor)}</span>
-              <div><i style={{ width: percentage(item.ranking[factor] / DEMO_RANKING_V2.weights[factor]) }} /></div>
+              <div><i style={{ width: percentage(item.ranking[factor] / DEMO_RANKING_V3.weights[factor]) }} /></div>
               <strong>+{item.ranking[factor].toFixed(2)}</strong>
             </div>
           ))}
@@ -408,7 +409,7 @@ export function BrainApp() {
                 <section id="evidence" className="section-block">
                   <div className="section-heading">
                     <div><span className="eyebrow">Selected context</span><h2>Evidence</h2></div>
-                    <span>{result.evidence.length} permitted results · ranked by {result.rankingVersion}</span>
+                    <span>{result.evidence.length} permitted results · {result.retrieval.mode} · ranked by {result.rankingVersion}</span>
                   </div>
                   <div className="evidence-list">
                     {result.evidence.map((item, index) => <EvidenceCard key={item.id} item={item} index={index} />)}

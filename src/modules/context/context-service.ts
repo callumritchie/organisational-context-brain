@@ -3,7 +3,9 @@ import type { PoolClient } from 'pg';
 import { withActorTransaction } from '@/src/db/actor-transaction';
 import { IDS } from '@/src/modules/canonical/ids';
 import { understandQuery } from '@/src/modules/search/query-understanding';
-import { DEMO_RANKING_V2, scoreCandidate } from '@/src/modules/ranking/demo-ranking-v2';
+import { getConfiguredEmbeddingProvider } from '@/src/modules/embeddings/embedding-provider';
+import { DEMO_RANKING_V3, scoreCandidate } from '@/src/modules/ranking/demo-ranking-v3';
+import { reciprocalRankFusion } from '@/src/modules/search/reciprocal-rank-fusion';
 import type { ContextEvidence, ContextRequest, ContextResponse } from './types';
 
 interface CandidateRow {
@@ -22,6 +24,9 @@ interface CandidateRow {
   source_updated_at: Date;
   excerpt: string;
   lexical_score: number;
+  lexical_rank: string | null;
+  semantic_score: number | null;
+  semantic_rank: string | null;
   authority: number;
   freshness: number;
   engagement: number;
@@ -31,9 +36,44 @@ interface CandidateRow {
   signal_snapshot_version: string;
 }
 
-async function retrieve(client: PoolClient, tsQuery: string, maxEvidence: number) {
+async function retrieve(
+  client: PoolClient,
+  tsQuery: string,
+  maxEvidence: number,
+  semantic: { vector: string; provider: string; model: string } | null,
+) {
   const result = await client.query<CandidateRow>(
-    `WITH query AS (SELECT to_tsquery('english', $1) AS value), candidates AS (
+    `WITH query AS (SELECT to_tsquery('english', $1) AS value),
+    lexical_ranked AS (
+      SELECT ranked.id, ranked.lexical_score,
+        row_number() OVER (ORDER BY ranked.lexical_score DESC, ranked.id) AS lexical_rank
+      FROM (
+        SELECT document.id, ts_rank_cd(document.search_vector, query.value, 32) AS lexical_score
+        FROM search_documents document CROSS JOIN query
+        WHERE document.active AND document.search_vector @@ query.value
+        ORDER BY lexical_score DESC, document.id
+        LIMIT $2
+      ) ranked
+    ),
+    semantic_ranked AS (
+      SELECT ranked.id, ranked.semantic_score,
+        row_number() OVER (ORDER BY ranked.semantic_score DESC, ranked.id) AS semantic_rank
+      FROM (
+        SELECT document.id, 1 - (embedding.embedding <=> ($5::text)::vector) AS semantic_score
+        FROM search_embeddings embedding
+        JOIN search_documents document ON document.id = embedding.search_document_id
+        WHERE $5::text IS NOT NULL
+          AND document.active AND embedding.is_current
+          AND embedding.provider = $6 AND embedding.model = $7
+        ORDER BY embedding.embedding <=> ($5::text)::vector, document.id
+        LIMIT $2
+      ) ranked
+    ),
+    candidate_documents AS (
+      SELECT id FROM lexical_ranked
+      UNION
+      SELECT id FROM semantic_ranked
+    ), candidates AS (
       SELECT evidence.id AS evidence_id,
         evidence.canonical_name AS evidence_title,
         evidence.summary AS evidence_summary,
@@ -48,7 +88,10 @@ async function retrieve(client: PoolClient, tsQuery: string, maxEvidence: number
         source_system.source_type,
         source_object.source_updated_at,
         provenance.excerpt,
-        ts_rank_cd(document.search_vector, query.value, 32) AS lexical_score,
+        COALESCE(lexical.lexical_score, 0) AS lexical_score,
+        lexical.lexical_rank,
+        semantic.semantic_score,
+        semantic.semantic_rank,
         COALESCE(signal.authority, document.authority) AS authority,
         COALESCE(signal.freshness,
           greatest(0, 1 - extract(epoch FROM (now() - document.source_updated_at)) / 15552000)) AS freshness,
@@ -64,7 +107,9 @@ async function retrieve(client: PoolClient, tsQuery: string, maxEvidence: number
         ) THEN 1 ELSE 0 END AS graph_connectivity,
         COALESCE(signal.model_version, 'fallback-document-signals') AS signal_snapshot_version
       FROM search_documents document
-      CROSS JOIN query
+      JOIN candidate_documents candidate ON candidate.id = document.id
+      LEFT JOIN lexical_ranked lexical ON lexical.id = document.id
+      LEFT JOIN semantic_ranked semantic ON semantic.id = document.id
       JOIN resources evidence ON evidence.id = document.resource_id
       JOIN assertions assertion_row ON assertion_row.id = document.assertion_id
       JOIN provenance_spans provenance ON provenance.assertion_id = assertion_row.id
@@ -74,11 +119,20 @@ async function retrieve(client: PoolClient, tsQuery: string, maxEvidence: number
       JOIN content_versions content_version ON content_version.id = document.content_version_id
       JOIN resources source_content ON source_content.id = content_version.content_resource_id
       LEFT JOIN signal_snapshots signal ON signal.resource_id = evidence.id AND signal.is_current
-      WHERE document.search_vector @@ query.value
-        AND assertion_row.predicate IN ('SUPPORTS', 'CONTRADICTS')
+      WHERE assertion_row.predicate IN ('SUPPORTS', 'CONTRADICTS')
     )
-    SELECT * FROM candidates ORDER BY lexical_score DESC, authority DESC LIMIT $2`,
-    [tsQuery, maxEvidence, IDS.resources.project, IDS.resources.hypothesis],
+    SELECT * FROM candidates
+    ORDER BY COALESCE(lexical_rank, 2147483647), COALESCE(semantic_rank, 2147483647), authority DESC
+    LIMIT $2`,
+    [
+      tsQuery,
+      maxEvidence,
+      IDS.resources.project,
+      IDS.resources.hypothesis,
+      semantic?.vector ?? null,
+      semantic?.provider ?? null,
+      semantic?.model ?? null,
+    ],
   );
   return result.rows;
 }
@@ -251,11 +305,6 @@ async function buildGraph(client: PoolClient, evidenceIds: string[]) {
   };
 }
 
-function normaliseLexical(rows: CandidateRow[], value: number) {
-  const maximum = Math.max(...rows.map((row) => row.lexical_score), 0.0001);
-  return value / maximum;
-}
-
 function deterministicSummary(evidence: ContextEvidence[]) {
   const supporting = evidence.filter((item) => item.stance === 'SUPPORTS');
   const contradicting = evidence.filter((item) => item.stance === 'CONTRADICTS');
@@ -273,6 +322,22 @@ export async function assembleContext(
   request: ContextRequest,
 ): Promise<ContextResponse> {
   const parsedQuery = understandQuery(request.query);
+  const embeddingProvider = getConfiguredEmbeddingProvider();
+  let semanticQuery: { vector: string; provider: string; model: string } | null = null;
+  let embeddingStatus: ContextResponse['retrieval']['embeddingStatus'] = embeddingProvider ? 'provider-error' : 'disabled';
+  if (embeddingProvider) {
+    try {
+      const [embedding] = await embeddingProvider.embed([request.query]);
+      semanticQuery = {
+        vector: `[${embedding!.join(',')}]`,
+        provider: embeddingProvider.id,
+        model: embeddingProvider.model,
+      };
+      embeddingStatus = 'ready';
+    } catch {
+      semanticQuery = null;
+    }
+  }
   return withActorTransaction({ actorId: actor.id, workspaceId: actor.workspaceId }, async (client) => {
     const aliases = await resolveAliases(client, request.query);
     const interpreted = understandQuery(request.query, aliases);
@@ -280,17 +345,23 @@ export async function assembleContext(
     await client.query(
       `INSERT INTO query_traces (id, workspace_id, actor_id, query_text, ranking_version)
        VALUES ($1, $2, $3, $4, $5)`,
-      [traceId, actor.workspaceId, actor.id, request.query, DEMO_RANKING_V2.id],
+      [traceId, actor.workspaceId, actor.id, request.query, DEMO_RANKING_V3.id],
     );
     const eligible = await client.query<{ count: string }>(
       `SELECT count(*)::text AS count FROM resources WHERE workspace_id = $1`,
       [actor.workspaceId],
     );
-    const rows = await retrieve(client, parsedQuery.tsQuery, Math.min(request.maxEvidence * 4, 40));
+    const rows = await retrieve(client, parsedQuery.tsQuery, Math.min(request.maxEvidence * 4, 40), semanticQuery);
+    const semanticAvailable = rows.some((row) => row.semantic_rank !== null);
+    if (embeddingStatus === 'ready' && !semanticAvailable) embeddingStatus = 'index-empty';
     const evidence = rows
       .map((row): ContextEvidence => {
+        const fusion = reciprocalRankFusion({
+          lexical: row.lexical_rank ? Number(row.lexical_rank) : null,
+          semantic: row.semantic_rank ? Number(row.semantic_rank) : null,
+        }, semanticAvailable);
         const ranking = scoreCandidate({
-          lexical: normaliseLexical(rows, row.lexical_score),
+          retrievalFusion: fusion.score,
           authority: row.authority,
           confidence: row.confidence,
           freshness: Number(row.freshness),
@@ -327,6 +398,13 @@ export async function assembleContext(
             graphConnectivity: row.graph_connectivity,
             snapshotVersion: row.signal_snapshot_version,
           },
+          retrieval: {
+            lexicalRank: row.lexical_rank ? Number(row.lexical_rank) : null,
+            semanticRank: row.semantic_rank ? Number(row.semantic_rank) : null,
+            lexicalReciprocalRank: fusion.lexical,
+            semanticReciprocalRank: fusion.semantic,
+            fusedScore: fusion.score,
+          },
           ranking: { ...ranking.contributions, total: ranking.total },
         };
       })
@@ -342,8 +420,10 @@ export async function assembleContext(
         ? `Resolved “${aliases[0].matchedAlias}” to ${aliases[0].name}, plus the active project and hypothesis context.`
         : 'Detected Atlas Bank, Atlas Onboarding and the active abandonment hypothesis.', count: interpreted.entities.length },
       { stage: 'Actor & security scope', detail: `Workspace verified; user and group ACLs applied. ${eligible.rows[0]?.count ?? 0} resources eligible.`, count: Number(eligible.rows[0]?.count ?? 0) },
-      { stage: 'Retrieval', detail: `${rows.length} permitted lexical candidates. Inaccessible candidates never entered the pipeline.`, count: rows.length },
-      { stage: 'Ranking', detail: `${DEMO_RANKING_V2.id} exposed lexical, five snapshot signals and permission-filtered graph connectivity.`, count: evidence.length },
+      { stage: 'Retrieval', detail: semanticAvailable
+        ? `${rows.length} permitted candidates fused from lexical and genuine ${embeddingProvider!.model} vector ranks. Inaccessible candidates never entered the pipeline.`
+        : `${rows.length} permitted lexical candidates. Semantic retrieval is ${embeddingStatus}; inaccessible candidates never entered the pipeline.`, count: rows.length },
+      { stage: 'Ranking', detail: `${DEMO_RANKING_V3.id} exposed reciprocal-rank fusion, five snapshot signals and permission-filtered graph connectivity.`, count: evidence.length },
       { stage: 'Graph expansion', detail: `${graph.edges.length} actor-visible edges connect selected evidence across sources.`, count: graph.edges.length },
       { stage: 'Context selection', detail: `${evidence.length} evidence items selected within the requested budget.`, count: evidence.length },
     ];
@@ -370,7 +450,13 @@ export async function assembleContext(
       sourceSystems,
       ontology,
       trace,
-      rankingVersion: DEMO_RANKING_V2.id,
+      rankingVersion: DEMO_RANKING_V3.id,
+      retrieval: {
+        mode: semanticAvailable ? 'hybrid' : 'lexical-only',
+        embeddingStatus,
+        provider: embeddingProvider?.id ?? null,
+        model: embeddingProvider?.model ?? null,
+      },
       generatedBy: 'deterministic-extractive',
     };
   });

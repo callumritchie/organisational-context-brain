@@ -19,7 +19,7 @@ const ownerClient = await ownerPool.connect();
 try {
   await ownerClient.query('BEGIN');
   await ownerClient.query(`TRUNCATE TABLE
-    trace_stages, query_traces, signal_snapshots, signal_observations, search_documents,
+    trace_stages, query_traces, search_embeddings, signal_snapshots, signal_observations, search_documents,
     provenance_spans, assertions, relationships,
     resource_identity_keys, ontology_versions,
     entity_aliases, content_objects, content_versions, entities, resources, source_object_versions, source_objects,

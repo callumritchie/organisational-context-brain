@@ -8,6 +8,7 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  vector,
 } from 'drizzle-orm/pg-core';
 
 const timestamps = {
@@ -235,6 +236,21 @@ export const searchDocuments = pgTable('search_documents', {
   confidence: real('confidence').notNull().default(0.5),
   sourceUpdatedAt: timestamp('source_updated_at', { withTimezone: true }).notNull(),
   active: boolean('active').notNull().default(true),
+});
+
+export const searchEmbeddings = pgTable('search_embeddings', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
+  accessScopeId: uuid('access_scope_id').notNull().references(() => accessScopes.id),
+  searchDocumentId: uuid('search_document_id').notNull().references(() => searchDocuments.id),
+  resourceId: uuid('resource_id').notNull().references(() => resources.id),
+  provider: text('provider').notNull(),
+  model: text('model').notNull(),
+  dimensions: integer('dimensions').notNull(),
+  contentHash: text('content_hash').notNull(),
+  embedding: vector('embedding', { dimensions: 1536 }).notNull(),
+  isCurrent: boolean('is_current').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const signalObservations = pgTable('signal_observations', {

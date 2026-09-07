@@ -19,6 +19,7 @@
     "test:e2e": "playwright test",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
+    "embeddings:sync": "tsx scripts/sync-embeddings.ts",
     "demo:setup": "npm run db:migrate && npm run db:seed"
   },
   "dependencies": {

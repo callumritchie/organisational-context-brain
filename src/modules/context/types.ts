@@ -8,7 +8,7 @@ export const contextRequestSchema = z.object({
 export type ContextRequest = z.infer<typeof contextRequestSchema>;
 
 export interface RankingExplanation {
-  lexical: number;
+  retrievalFusion: number;
   authority: number;
   confidence: number;
   freshness: number;
@@ -49,6 +49,13 @@ export interface ContextEvidence {
     processVersion: string;
   };
   signals: EvidenceSignals;
+  retrieval: {
+    lexicalRank: number | null;
+    semanticRank: number | null;
+    lexicalReciprocalRank: number;
+    semanticReciprocalRank: number;
+    fusedScore: number;
+  };
   ranking: RankingExplanation;
 }
 
@@ -97,5 +104,11 @@ export interface ContextResponse {
   };
   trace: Array<{ stage: string; detail: string; count?: number }>;
   rankingVersion: string;
+  retrieval: {
+    mode: 'lexical-only' | 'hybrid';
+    embeddingStatus: 'disabled' | 'ready' | 'provider-error' | 'index-empty';
+    provider: string | null;
+    model: string | null;
+  };
   generatedBy: 'deterministic-extractive';
 }
