@@ -88,6 +88,11 @@ export interface ContextResponse {
     }>;
   };
   sources: Array<{ title: string; uri: string; updatedAt: string }>;
+  accessProfile: {
+    clients: string[];
+    projects: string[];
+    sourceObjects: number;
+  };
   sourceSystems: Array<{
     id: string;
     name: string;

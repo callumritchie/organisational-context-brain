@@ -402,6 +402,15 @@ export function BrainApp() {
                   ))}
                 </section>
 
+                <section className="access-lens" aria-label="Current persona access profile">
+                  <div><ShieldCheck /><span><strong>{result.actor.name}’s visible scope</strong><small>Database-enforced before retrieval</small></span></div>
+                  <dl>
+                    <div><dt>Clients</dt><dd>{result.accessProfile.clients.join(', ')}</dd></div>
+                    <div><dt>Projects</dt><dd>{result.accessProfile.projects.join(', ')}</dd></div>
+                    <div><dt>Source items</dt><dd>{result.accessProfile.sourceObjects}</dd></div>
+                  </dl>
+                </section>
+
                 {result.sourceSystems ? <SourceSystems systems={result.sourceSystems} /> : null}
 
                 <ContextGraph graph={result.graph ?? EMPTY_GRAPH} />

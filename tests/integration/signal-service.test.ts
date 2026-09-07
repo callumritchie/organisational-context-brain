@@ -9,7 +9,7 @@ describe('first-class ranking signals', () => {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      await client.query("SELECT set_config('app.actor_id', $1, true)", [IDS.users.jamie]);
+      await client.query("SELECT set_config('app.actor_id', $1, true)", [IDS.users.ingestion]);
       await client.query("SELECT set_config('app.workspace_id', $1, true)", [IDS.workspace]);
       const result = await seedInitialSignals(client);
       const observations = await client.query<{ count: string }>(
@@ -22,9 +22,9 @@ describe('first-class ranking signals', () => {
         'SELECT count(*)::text AS count FROM signal_observations WHERE source_object_version_id IS NULL',
       );
       await client.query('COMMIT');
-      expect(result).toEqual({ observations: 20, snapshots: 4 });
-      expect(observations.rows[0]?.count).toBe('20');
-      expect(snapshots.rows[0]?.count).toBe('4');
+      expect(result).toEqual({ observations: 30, snapshots: 6 });
+      expect(observations.rows[0]?.count).toBe('30');
+      expect(snapshots.rows[0]?.count).toBe('6');
       expect(untraceable.rows[0]?.count).toBe('0');
     } catch (error) {
       await client.query('ROLLBACK');

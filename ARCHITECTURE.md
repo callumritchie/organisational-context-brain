@@ -74,6 +74,8 @@ Permission-sensitive work must use `withActorTransaction`. It obtains a real `pg
 
 The application role does not own protected tables and has `NOBYPASSRLS`. With no actor transaction, protected queries return no rows. Connector writes use the separate non-owning `org_brain_ingest` role with workspace-scoped policies. Protected tables use `FORCE ROW LEVEL SECURITY`. See [docs/permissions.md](./docs/permissions.md).
 
+The fixture includes four scopes: workspace-wide, internal delivery team, Alex-only and Jamie-only. A non-login Sync Service user has explicit manage grants for ingestion, avoiding the earlier shortcut where connector writes used Jamie's identity. Alex can discover Cedar Health/Cedar Renewal and one executive source; Jamie can discover Harbour Energy/Harbour Discovery and one fieldwork source; Morgan can discover neither and cannot access internal evidence. The same boundary applies to autocomplete, retrieval, context, graph and trace assembly.
+
 ## Retrieval and ranking
 
 The application always supports lexical retrieval. When `EMBEDDING_PROVIDER=openai` and a server-side key are configured, an explicit indexing command stores genuine 1,536-dimensional provider vectors with provider, model, content hash, Resource and access-scope provenance. Query-time exact pgvector similarity and lexical ranks are combined by reciprocal-rank fusion. Provider failure or an empty index degrades to an explicitly reported lexical-only path; offline mode never creates placeholder embeddings.
@@ -92,4 +94,4 @@ Domain work lives under `src/modules`; the application and API may depend on tho
 
 ## Next milestones
 
-Milestone 2 is complete. Milestone 3 now has first-class signals, optional genuine embeddings, exact vector retrieval, reciprocal-rank fusion and graph-assisted ranking; its remaining work is broader signal production and evaluation. Milestone 4 expands the complete permission matrix. Milestone 5 adds the contradiction through the normal research connector. Milestone 6 adds optional AI synthesis over the authorised context packet.
+Milestones 0–4 are complete. Milestone 3 has first-class signals, optional genuine embeddings, exact vector retrieval, reciprocal-rank fusion and graph-assisted ranking. Milestone 4 proves materially different persona access across all current read surfaces. Milestone 5 adds the contradiction through the normal research connector. Milestone 6 adds optional AI synthesis over the authorised context packet.

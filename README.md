@@ -41,7 +41,9 @@ Optional genuine semantic retrieval uses the OpenAI embeddings endpoint document
 
 ## What to try
 
-Ask the preset Atlas Onboarding question as Alex Chen, then switch to Morgan Reed. Alex receives four evidence items across Research and Meetings; Morgan receives the three public items. The internal operations note never enters Morgan’s response, graph, or trace. Try replacing “Atlas Bank” with `Atlas`, `atlas-bank`, `CRM account 381`, or `Atlas client folder` to see the same canonical client and its source identity keys. Ask about `Atlas onboarding channel` to resolve the messaging channel to the canonical project while retaining its thread as a separate content resource.
+Ask the preset Atlas Onboarding question as each persona. Alex receives the public, internal and Alex-only executive evidence; Jamie receives the public, internal and Jamie-only fieldwork evidence; Morgan receives only the three public items. The access lens also shows Cedar Health/Cedar Renewal only to Alex and Harbour Energy/Harbour Discovery only to Jamie. Inaccessible names, sources and scores never enter another persona’s response, graph, trace or autocomplete results.
+
+Try replacing “Atlas Bank” with `Atlas`, `atlas-bank`, `CRM account 381`, or `Atlas client folder` to see the same canonical client and its source identity keys. Ask about `Atlas onboarding channel` to resolve the messaging channel to the canonical project while retaining its thread as a separate content resource.
 
 In the Ontology section, use Alex Chen to add the prepared `COLLABORATES_WITH` rule. The editor validates its endpoints, publishes `northstar-ontology-v2`, records Alex as publisher, and preserves v1 as superseded. Jamie and Morgan cannot publish. Run `npm run demo:setup` to restore the original fixture state.
 
@@ -49,7 +51,7 @@ The ranking is named `demo-ranking-v3`. Its retrieval contribution uses reciproc
 
 ## Current scope
 
-Completed: Milestones 0, 1 and 2, plus the graph/signals and hybrid-retrieval foundations of Milestone 3. This includes source identity resolution, five connectors, governed ontology editing, a focused graph UI, permission-scoped signal observations and snapshots, optional genuine provider embeddings, exact pgvector retrieval, and reciprocal-rank fusion in `demo-ranking-v3`. Deliberately deferred: a populated semantic index until a provider key is supplied, broader signal producers, approximate vector indexing at scale, the complete permission matrix, the contradiction ingestion scenario, and provider-backed AI synthesis.
+Completed: Milestones 0–4. This includes source identity resolution, five connectors, governed ontology editing, a focused graph UI, permission-scoped signals, optional genuine provider embeddings, exact pgvector retrieval, reciprocal-rank fusion, four distinct access scopes, actor-safe autocomplete and a complete current-surface leakage matrix. Deliberately deferred: a populated semantic index until a provider key is supplied, broader signal producers, approximate vector indexing at scale, the contradiction ingestion scenario, and provider-backed AI synthesis.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md), [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md), and [docs/permissions.md](./docs/permissions.md).
 

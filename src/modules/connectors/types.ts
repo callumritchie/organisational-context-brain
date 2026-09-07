@@ -1,4 +1,4 @@
-export type SourceVisibility = 'everyone' | 'internal';
+export type SourceVisibility = 'everyone' | 'internal' | 'alex-only' | 'jamie-only';
 
 export interface ResearchSourceRecord {
   externalId: string;

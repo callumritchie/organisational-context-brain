@@ -68,9 +68,13 @@ Status: graph/signals and hybrid-retrieval foundations implemented.
 
 ## Milestone 4 — Full permission demonstration
 
-- Materially different project/client/source access for all personas.
-- Complete leakage matrix across search, context, answer, graph, trace, autocomplete and API.
-- Separate privileged synthetic diagnostic path only if it proves necessary.
+Status: implemented and validated.
+
+- Materially different project, client and source-object access for Alex, Jamie and Morgan.
+- Dedicated non-login Sync Service actor, so ingestion no longer impersonates a human persona.
+- Actor-scoped autocomplete endpoint using the same transaction-local PostgreSQL permissions.
+- Complete leakage matrix across retrieval, context, deterministic answer, evidence, graph, trace, autocomplete and API.
+- No privileged diagnostic path was needed; normal traces remain actor-filtered.
 
 ## Milestone 5 — The brain learned something
 

@@ -1,7 +1,7 @@
 import { INITIAL_RESEARCH_RECORDS } from '@/data/sources/research/initial';
 import type { Connector, ResearchSourceRecord } from './types';
 
-const INITIAL_CURSOR = 'research-fixture-v1';
+const INITIAL_CURSOR = 'research-fixture-v2';
 
 export class ResearchFixtureConnector implements Connector<ResearchSourceRecord> {
   readonly sourceType = 'research-repository';

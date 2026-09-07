@@ -21,7 +21,10 @@ function normalizeName(value: string) {
 }
 
 function scopeFor(visibility: SourceVisibility) {
-  return visibility === 'internal' ? IDS.scopes.internal : IDS.scopes.everyone;
+  if (visibility === 'internal') return IDS.scopes.internal;
+  if (visibility === 'alex-only') return IDS.scopes.alexOnly;
+  if (visibility === 'jamie-only') return IDS.scopes.jamieOnly;
+  return IDS.scopes.everyone;
 }
 
 async function upsertResource(
@@ -137,9 +140,10 @@ export async function seedIdentityAndScopes(client: PoolClient) {
     `INSERT INTO users (id, workspace_id, name, role_label) VALUES
       ($1, $4, 'Alex Chen', 'Project Lead'),
       ($2, $4, 'Jamie Patel', 'Consultant'),
-      ($3, $4, 'Morgan Reed', 'External Contractor')
+      ($3, $5, 'Morgan Reed', 'External Contractor'),
+      ($4, $5, 'Sync Service', 'System')
      ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, role_label = EXCLUDED.role_label`,
-    [IDS.users.alex, IDS.users.jamie, IDS.users.morgan, IDS.workspace],
+    [IDS.users.alex, IDS.users.jamie, IDS.users.morgan, IDS.users.ingestion, IDS.workspace],
   );
   await client.query(
     `INSERT INTO groups (id, workspace_id, name) VALUES ($1, $2, 'Northstar delivery team')
@@ -153,15 +157,22 @@ export async function seedIdentityAndScopes(client: PoolClient) {
   );
   await client.query(
     `INSERT INTO access_scopes (id, workspace_id, name) VALUES
-      ($1, $3, 'Everyone in workspace'),
-      ($2, $3, 'Northstar delivery team only')
+      ($1, $5, 'Everyone in workspace'),
+      ($2, $5, 'Northstar delivery team only'),
+      ($3, $5, 'Alex Chen only'),
+      ($4, $5, 'Jamie Patel only')
      ON CONFLICT (id) DO NOTHING`,
-    [IDS.scopes.everyone, IDS.scopes.internal, IDS.workspace],
+    [IDS.scopes.everyone, IDS.scopes.internal, IDS.scopes.alexOnly, IDS.scopes.jamieOnly, IDS.workspace],
   );
   await client.query(
     `INSERT INTO access_scope_grants (id, access_scope_id, principal_type, principal_id, permission) VALUES
       ($1, $2, 'everyone', NULL, 'read'),
-      ($3, $4, 'group', $5, 'read')
+      ($3, $4, 'group', $5, 'read'),
+      ($6, $7, 'user', $8, 'read'),
+      ($9, $10, 'user', $11, 'read'),
+      ($12, $4, 'user', $13, 'manage'),
+      ($14, $7, 'user', $13, 'manage'),
+      ($15, $10, 'user', $13, 'manage')
      ON CONFLICT (id) DO NOTHING`,
     [
       stableId('grant', 'everyone'),
@@ -169,6 +180,16 @@ export async function seedIdentityAndScopes(client: PoolClient) {
       stableId('grant', 'internal'),
       IDS.scopes.internal,
       IDS.groups.internal,
+      stableId('grant', 'alex-only'),
+      IDS.scopes.alexOnly,
+      IDS.users.alex,
+      stableId('grant', 'jamie-only'),
+      IDS.scopes.jamieOnly,
+      IDS.users.jamie,
+      stableId('grant', 'ingestion-internal'),
+      IDS.users.ingestion,
+      stableId('grant', 'ingestion-alex'),
+      stableId('grant', 'ingestion-jamie'),
     ],
   );
 }
@@ -187,6 +208,15 @@ async function ensureCoreResources(client: PoolClient) {
   for (const item of core) {
     await upsertResource(client, { ...item, scopeId: publicScope, kind: 'entity' });
   }
+  const privateContexts = [
+    { id: IDS.resources.cedar, scopeId: IDS.scopes.alexOnly, type: 'Client', name: 'Cedar Health', summary: 'An executive-sponsored client visible only to Alex in this fixture.' },
+    { id: IDS.resources.cedarProject, scopeId: IDS.scopes.alexOnly, type: 'Project', name: 'Cedar Renewal', summary: 'A restricted renewal programme visible only to Alex.' },
+    { id: IDS.resources.harbour, scopeId: IDS.scopes.jamieOnly, type: 'Client', name: 'Harbour Energy', summary: 'A fieldwork client visible only to Jamie in this fixture.' },
+    { id: IDS.resources.harbourProject, scopeId: IDS.scopes.jamieOnly, type: 'Project', name: 'Harbour Discovery', summary: 'A restricted discovery programme visible only to Jamie.' },
+  ];
+  for (const item of privateContexts) {
+    await upsertResource(client, { ...item, kind: 'entity' });
+  }
   const aliases = [
     { alias: 'Atlas Bank', normalized: 'atlas bank', type: 'name' },
     { alias: 'Atlas', normalized: 'atlas', type: 'name' },
@@ -200,6 +230,17 @@ async function ensureCoreResources(client: PoolClient) {
        ON CONFLICT (workspace_id, normalized_alias, alias_type, source_system) DO UPDATE SET alias = EXCLUDED.alias`,
       [stableId('entity-alias', `${alias.type}:${alias.alias}`), IDS.workspace, IDS.resources.atlas,
         alias.alias, alias.normalized, alias.type],
+    );
+  }
+  for (const resource of privateContexts) {
+    await client.query(
+      `INSERT INTO entity_aliases
+        (id, workspace_id, resource_id, alias, normalized_alias, alias_type, source_system)
+       VALUES ($1, $2, $3, $4, $5, 'name', 'canonical-seed')
+       ON CONFLICT (workspace_id, normalized_alias, alias_type, source_system) DO UPDATE SET
+         resource_id = EXCLUDED.resource_id, alias = EXCLUDED.alias`,
+      [stableId('entity-alias', `private:${resource.name}`), IDS.workspace, resource.id,
+        resource.name, normalizeName(resource.name)],
     );
   }
 }

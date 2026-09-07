@@ -14,7 +14,7 @@ describe('context service', () => {
       { query, maxEvidence: 6 },
     );
     expect(context.generatedBy).toBe('deterministic-extractive');
-    expect(context.evidence).toHaveLength(4);
+    expect(context.evidence).toHaveLength(5);
     expect(context.evidence.some((item) => item.source.uri.startsWith('meeting://'))).toBe(true);
     expect(context.evidence.every((item) => item.source.excerpt.length > 0)).toBe(true);
     expect(context.evidence.every((item) => item.provenance.assertionKind === 'source-backed')).toBe(true);
@@ -47,6 +47,11 @@ describe('context service', () => {
     expect(context.ontology.resourceTypes.some((type) => type.name === 'MeetingNote')).toBe(true);
     expect(context.ontology.resourceTypes.some((type) => type.name === 'Document')).toBe(true);
     expect(context.ontology.resourceTypes.some((type) => type.name === 'MessageThread')).toBe(true);
+    expect(context.accessProfile).toEqual({
+      clients: ['Atlas Bank', 'Cedar Health'],
+      projects: ['Atlas Onboarding', 'Cedar Renewal'],
+      sourceObjects: 9,
+    });
   });
 
   it('resolves Atlas aliases to one observable canonical resource', async () => {

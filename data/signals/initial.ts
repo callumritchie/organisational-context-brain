@@ -25,4 +25,16 @@ export const INITIAL_SIGNAL_FIXTURES = [
     observedAt: '2026-08-28T11:00:00.000Z',
     values: { authority: 0.84, freshness: 0.96, engagement: 0.82, affinity: 0.94, epistemicConfidence: 0.83 },
   },
+  {
+    sourceExternalId: 'atlas-executive-steering-004',
+    accessScopeId: IDS.scopes.alexOnly,
+    observedAt: '2026-08-29T12:00:00.000Z',
+    values: { authority: 0.9, freshness: 0.95, engagement: 0.74, affinity: 0.9, epistemicConfidence: 0.86 },
+  },
+  {
+    sourceExternalId: 'atlas-fieldwork-planning-005',
+    accessScopeId: IDS.scopes.jamieOnly,
+    observedAt: '2026-08-30T10:30:00.000Z',
+    values: { authority: 0.82, freshness: 0.97, engagement: 0.69, affinity: 0.88, epistemicConfidence: 0.8 },
+  },
 ] as const;

@@ -243,6 +243,24 @@ async function readSourceSystems(client: PoolClient) {
   }));
 }
 
+async function readAccessProfile(client: PoolClient) {
+  const [resources, sourceObjects] = await Promise.all([
+    client.query<{ semantic_type: string; names: string[] }>(
+      `SELECT semantic_type, array_agg(canonical_name ORDER BY canonical_name) AS names
+       FROM resources
+       WHERE semantic_type IN ('Client', 'Project')
+       GROUP BY semantic_type`,
+    ),
+    client.query<{ count: string }>('SELECT count(*)::text AS count FROM source_objects WHERE NOT deleted'),
+  ]);
+  const names = new Map(resources.rows.map((row) => [row.semantic_type, row.names]));
+  return {
+    clients: names.get('Client') ?? [],
+    projects: names.get('Project') ?? [],
+    sourceObjects: Number(sourceObjects.rows[0]?.count ?? 0),
+  };
+}
+
 interface GraphRow {
   id: string;
   source: string;
@@ -411,9 +429,10 @@ export async function assembleContext(
       .sort((a, b) => b.ranking.total - a.ranking.total)
       .slice(0, request.maxEvidence);
     const graph = await buildGraph(client, evidence.map((item) => item.id));
-    const [ontology, sourceSystems] = await Promise.all([
+    const [ontology, sourceSystems, accessProfile] = await Promise.all([
       readOntology(client),
       readSourceSystems(client),
+      readAccessProfile(client),
     ]);
     const trace = [
       { stage: 'Query', detail: aliases.length
@@ -447,6 +466,7 @@ export async function assembleContext(
       })),
       graph,
       sources: evidence.map((item) => ({ title: item.source.title, uri: item.source.uri, updatedAt: item.source.updatedAt })),
+      accessProfile,
       sourceSystems,
       ontology,
       trace,

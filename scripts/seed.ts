@@ -39,7 +39,7 @@ const ingestionPool = getIngestionPool();
 const ingestionClient = await ingestionPool.connect();
 try {
   await ingestionClient.query('BEGIN');
-  await ingestionClient.query("SELECT set_config('app.actor_id', $1, true)", [IDS.users.jamie]);
+  await ingestionClient.query("SELECT set_config('app.actor_id', $1, true)", [IDS.users.ingestion]);
   await ingestionClient.query("SELECT set_config('app.workspace_id', $1, true)", [IDS.workspace]);
   const research = await runResearchSync(ingestionClient, new ResearchFixtureConnector());
   const meetings = await runMeetingSync(ingestionClient, new MeetingFixtureConnector());
