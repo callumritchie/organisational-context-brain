@@ -21,16 +21,29 @@ describe('context service', () => {
     expect(context.evidence[0]!.ranking.total).toBeGreaterThan(context.evidence[1]!.ranking.total);
     expect(context.graph.edges.some((edge) => edge.type === 'IS_FOR')).toBe(true);
     expect(context.graph.nodes.some((node) => node.type === 'MeetingNote')).toBe(true);
+    expect(context.sourceSystems.map((source) => source.type)).toEqual([
+      'crm-accounts',
+      'meeting-notes',
+      'research-repository',
+    ]);
+    expect(context.ontology).toMatchObject({
+      version: 'northstar-ontology-v1',
+      status: 'current',
+    });
+    expect(context.ontology.resourceTypes.some((type) => type.name === 'MeetingNote')).toBe(true);
   });
 
   it('resolves Atlas aliases to one observable canonical resource', async () => {
-    for (const alias of ['Atlas Bank', 'Atlas', 'atlas-bank']) {
+    for (const alias of ['Atlas Bank', 'Atlas', 'atlas-bank', 'CRM account 381']) {
       const context = await assembleContext(
         { id: IDS.users.alex, workspaceId: IDS.workspace, name: 'Alex Chen', role: 'Project Lead' },
         { query: `What causes abandonment in ${alias} onboarding?`, maxEvidence: 6 },
       );
       const client = context.interpretedQuery.entities.find((entity) => entity.type === 'Client');
       expect(client).toMatchObject({ id: IDS.resources.atlas, matchedAlias: alias });
+      expect(client?.identityKeys).toEqual(expect.arrayContaining([
+        expect.objectContaining({ sourceSystem: 'crm', keyType: 'account-id', externalKey: '381' }),
+      ]));
     }
   });
 });

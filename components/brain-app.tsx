@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Background, Controls, MarkerType, ReactFlow, type Edge, type Node } from '@xyflow/react';
 import {
   ArrowRight, BrainCircuit, Check, ChevronRight, CircleDot, Database,
-  FileSearch, GitBranch, Layers3, Network, Search, Send, ShieldCheck, Sparkles,
+  FileSearch, GitBranch, KeyRound, Layers3, Network, Search, Send, ShieldCheck, Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -124,6 +124,67 @@ function ContextGraph({ graph }: { graph: ContextResponse['graph'] }) {
   );
 }
 
+function SourceSystems({ systems }: { systems: ContextResponse['sourceSystems'] }) {
+  return (
+    <section id="sources" className="section-block">
+      <div className="section-heading">
+        <div><span className="eyebrow">Connector lifecycle</span><h2>Source systems</h2></div>
+        <span>{systems.filter((system) => system.status === 'healthy').length} of {systems.length} healthy</span>
+      </div>
+      <div className="source-system-grid">
+        {systems.map((system) => (
+          <article key={system.id} className="source-system-card">
+            <div><Database /><span><strong>{system.name}</strong><small>{system.type}</small></span></div>
+            <span className={`source-status ${system.status}`}><i />{system.status}</span>
+            <p>{system.type === 'crm-accounts'
+              ? 'Resolves CRM account 381 and atlas-bank to the canonical Atlas Bank resource.'
+              : 'Cursor-backed fixture ingestion with immutable source versions and provenance.'}</p>
+            <time>{system.lastSuccessfulSyncAt ? `Synced ${new Date(system.lastSuccessfulSyncAt).toLocaleDateString('en-GB')}` : 'Awaiting first sync'}</time>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function OntologyView({ ontology }: { ontology: ContextResponse['ontology'] }) {
+  return (
+    <section id="ontology" className="section-block ontology-section">
+      <div className="section-heading">
+        <div><span className="eyebrow">Canonical model</span><h2>Ontology</h2></div>
+        <span className="ontology-version">{ontology.version} · {ontology.status}</span>
+      </div>
+      <div className="ontology-summary">
+        <div><strong>{ontology.resourceTypes.length}</strong><span>Resource types</span></div>
+        <div><strong>{ontology.relationships.length}</strong><span>Relationship rules</span></div>
+        <div><KeyRound /><span>Checksum<code>{ontology.checksum.slice(0, 12)}…</code></span></div>
+      </div>
+      <div className="ontology-grid">
+        <div className="ontology-panel">
+          <h3>Resource types</h3>
+          <div className="type-list">
+            {ontology.resourceTypes.map((type) => (
+              <article key={type.name}><i>{type.name.slice(0, 1)}</i><span><strong>{type.name}</strong><small>{type.kind} · {type.description}</small></span></article>
+            ))}
+          </div>
+        </div>
+        <div className="ontology-panel">
+          <h3>Allowed relationships</h3>
+          <div className="relationship-list">
+            {ontology.relationships.map((relationship) => (
+              <article key={relationship.name}>
+                <strong>{relationship.name.replaceAll('_', ' ')}</strong>
+                <div><span>{relationship.from.join(' · ')}</span><ArrowRight /><span>{relationship.to.join(' · ')}</span></div>
+                <p>{relationship.description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function BrainApp() {
   const [query, setQuery] = useState(PRESET);
   const [actorId, setActorId] = useState<string>(PERSONAS[0].id);
@@ -204,7 +265,7 @@ export function BrainApp() {
           <a href="#relationships"><Network />Graph <span>Live</span></a>
           <p>System</p>
           <a href="#sources"><Database />Sources</a>
-          <a href="#entities"><Layers3 />Ontology</a>
+          <a href="#ontology"><Layers3 />Ontology <span>v1</span></a>
         </nav>
         <div className="sidebar-flow">
           <p>Context pipeline</p>
@@ -217,7 +278,7 @@ export function BrainApp() {
         <header className="topbar">
           <div><span className="eyebrow">Northstar Labs</span><h1>Organisational Context Brain</h1></div>
           <div className="topbar-actions">
-            <span className="health"><i /> 2 sources healthy</span>
+            <span className="health"><i /> {result?.sourceSystems?.filter((source) => source.status === 'healthy').length ?? 3} sources healthy</span>
             <NativeSelect aria-label="Demo persona" value={actorId} onChange={(event) => changeActor(event.target.value)}>
               {PERSONAS.map((persona) => (
                 <NativeSelectOption key={persona.id} value={persona.id}>{persona.name} · {persona.role}</NativeSelectOption>
@@ -263,9 +324,11 @@ export function BrainApp() {
                 <section id="entities" className="entity-strip">
                   <span>Resolved context</span>
                   {result.interpretedQuery.entities.map((entity) => (
-                    <div key={entity.id}><i>{entity.type.slice(0, 1)}</i><span>{entity.name}<small>{entity.matchedAlias ? `via “${entity.matchedAlias}” · ` : ''}{entity.type}</small></span></div>
+                    <div key={entity.id}><i>{entity.type.slice(0, 1)}</i><span>{entity.name}<small>{entity.matchedAlias ? `via “${entity.matchedAlias}” · ` : ''}{entity.type}{entity.identityKeys?.[0] ? ` · ${entity.identityKeys[0].sourceSystem}:${entity.identityKeys[0].externalKey}` : ''}</small></span></div>
                   ))}
                 </section>
+
+                {result.sourceSystems ? <SourceSystems systems={result.sourceSystems} /> : null}
 
                 <ContextGraph graph={result.graph ?? EMPTY_GRAPH} />
 
@@ -278,6 +341,8 @@ export function BrainApp() {
                     {result.evidence.map((item, index) => <EvidenceCard key={item.id} item={item} index={index} />)}
                   </div>
                 </section>
+
+                {result.ontology ? <OntologyView ontology={result.ontology} /> : null}
               </>
             ) : null}
           </section>

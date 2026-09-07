@@ -25,6 +25,18 @@ export interface MeetingSourceRecord extends Omit<ResearchSourceRecord, 'uri'> {
   attendees: Array<'Alex Chen' | 'Jamie Patel'>;
 }
 
+export interface CrmAccountRecord {
+  externalId: 'account-381';
+  uri: `crm://${string}`;
+  name: 'Atlas Bank';
+  accountNumber: '381';
+  updatedAt: string;
+  createdAt: string;
+  visibility: SourceVisibility;
+  projectRef: 'atlas-onboarding';
+  sourceKeys: Array<{ type: 'account-id' | 'account-slug'; value: string }>;
+}
+
 export type KnowledgeSourceRecord = ResearchSourceRecord | MeetingSourceRecord;
 
 export interface ChangePage<T> {

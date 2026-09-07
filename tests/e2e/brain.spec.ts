@@ -4,6 +4,8 @@ import { IDS } from '@/src/modules/canonical/ids';
 test('resolves evidence and changes safely for Morgan', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('Evidence-led, deterministic')).toBeVisible();
+  await expect(page.getByText('3 sources healthy')).toBeVisible();
+  await expect(page.getByText('northstar-ontology-v1 · current')).toBeVisible();
   await expect(page.getByText('4 permitted results')).toBeVisible();
   await page.getByLabel('Demo persona').selectOption(IDS.users.morgan);
   await expect(page.getByText('3 permitted results')).toBeVisible();

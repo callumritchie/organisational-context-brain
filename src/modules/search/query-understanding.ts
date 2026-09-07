@@ -10,6 +10,7 @@ export interface ResolvedAlias {
   type: string;
   matchedAlias: string;
   aliasType: string;
+  identityKeys?: Array<{ sourceSystem: string; keyType: string; externalKey: string }>;
 }
 
 export function understandQuery(query: string, resolvedAliases: ResolvedAlias[] = []) {

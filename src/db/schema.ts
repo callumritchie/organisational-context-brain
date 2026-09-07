@@ -85,6 +85,18 @@ export const entityAliases = pgTable('entity_aliases', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const ontologyVersions = pgTable('ontology_versions', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
+  version: text('version').notNull(),
+  status: text('status').notNull(),
+  schemaDocument: jsonb('schema_document').notNull(),
+  checksum: text('checksum').notNull(),
+  processName: text('process_name').notNull(),
+  processVersion: text('process_version').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const contentObjects = pgTable('content_objects', {
   resourceId: uuid('resource_id').primaryKey().references(() => resources.id),
   contentType: text('content_type').notNull(),
@@ -139,6 +151,18 @@ export const sourceObjectVersions = pgTable('source_object_versions', {
   rawPayload: jsonb('raw_payload').notNull(),
   sourceUpdatedAt: timestamp('source_updated_at', { withTimezone: true }).notNull(),
   ingestedAt: timestamp('ingested_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const resourceIdentityKeys = pgTable('resource_identity_keys', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
+  resourceId: uuid('resource_id').notNull().references(() => resources.id),
+  sourceSystem: text('source_system').notNull(),
+  keyType: text('key_type').notNull(),
+  externalKey: text('external_key').notNull(),
+  confidence: real('confidence').notNull(),
+  sourceObjectVersionId: uuid('source_object_version_id').notNull().references(() => sourceObjectVersions.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const contentVersions = pgTable('content_versions', {

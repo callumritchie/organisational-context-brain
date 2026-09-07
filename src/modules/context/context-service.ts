@@ -71,12 +71,22 @@ interface AliasRow {
   type: string;
   alias: string;
   alias_type: string;
+  identity_keys: Array<{ sourceSystem: string; keyType: string; externalKey: string }>;
 }
 
 async function resolveAliases(client: PoolClient, query: string) {
   const rows = await client.query<AliasRow>(
     `SELECT resource.id, resource.canonical_name AS name, resource.semantic_type AS type,
-      alias.alias, alias.alias_type
+      alias.alias, alias.alias_type,
+      COALESCE((
+        SELECT json_agg(json_build_object(
+          'sourceSystem', identity_key.source_system,
+          'keyType', identity_key.key_type,
+          'externalKey', identity_key.external_key
+        ) ORDER BY identity_key.key_type)
+        FROM resource_identity_keys identity_key
+        WHERE identity_key.resource_id = resource.id
+      ), '[]'::json) AS identity_keys
      FROM entity_aliases alias
      JOIN resources resource ON resource.id = alias.resource_id
      ORDER BY length(alias.alias) DESC`,
@@ -100,8 +110,65 @@ async function resolveAliases(client: PoolClient, query: string) {
       type: row.type,
       matchedAlias: row.alias,
       aliasType: row.alias_type,
+      identityKeys: row.identity_keys,
     }];
   });
+}
+
+interface OntologyRow {
+  version: string;
+  status: string;
+  checksum: string;
+  schema_document: {
+    resourceTypes: Record<string, { kind: 'entity' | 'content'; description: string }>;
+    relationships: Record<string, { from: string[]; to: string[]; description: string }>;
+  };
+}
+
+async function readOntology(client: PoolClient) {
+  const result = await client.query<OntologyRow>(
+    `SELECT version, status, checksum, schema_document
+     FROM ontology_versions
+     WHERE status = 'current'
+     ORDER BY created_at DESC
+     LIMIT 1`,
+  );
+  const row = result.rows[0];
+  if (!row) throw new Error('No current ontology version is available');
+  return {
+    version: row.version,
+    status: row.status,
+    checksum: row.checksum,
+    resourceTypes: Object.entries(row.schema_document.resourceTypes).map(([name, definition]) => ({
+      name,
+      ...definition,
+    })),
+    relationships: Object.entries(row.schema_document.relationships).map(([name, definition]) => ({
+      name,
+      ...definition,
+    })),
+  };
+}
+
+async function readSourceSystems(client: PoolClient) {
+  const result = await client.query<{
+    id: string;
+    name: string;
+    source_type: string;
+    status: string;
+    last_successful_sync_at: Date | null;
+  }>(
+    `SELECT id, name, source_type, status, last_successful_sync_at
+     FROM sources
+     ORDER BY name`,
+  );
+  return result.rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    type: row.source_type,
+    status: row.status,
+    lastSuccessfulSyncAt: row.last_successful_sync_at?.toISOString() ?? null,
+  }));
 }
 
 interface GraphRow {
@@ -234,6 +301,10 @@ export async function assembleContext(
       })
       .sort((a, b) => b.ranking.total - a.ranking.total);
     const graph = await buildGraph(client, evidence.map((item) => item.id));
+    const [ontology, sourceSystems] = await Promise.all([
+      readOntology(client),
+      readSourceSystems(client),
+    ]);
     const trace = [
       { stage: 'Query', detail: aliases.length
         ? `Resolved “${aliases[0].matchedAlias}” to Atlas Bank, plus Atlas Onboarding and the active hypothesis.`
@@ -264,6 +335,8 @@ export async function assembleContext(
       })),
       graph,
       sources: evidence.map((item) => ({ title: item.source.title, uri: item.source.uri, updatedAt: item.source.updatedAt })),
+      sourceSystems,
+      ontology,
       trace,
       rankingVersion: DEMO_RANKING_V1.id,
       generatedBy: 'deterministic-extractive',

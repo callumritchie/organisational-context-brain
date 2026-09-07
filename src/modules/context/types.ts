@@ -42,7 +42,14 @@ export interface ContextResponse {
   actor: { id: string; name: string; role: string };
   interpretedQuery: {
     intent: string;
-    entities: Array<{ id: string; name: string; type: string; matchedAlias?: string; aliasType?: string }>;
+    entities: Array<{
+      id: string;
+      name: string;
+      type: string;
+      matchedAlias?: string;
+      aliasType?: string;
+      identityKeys?: Array<{ sourceSystem: string; keyType: string; externalKey: string }>;
+    }>;
   };
   summary: string;
   evidence: ContextEvidence[];
@@ -59,6 +66,20 @@ export interface ContextResponse {
     }>;
   };
   sources: Array<{ title: string; uri: string; updatedAt: string }>;
+  sourceSystems: Array<{
+    id: string;
+    name: string;
+    type: string;
+    status: string;
+    lastSuccessfulSyncAt: string | null;
+  }>;
+  ontology: {
+    version: string;
+    checksum: string;
+    status: string;
+    resourceTypes: Array<{ name: string; kind: 'entity' | 'content'; description: string }>;
+    relationships: Array<{ name: string; from: string[]; to: string[]; description: string }>;
+  };
   trace: Array<{ stage: string; detail: string; count?: number }>;
   rankingVersion: string;
   generatedBy: 'deterministic-extractive';
