@@ -10,4 +10,15 @@ Please use GitHub's private vulnerability reporting for this repository rather t
 
 ## Deployment warning
 
-The included personas, data, database names, and local/CI passwords are synthetic development fixtures. The `x-demo-actor` header is not authentication. Do not expose this application or its PostgreSQL service to the public internet without replacing the demo persona mechanism with authenticated sessions, rotating every database credential, restricting network access, and completing a deployment-specific security review.
+The included personas, data, database names, and local/CI passwords are synthetic development fixtures. The `x-demo-actor` header is a UI demonstration mechanism, not authentication: any caller can send Alex Chen’s allow-listed identifier, and the server has no signed session or identity-provider proof that the caller is Alex. PostgreSQL row-level security correctly enforces the actor it receives, but cannot establish whether that actor claim is genuine.
+
+Ontology mutation is disabled when `NODE_ENV=production` as a fail-safe. Do not expose this application or its PostgreSQL service to the public internet without:
+
+- replacing `x-demo-actor` with server-validated authentication and sessions;
+- adding server-side workspace membership and role authorisation;
+- adding CSRF protection to cookie-authenticated mutations;
+- rotating every database credential and placing them in a managed secret store;
+- restricting database network access; and
+- completing a deployment-specific security review, logging, rate limiting, backups, and recovery testing.
+
+A public GitHub repository exposes source code, not the running application or local `.env.local`. The ignored `.env.local` file must never be committed.

@@ -61,6 +61,10 @@ CRM account `381`, the `atlas-bank` CRM slug, document folder `fld-atlas-381`, a
 
 Messaging channel `chn-atlas-onboarding` and its `atlas-onboarding` slug resolve to the existing Atlas Onboarding Project. Thread `thr-2026-08-30-synthesis` resolves to a separate `MessageThread` content Resource, avoiding a channel/thread/project identity collapse. The ontology is persisted as an immutable, checksummed version and returned from the actor-scoped context service.
 
+## Ontology governance
+
+The local editor accepts one relationship addition with an existing source and target Resource type. Only the demo Project Lead may publish. A transaction locks ontology publication, marks the current version superseded, inserts the next checksummed version, and records its publisher. A database trigger prevents mutation of snapshot content or invalid status transitions. The write route is disabled in production because `x-demo-actor` identifies a selectable persona rather than an authenticated human.
+
 ## Permission boundary
 
 Permission-sensitive work must use `withActorTransaction`. It obtains a real `pg` connection, starts an interactive transaction, applies `SET LOCAL app.actor_id` and `SET LOCAL app.workspace_id`, verifies both settings, performs all reads, then commits or rolls back.
@@ -83,4 +87,4 @@ Domain work lives under `src/modules`; the application and API may depend on tho
 
 ## Next milestones
 
-The remaining Milestone 2 item is ontology editing. Milestone 3 adds graph-assisted ranking, provider-semantic retrieval, and first-class signals. Milestone 4 expands the complete permission matrix. Milestone 5 adds the contradiction through the normal research connector. Milestone 6 adds optional AI synthesis over the authorised context packet.
+Milestone 2 is complete. Milestone 3 adds graph-assisted ranking, provider-semantic retrieval, and first-class signals. Milestone 4 expands the complete permission matrix. Milestone 5 adds the contradiction through the normal research connector. Milestone 6 adds optional AI synthesis over the authorised context packet.

@@ -43,7 +43,7 @@ Stop and reassess here before expansion.
 
 ## Milestone 2 — Semantic context layer
 
-Status: bounded first slice implemented and validated.
+Status: implemented and validated.
 
 - Implemented: explicit Atlas aliases (`Atlas Bank`, `Atlas`, `atlas-bank`) with observable resolution to one Resource.
 - Implemented: Meetings as the second cursor-based connector, including source versions, assertions and provenance.
@@ -51,8 +51,9 @@ Status: bounded first slice implemented and validated.
 - Implemented: Documents as a cursor-based connector; Atlas folder ID/path keys and `Atlas client folder` resolve to the existing Atlas Bank Resource while the document remains a content Resource.
 - Implemented: Messages as a cursor-based connector; channel keys resolve to Atlas Onboarding while the thread retains its own `MessageThread` content identity.
 - Implemented: checksummed ontology persistence and a versioned read-only ontology view.
+- Implemented: Project Lead relationship-rule editing with endpoint validation, immutable checksummed snapshots, publisher attribution and production mutation lockout.
 - Implemented early from Milestone 3: a focused, permission-filtered Resource graph and graph-connected meeting-evidence eval.
-- Remaining: ontology editing.
+- Milestone complete.
 
 ## Milestone 3 — Graph, signals and hybrid retrieval
 

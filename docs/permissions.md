@@ -11,7 +11,9 @@ A relationship is visible when:
 
 Restricted assertions are invisible, including their predicate, score, provenance, source URI and existence within normal application traces.
 
-Ontology versions are workspace-scoped. Source identity keys are visible only when their canonical Resource is visible, so a restricted entity cannot leak through alias or source-key resolution.
+Ontology versions are workspace-scoped. In the local demo, only the allow-listed Project Lead may publish a validated relationship addition. Publication supersedes the prior current version inside one transaction, records the actor, and inserts a checksummed snapshot whose content is protected from later updates by a database trigger. Production mutation is disabled until the demo actor header is replaced by real authentication.
+
+Source identity keys are visible only when their canonical Resource is visible, so a restricted entity cannot leak through alias or source-key resolution.
 
 For a future derived content Resource synthesised from several inputs, its base scope will conservatively allow only actors who can read every input actually used. This rule applies to that derived Resource; it does not retroactively restrict the canonical entities it mentions.
 
@@ -38,7 +40,7 @@ Missing settings produce zero visible protected rows. A pooled connection cannot
 
 Protected tables use `FORCE ROW LEVEL SECURITY`. Connector transactions establish an internal actor and workspace before writing, so ingestion follows explicit policies rather than relying on ownership bypass.
 
-The public API derives its actor from authentication. Milestone 1 uses an allow-listed `x-demo-actor` header solely as a clearly labelled synthetic persona mechanism and rejects `actorId` in `ContextRequest`.
+The intended public API derives its actor from authentication. The current prototype uses an allow-listed `x-demo-actor` header solely as a clearly labelled synthetic persona mechanism and rejects `actorId` in request bodies. Allow-listing prevents arbitrary database IDs but does not authenticate the caller; anyone who can reach the route can impersonate any listed persona.
 
 ## Inspector
 

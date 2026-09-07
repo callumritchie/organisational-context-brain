@@ -147,6 +147,22 @@ button, textarea, select { font: inherit; }
 .relationship-list article div span { padding: 4px 6px; border-radius: 5px; color: #536a61; background: #f0f4f2; font-size: 7px; text-align: center; }
 .relationship-list article svg { width: 11px; color: #78958b; }
 .relationship-list p { margin: 5px 0 0; color: #89958f; font-size: 7px; }
+.ontology-editor { margin-top: 10px; padding: 14px; border: 1px solid #d8e2dc; border-radius: 12px; background: linear-gradient(135deg,#f7fbf8,#fff); box-shadow: 0 5px 15px rgba(32,53,46,.035); }
+.ontology-editor-heading { display: flex; align-items: center; gap: 9px; }
+.ontology-editor-heading > svg { width: 27px; height: 27px; padding: 6px; border-radius: 7px; color: #2f755f; background: #e4f1eb; }
+.ontology-editor-heading > div { display: flex; flex: 1; flex-direction: column; }
+.ontology-editor-heading strong { font-size: 10px; }
+.ontology-editor-heading div span { margin-top: 2px; color: #7c8b85; font-size: 8px; }
+.demo-only { padding: 4px 7px; border-radius: 999px; color: #80612b; background: #fff2d9; font-size: 7px; font-weight: 750; letter-spacing: .05em; text-transform: uppercase; }
+.ontology-fields { display: grid; grid-template-columns: 1.1fr .8fr .8fr 1.8fr; gap: 9px; margin-top: 13px; }
+.ontology-fields label { display: flex; min-width: 0; flex-direction: column; gap: 5px; color: #71817a; font-size: 8px; font-weight: 700; text-transform: uppercase; }
+.ontology-fields input, .ontology-fields select { height: 32px; color: #263c34; background: #fff; font-size: 9px; text-transform: none; }
+.ontology-select { width: 100%; }
+.ontology-editor-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 11px; }
+.ontology-editor-footer > span { display: flex; align-items: center; gap: 5px; max-width: 620px; color: #6d7d76; font-size: 8px; line-height: 1.45; }
+.ontology-editor-footer > span svg { flex: none; width: 13px; color: #37765f; }
+.ontology-editor-footer button { flex: none; }
+.ontology-publication-message { margin: 10px 0 0; padding-top: 9px; border-top: 1px solid #e4ebe7; color: #356d5b; font-size: 9px; }
 .evidence-list { display: grid; gap: 10px; }
 .evidence-card { position: relative; display: flex; gap: 13px; padding: 17px; border: 1px solid var(--border); border-radius: 12px; background: #fff; box-shadow: 0 5px 15px rgba(32,53,46,.035); }
 .evidence-index { flex: none; display: grid; place-items: center; width: 25px; height: 25px; border-radius: 7px; color: #42655a; background: #eef3f0; font-size: 10px; font-weight: 750; }
@@ -211,4 +227,5 @@ button, textarea, select { font: inherit; }
   .answer-heading .freshness { display: none; } .ranking-grid { grid-template-columns: repeat(2,1fr); }
   .entity-strip { align-items: flex-start; } .section-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
   .source-system-grid, .ontology-grid { grid-template-columns: 1fr; } .ontology-summary { grid-template-columns: 1fr; }
+  .ontology-fields { grid-template-columns: 1fr; } .ontology-editor-footer { align-items: stretch; flex-direction: column; } .ontology-editor-footer button { width: 100%; }
 }

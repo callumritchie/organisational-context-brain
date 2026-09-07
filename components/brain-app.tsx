@@ -4,10 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Background, Controls, MarkerType, ReactFlow, type Edge, type Node } from '@xyflow/react';
 import {
   ArrowRight, BrainCircuit, Check, ChevronRight, CircleDot, Database,
-  FileSearch, GitBranch, KeyRound, Layers3, Network, Search, Send, ShieldCheck, Sparkles,
+  FileSearch, GitBranch, KeyRound, Layers3, Network, PencilLine, Search, Send, ShieldCheck, Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { PERSONAS } from '@/src/modules/canonical/ids';
 import type { ContextEvidence, ContextResponse } from '@/src/modules/context/types';
@@ -153,7 +154,49 @@ function SourceSystems({ systems }: { systems: ContextResponse['sourceSystems'] 
   );
 }
 
-function OntologyView({ ontology }: { ontology: ContextResponse['ontology'] }) {
+function OntologyView({
+  ontology,
+  actorId,
+  onPublished,
+}: {
+  ontology: ContextResponse['ontology'];
+  actorId: string;
+  onPublished: (ontology: ContextResponse['ontology']) => void;
+}) {
+  const [name, setName] = useState('COLLABORATES_WITH');
+  const [from, setFrom] = useState('Person');
+  const [to, setTo] = useState('Person');
+  const [description, setDescription] = useState('One person actively collaborates with another person.');
+  const [publishing, setPublishing] = useState(false);
+  const [publicationMessage, setPublicationMessage] = useState<string | null>(null);
+  const canEdit = actorId === PERSONAS[0].id;
+
+  async function publish(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPublishing(true);
+    setPublicationMessage(null);
+    try {
+      const response = await fetch('/api/v1/ontology', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-demo-actor': actorId },
+        body: JSON.stringify({ name, from, to, description }),
+      });
+      const payload = await response.json() as {
+        ontology?: ContextResponse['ontology'];
+        title?: string;
+      };
+      if (!response.ok || !payload.ontology) {
+        throw new Error(payload.title ?? 'The ontology version could not be published.');
+      }
+      onPublished(payload.ontology);
+      setPublicationMessage(`Published ${payload.ontology.version}. The previous version is preserved.`);
+    } catch (requestError) {
+      setPublicationMessage(requestError instanceof Error ? requestError.message : 'Ontology publication failed.');
+    } finally {
+      setPublishing(false);
+    }
+  }
+
   return (
     <section id="ontology" className="section-block ontology-section">
       <div className="section-heading">
@@ -187,6 +230,24 @@ function OntologyView({ ontology }: { ontology: ContextResponse['ontology'] }) {
           </div>
         </div>
       </div>
+      <form className="ontology-editor" onSubmit={publish}>
+        <div className="ontology-editor-heading">
+          <PencilLine />
+          <div><strong>Add a relationship rule</strong><span>Publishes a new immutable, checksummed ontology version.</span></div>
+          <span className="demo-only">Local demo only</span>
+        </div>
+        <div className="ontology-fields">
+          <label>Rule name<Input value={name} onChange={(event) => setName(event.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '_'))} required pattern="[A-Z][A-Z0-9_]{2,63}" /></label>
+          <label>From type<NativeSelect className="ontology-select" value={from} onChange={(event) => setFrom(event.target.value)}>{ontology.resourceTypes.map((type) => <NativeSelectOption key={type.name} value={type.name}>{type.name}</NativeSelectOption>)}</NativeSelect></label>
+          <label>To type<NativeSelect className="ontology-select" value={to} onChange={(event) => setTo(event.target.value)}>{ontology.resourceTypes.map((type) => <NativeSelectOption key={type.name} value={type.name}>{type.name}</NativeSelectOption>)}</NativeSelect></label>
+          <label className="description-field">Description<Input value={description} onChange={(event) => setDescription(event.target.value)} required minLength={10} maxLength={240} /></label>
+        </div>
+        <div className="ontology-editor-footer">
+          <span><ShieldCheck /> {canEdit ? 'Alex is the demo ontology publisher.' : 'Switch to Alex Chen to publish.'} Production writes are blocked until real authentication is added.</span>
+          <Button type="submit" disabled={!canEdit || publishing}>{publishing ? 'Publishing…' : 'Publish new version'}</Button>
+        </div>
+        {publicationMessage ? <p className="ontology-publication-message" role="status">{publicationMessage}</p> : null}
+      </form>
     </section>
   );
 }
@@ -348,7 +409,13 @@ export function BrainApp() {
                   </div>
                 </section>
 
-                {result.ontology ? <OntologyView ontology={result.ontology} /> : null}
+                {result.ontology ? (
+                  <OntologyView
+                    ontology={result.ontology}
+                    actorId={actorId}
+                    onPublished={(ontology) => setResult((current) => current ? { ...current, ontology } : current)}
+                  />
+                ) : null}
               </>
             ) : null}
           </section>

@@ -94,6 +94,7 @@ export const ontologyVersions = pgTable('ontology_versions', {
   checksum: text('checksum').notNull(),
   processName: text('process_name').notNull(),
   processVersion: text('process_version').notNull(),
+  createdBy: uuid('created_by').references(() => users.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

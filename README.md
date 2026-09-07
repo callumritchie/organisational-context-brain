@@ -8,7 +8,7 @@ This project explores a different model: a shared organisational context layer t
 Sources → Canonical resources + assertions → Permissioned retrieval → Context API → Consumers
 ```
 
-The current Milestone 2 slice is intentionally small but real. Independent research, meeting, CRM, document, and message connectors ingest Northstar Labs knowledge about Atlas Bank, store immutable source versions, resolve aliases and source identity keys to canonical resources, create assertion-level provenance, apply forced PostgreSQL row-level security, retrieve lexical evidence, expand a permission-safe resource graph, and expose the result through `POST /api/v1/context` and an evidence-first interface. The same response includes a checksummed ontology version and connector health.
+The completed Milestone 2 slice is intentionally small but real. Independent research, meeting, CRM, document, and message connectors ingest Northstar Labs knowledge about Atlas Bank, store immutable source versions, resolve aliases and source identity keys to canonical resources, create assertion-level provenance, apply forced PostgreSQL row-level security, retrieve lexical evidence, expand a permission-safe resource graph, and expose the result through `POST /api/v1/context` and an evidence-first interface. The same response includes connector health and an editable, checksummed ontology with immutable version history.
 
 No LLM or API key is required.
 
@@ -26,7 +26,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The credentials in `.env.example`, Docker Compose, and CI are deliberately disposable local-test values. Replace them with generated secrets for any non-local environment. The demo persona header is not production authentication; do not expose this build directly to the public internet.
+The credentials in `.env.example`, Docker Compose, and CI are deliberately disposable local-test values. Replace them with generated secrets for any non-local environment. Publishing this source repository does not deploy the application. The demo persona header is not production authentication: a network user could forge Alex’s ID and inherit Alex’s permissions. Ontology writes are therefore blocked whenever `NODE_ENV=production`; do not expose this build directly to the public internet.
 
 Useful checks:
 
@@ -41,11 +41,13 @@ npm run build
 
 Ask the preset Atlas Onboarding question as Alex Chen, then switch to Morgan Reed. Alex receives four evidence items across Research and Meetings; Morgan receives the three public items. The internal operations note never enters Morgan’s response, graph, or trace. Try replacing “Atlas Bank” with `Atlas`, `atlas-bank`, `CRM account 381`, or `Atlas client folder` to see the same canonical client and its source identity keys. Ask about `Atlas onboarding channel` to resolve the messaging channel to the canonical project while retaining its thread as a separate content resource.
 
+In the Ontology section, use Alex Chen to add the prepared `COLLABORATES_WITH` rule. The editor validates its endpoints, publishes `northstar-ontology-v2`, records Alex as publisher, and preserves v1 as superseded. Jamie and Morgan cannot publish. Run `npm run demo:setup` to restore the original fixture state.
+
 The ranking is named `demo-ranking-v1`. Its weights are illustrative and have not been empirically optimised.
 
 ## Current scope
 
-Completed: Milestones 0 and 1, plus the bounded Milestone 2 semantic-context slice covering Atlas aliases, Meetings, CRM, Documents and Messages connectors, source identity keys for CRM accounts, document folders, messaging channels and threads, a versioned ontology view, focused graph UI, and graph-connected retrieval evaluation. Deliberately deferred: ontology editing, graph-assisted ranking, first-class signals, the contradiction ingestion scenario, and provider-backed AI synthesis.
+Completed: Milestones 0, 1 and 2, including Atlas aliases, Meetings, CRM, Documents and Messages connectors, source identity keys, governed ontology editing with immutable history, a focused graph UI, and graph-connected retrieval evaluation. Deliberately deferred: graph-assisted ranking, first-class signals, the complete permission matrix, the contradiction ingestion scenario, and provider-backed AI synthesis.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md), [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md), and [docs/permissions.md](./docs/permissions.md).
 

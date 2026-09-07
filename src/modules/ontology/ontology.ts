@@ -1,12 +1,14 @@
 import { z } from 'zod';
 
-const ontologySchema = z.object({
+export const ontologySchema = z.object({
   resourceTypes: z.record(z.string(), z.object({ kind: z.enum(['entity', 'content']), description: z.string() })),
   relationships: z.record(
     z.string(),
     z.object({ from: z.array(z.string()), to: z.array(z.string()), description: z.string() }),
   ),
 });
+
+export type OntologyDocument = z.infer<typeof ontologySchema>;
 
 export const ONTOLOGY = ontologySchema.parse({
   resourceTypes: {
