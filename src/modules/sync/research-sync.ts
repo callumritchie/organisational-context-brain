@@ -138,8 +138,8 @@ export async function seedIdentityAndScopes(client: PoolClient) {
   );
   await client.query(
     `INSERT INTO users (id, workspace_id, name, role_label) VALUES
-      ($1, $4, 'Alex Chen', 'Project Lead'),
-      ($2, $4, 'Jamie Patel', 'Consultant'),
+      ($1, $5, 'Alex Chen', 'Project Lead'),
+      ($2, $5, 'Jamie Patel', 'Consultant'),
       ($3, $5, 'Morgan Reed', 'External Contractor'),
       ($4, $5, 'Sync Service', 'System')
      ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, role_label = EXCLUDED.role_label`,
