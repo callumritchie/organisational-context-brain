@@ -111,6 +111,8 @@ Status: in progress.
 - Implemented: isolated PostgreSQL benchmark workspace with batched source histories, canonical entities, assertions, provenance, search documents and successful sync-run records.
 - Implemented: ambiguity is preserved as scored resolution candidates; only unambiguous identities are promoted to canonical identity keys.
 - Implemented: lexical precision, recall, reciprocal-rank, latency, stale/deleted-record and permission-leakage measurements at 10,000 records.
-- Implemented: materialised retrieval scope reduced the observed p95 RLS query time from approximately 436 ms to 203 ms while retaining zero observed leakage.
-- Remaining: add chunking, incremental re-indexing and semantic retrieval quality/cost measurements.
+- Implemented: sentence-aware, overlapping long-document chunks with exact source-text offsets and evidence-level result deduplication.
+- Implemented: synchronisation retires every older search chunk for an evidence Resource, while the embedding indexer retires vectors belonging to inactive chunks.
+- Implemented: a narrowly scoped permission-aware lexical function preserves fail-closed access checks while allowing PostgreSQL to use the text index. With fresh planner statistics, the measured 10,000-record p95 fell from approximately 1,421 ms after chunking to 3.9 ms, with zero observed leakage.
+- Remaining: measure incremental update throughput and semantic retrieval quality/cost on a representative sample.
 - Remaining: benchmark exact pgvector before deciding whether approximate indexing or specialist graph/vector infrastructure is warranted.

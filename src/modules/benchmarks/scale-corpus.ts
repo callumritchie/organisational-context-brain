@@ -195,7 +195,18 @@ function buildVersion(input: {
   const duplicate = input.duplicateMarker
     ? ` Shared duplicate marker: ${input.duplicateMarker}.`
     : '';
-  const body = `${sourceLanguage} that ${conclusion} ${revision} Client: ${input.clientName}. Project: ${input.projectName}.${duplicate}`;
+  const longDocumentSections =
+    input.recordIndex % 31 === 0
+      ? Array.from(
+          { length: 18 },
+          (_, section) =>
+            `Section ${section + 1} preserves interview, operational and delivery context for later comparison. ` +
+            `The source uses inconsistent terminology while still referring to ${input.clientName} and ${input.projectName}.`,
+        ).join('\n\n')
+      : '';
+  const body =
+    `${sourceLanguage} that ${conclusion} ${revision} Client: ${input.clientName}. Project: ${input.projectName}.${duplicate}` +
+    (longDocumentSections ? `\n\n${longDocumentSections}` : '');
   return {
     version: input.version,
     title: `${input.projectName}: ${input.issue} (v${input.version})`,
@@ -358,6 +369,9 @@ export function summarizeScaleCorpus(corpus: ScaleCorpus) {
     duplicates: count((record) => record.duplicateOf !== null),
     deleted: count((record) => record.deleted),
     ambiguousAliases: count((record) => record.ambiguousAlias),
+    longDocuments: count(
+      (record) => record.versions.at(-1)!.body.length > 1_600,
+    ),
     evaluationQuestions: corpus.questions.length,
     forbiddenEvidenceChecks: corpus.questions.reduce(
       (sum, question) => sum + question.forbiddenRecordIds.length,

@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import { getAppPool, getIngestionPool, getOwnerPool } from '@/src/db/pool';
 import {
+  analyzeScaleBenchmarkTables,
   evaluateScaleCorpus,
   ingestScaleCorpus,
   inspectScaleCorpusIntegrity,
@@ -49,15 +50,18 @@ try {
   await ingestionPool.end();
 }
 
-const evaluation = await evaluateScaleCorpus(corpus);
 const inspectionClient = await ownerPool.connect();
 let integrity;
 try {
+  await analyzeScaleBenchmarkTables(inspectionClient);
+  // Measure against fresh planner statistics rather than autovacuum timing.
   integrity = await inspectScaleCorpusIntegrity(inspectionClient);
 } finally {
   inspectionClient.release();
-  await Promise.all([ownerPool.end(), getAppPool().end()]);
 }
+
+const evaluation = await evaluateScaleCorpus(corpus);
+await Promise.all([ownerPool.end(), getAppPool().end()]);
 
 console.log(
   JSON.stringify(

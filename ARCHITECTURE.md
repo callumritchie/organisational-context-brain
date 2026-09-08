@@ -47,7 +47,7 @@ TypeScript fixture
   → canonical content/evidence resources
   → resource relationship + assertion
   → provenance span and ACL scope
-  → PostgreSQL tsvector representation
+  → overlapping, offset-addressable PostgreSQL tsvector chunks
   → actor-scoped alias/source-key resolution and lexical retrieval
   → optional genuine provider query embedding + exact pgvector retrieval
   → reciprocal-rank fusion (or explicit lexical-only fallback)
@@ -82,7 +82,9 @@ The fixture includes four scopes: workspace-wide, internal delivery team, Alex-o
 
 ## Retrieval and ranking
 
-The application always supports lexical retrieval. When `EMBEDDING_PROVIDER=openai` and a server-side key are configured, an explicit indexing command stores genuine 1,536-dimensional provider vectors with provider, model, content hash, Resource and access-scope provenance. Query-time exact pgvector similarity and lexical ranks are combined by reciprocal-rank fusion. Provider failure or an empty index degrades to an explicitly reported lexical-only path; offline mode never creates placeholder embeddings.
+The application always supports lexical retrieval. Long source text is split on sentence or word boundaries into overlapping chunks with exact character offsets. A new source version retires all prior chunks for that evidence Resource, and retrieval deduplicates chunks back to the best evidence-level result. Lexical candidates are selected by a security-definer database function that manually enforces actor, workspace, document-scope and parent-resource-scope checks before returning only IDs and scores; this permits indexed filtering without weakening the fail-closed RLS boundary used by subsequent joins.
+
+When `EMBEDDING_PROVIDER=openai` and a server-side key are configured, an explicit indexing command stores genuine 1,536-dimensional provider vectors with provider, model, content hash, Resource and access-scope provenance. Query-time exact pgvector similarity and lexical ranks are combined by reciprocal-rank fusion. Provider failure or an empty index degrades to an explicitly reported lexical-only path; offline mode never creates placeholder embeddings. Vectors attached to retired chunks are marked non-current before indexing.
 
 `signal_observations` retains traceable point-in-time measurements for authority, freshness, engagement, affinity, and epistemic confidence. `signal_snapshots` materialises the current values used during retrieval. Both carry the evidence Resource’s access scope, use forced RLS, and are filtered before entering application memory.
 
@@ -104,4 +106,4 @@ Domain work lives under `src/modules`; the application and API may depend on tho
 
 ## Current milestone state
 
-Milestones 0–6 are complete. Milestone 7 now generates and ingests a deterministic 10,000-record corpus into an isolated workspace whose expected identities, versions, contradictions and permission boundaries are known independently from retrieval. Ambiguous source identities remain explicit candidates rather than being silently merged. The baseline measures lexical quality, latency, current-version integrity and leakage; chunking, incremental updates and semantic-sample measurements remain before any specialist datastore is selected.
+Milestones 0–6 are complete. Milestone 7 now generates and ingests a deterministic 10,000-record corpus into an isolated workspace whose expected identities, versions, contradictions and permission boundaries are known independently from retrieval. Ambiguous source identities remain explicit candidates rather than being silently merged. The current slice adds long-document chunking, exact offsets, evidence-level deduplication and retirement of superseded search data. The baseline measures lexical quality, latency, current-version integrity and leakage; incremental-update and semantic-sample measurements remain before any specialist datastore is selected.

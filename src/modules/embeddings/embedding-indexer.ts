@@ -9,6 +9,12 @@ function vectorLiteral(values: number[]) {
 }
 
 export async function syncSearchEmbeddings(client: PoolClient, provider: EmbeddingProvider) {
+  await client.query(
+    `UPDATE search_embeddings embedding SET is_current = false
+     FROM search_documents document
+     WHERE embedding.search_document_id = document.id
+       AND embedding.is_current AND NOT document.active`,
+  );
   const documents = await client.query<{
     id: string;
     workspace_id: string;

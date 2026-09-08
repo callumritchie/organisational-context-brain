@@ -2,6 +2,7 @@ import { performance } from 'node:perf_hooks';
 import type { PoolClient } from 'pg';
 import { withActorTransaction } from '@/src/db/actor-transaction';
 import { stableId } from '@/src/modules/canonical/stable-id';
+import { chunkText } from '@/src/modules/search/chunking';
 import type {
   BenchmarkQuestion,
   BenchmarkRecord,
@@ -524,31 +525,36 @@ export async function ingestScaleCorpus(
      AS row(id uuid, "workspaceId" uuid, "assertionId" uuid, "sourceVersionId" uuid, excerpt text)`,
     );
 
-    await insertBatches(
-      client,
-      corpus.records.map((record, index) => {
+    const searchChunks = corpus.records.flatMap((record, index) => {
         const latest = record.versions.at(-1)!;
-        return {
-          id: stableId('benchmark-search-document', record.id),
+        return chunkText(latest.body).map((chunk) => ({
+          id: stableId('benchmark-search-document', `${record.id}:${chunk.index}`),
           workspaceId,
           scopeId: scopeId(record.visibility),
           resourceId: evidenceResourceId(record),
           assertionId: assertions[index]!.id,
           contentVersionId: contentVersionId(record, latest.version),
-          body: `${latest.title}. ${latest.body} ${record.sourceClientReference} ${record.sourceProjectReference}`,
+          body: `${latest.title}. Client: ${record.canonicalClientName}. Project: ${record.canonicalProjectName}. ${chunk.text} ${record.sourceClientReference} ${record.sourceProjectReference}`,
+          chunkIndex: chunk.index,
+          chunkStartOffset: chunk.startOffset,
+          chunkEndOffset: chunk.endOffset,
           authority: 0.5 + (index % 45) / 100,
           confidence: assertions[index]!.confidence,
           updatedAt: latest.updatedAt,
           active: !record.deleted,
-        };
-      }),
+        }));
+      });
+    await insertBatches(
+      client,
+      searchChunks,
       `INSERT INTO search_documents (id, workspace_id, access_scope_id, resource_id, assertion_id, content_version_id,
-       body, authority, confidence, source_updated_at, active)
-     SELECT id, "workspaceId", "scopeId", "resourceId", "assertionId", "contentVersionId", body, authority,
-       confidence, "updatedAt", active
+       body, chunk_index, chunk_start_offset, chunk_end_offset, authority, confidence, source_updated_at, active)
+     SELECT id, "workspaceId", "scopeId", "resourceId", "assertionId", "contentVersionId", body,
+       "chunkIndex", "chunkStartOffset", "chunkEndOffset", authority, confidence, "updatedAt", active
      FROM jsonb_to_recordset($1::jsonb)
      AS row(id uuid, "workspaceId" uuid, "scopeId" uuid, "resourceId" uuid, "assertionId" uuid, "contentVersionId" uuid,
-       body text, authority real, confidence real, "updatedAt" timestamptz, active boolean)`,
+       body text, "chunkIndex" integer, "chunkStartOffset" integer, "chunkEndOffset" integer,
+       authority real, confidence real, "updatedAt" timestamptz, active boolean)`,
     );
 
     const identityCandidates = corpus.records.flatMap((record) => {
@@ -645,11 +651,18 @@ export async function ingestScaleCorpus(
       durationMs: performance.now() - startedAt,
       records: corpus.records.length,
       versions: sourceVersions.length,
+      chunks: searchChunks.length,
     };
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
   }
+}
+
+export async function analyzeScaleBenchmarkTables(client: PoolClient) {
+  await client.query(
+    `ANALYZE search_documents, resources, access_scopes, access_scope_grants, group_memberships`,
+  );
 }
 
 function percentile(values: number[], fraction: number) {
@@ -695,12 +708,10 @@ export async function evaluateScaleCorpus(corpus: ScaleCorpus, limit = 20) {
           const startedAt = performance.now();
           const result = await client.query<{ record_id: string }>(
             `SELECT resource.properties ->> 'benchmarkRecordId' AS record_id
-           FROM search_documents document
-           JOIN resources resource ON resource.id = document.resource_id
-           WHERE document.search_vector @@ phraseto_tsquery('english', $1)
-           ORDER BY ts_rank_cd(document.search_vector, phraseto_tsquery('english', $1), 32) DESC,
-             document.authority DESC, document.id
-           LIMIT $2`,
+             FROM permissioned_lexical_search(phraseto_tsquery('english', $1), $2) lexical
+             JOIN search_documents document ON document.id = lexical.id
+             JOIN resources resource ON resource.id = document.resource_id
+             ORDER BY lexical.lexical_rank`,
             [projectNames.get(question.canonicalProjectId), limit],
           );
           latencies.push(performance.now() - startedAt);
@@ -743,6 +754,8 @@ export async function inspectScaleCorpusIntegrity(client: PoolClient) {
     immutable_versions: string;
     active_deleted_records: string;
     stale_search_documents: string;
+    search_chunks: string;
+    multi_chunk_resources: string;
     ambiguous_candidates: string;
     resolved_keys: string;
   }>(
@@ -753,6 +766,10 @@ export async function inspectScaleCorpusIntegrity(client: PoolClient) {
         WHERE document.workspace_id = $1 AND document.active AND resource.status = 'deleted') AS active_deleted_records,
       (SELECT count(*) FROM search_documents document JOIN content_versions version ON version.id = document.content_version_id
         WHERE document.workspace_id = $1 AND NOT version.is_current) AS stale_search_documents,
+      (SELECT count(*) FROM search_documents WHERE workspace_id = $1) AS search_chunks,
+      (SELECT count(*) FROM (
+        SELECT resource_id FROM search_documents WHERE workspace_id = $1 GROUP BY resource_id HAVING count(*) > 1
+      ) multi_chunk) AS multi_chunk_resources,
       (SELECT count(*) FROM identity_resolution_candidates WHERE workspace_id = $1 AND status = 'ambiguous') AS ambiguous_candidates,
       (SELECT count(*) FROM resource_identity_keys WHERE workspace_id = $1) AS resolved_keys`,
     [workspaceId],

@@ -45,7 +45,7 @@ npm run benchmark:generate -- --records 50000 --output .benchmark/corpus.json
 npm run benchmark:run
 ```
 
-Generated benchmark files are ignored by Git. The default corpus spans five source systems and includes immutable versions, changed claims, near-duplicates, deletions, ambiguous aliases and actor-specific expected/forbidden evidence sets. Generation alone does not claim retrieval quality; database ingestion and measured evaluation are the remaining Milestone 7 work.
+Generated benchmark files are ignored by Git. The default corpus spans five source systems and includes immutable versions, changed claims, near-duplicates, deletions, ambiguous aliases, long documents and actor-specific expected/forbidden evidence sets. Generation alone does not claim retrieval quality; `benchmark:run` performs the database evaluation.
 
 `benchmark:run` recreates only an isolated benchmark workspace, ingests the corpus without calling AI providers, and reports version integrity, identity ambiguity, retrieval quality, permission leakage and latency. See [the scale benchmark report](./docs/scale-benchmark.md) for the current baseline and its limitations.
 
@@ -67,7 +67,7 @@ The ranking is named `demo-ranking-v3`. Its retrieval contribution uses reciproc
 
 ## Current scope
 
-Completed: Milestones 0–6. Milestone 7 scale and messiness validation is in progress; deterministic corpus generation, isolated 10,000-record ingestion, ambiguity preservation and permission-scoped lexical measurements are implemented. Chunking, incremental-load and semantic-sample measurements remain. The system already includes source identity resolution, five connectors, governed ontology editing, a focused graph UI, permission-scoped signals, genuine provider embeddings, exact pgvector retrieval, reciprocal-rank fusion, four distinct access scopes, actor-safe autocomplete, a complete current-surface leakage matrix, an idempotent contradiction-ingestion scenario, and evidence-ID-grounded AI synthesis through `POST /api/v1/ask`. Deliberately deferred: broader signal producers, approximate vector indexing at scale, and production authentication/deployment hardening.
+Completed: Milestones 0–6. Milestone 7 scale and messiness validation is in progress; deterministic corpus generation, isolated 10,000-record ingestion, ambiguity preservation, overlapping long-document chunks, current-version retirement and permission-scoped lexical measurements are implemented. Incremental-load and semantic-sample measurements remain. The system already includes source identity resolution, five connectors, governed ontology editing, a focused graph UI, permission-scoped signals, genuine provider embeddings, exact pgvector retrieval, reciprocal-rank fusion, four distinct access scopes, actor-safe autocomplete, a complete current-surface leakage matrix, an idempotent contradiction-ingestion scenario, and evidence-ID-grounded AI synthesis through `POST /api/v1/ask`. Deliberately deferred: broader signal producers, approximate vector indexing at scale, and production authentication/deployment hardening.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md), [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md), and [docs/permissions.md](./docs/permissions.md).
 

@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { IDS } from '@/src/modules/canonical/ids';
 import { stableId } from '@/src/modules/canonical/stable-id';
+import { chunkText } from '@/src/modules/search/chunking';
 import type {
   Connector,
   DocumentSourceRecord,
@@ -445,27 +446,36 @@ async function mapRecord(
     excerpt: record.body,
     processName,
   });
-  await client.query(
-    `INSERT INTO search_documents
-      (id, workspace_id, access_scope_id, resource_id, assertion_id, content_version_id, body, authority,
-       confidence, source_updated_at, active)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true)
-     ON CONFLICT (id) DO UPDATE SET body = EXCLUDED.body, authority = EXCLUDED.authority,
-       access_scope_id = EXCLUDED.access_scope_id, confidence = EXCLUDED.confidence,
-       source_updated_at = EXCLUDED.source_updated_at, active = true`,
-    [
-      stableId('search-document', `${evidenceResourceId}:${contentVersionId}`),
-      IDS.workspace,
-      scopeId,
-      evidenceResourceId,
-      stance.assertionId,
-      contentVersionId,
-      `${record.evidence.title}. ${record.evidence.summary} ${record.body}`,
-      record.authority,
-      record.evidence.confidence,
-      record.updatedAt,
-    ],
-  );
+  const chunks = chunkText(record.body);
+  await client.query('UPDATE search_documents SET active = false WHERE resource_id = $1 AND active', [evidenceResourceId]);
+  for (const chunk of chunks) {
+    await client.query(
+      `INSERT INTO search_documents
+        (id, workspace_id, access_scope_id, resource_id, assertion_id, content_version_id, body,
+         chunk_index, chunk_start_offset, chunk_end_offset, authority, confidence, source_updated_at, active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, true)
+       ON CONFLICT (id) DO UPDATE SET body = EXCLUDED.body, authority = EXCLUDED.authority,
+         access_scope_id = EXCLUDED.access_scope_id, confidence = EXCLUDED.confidence,
+         chunk_index = EXCLUDED.chunk_index, chunk_start_offset = EXCLUDED.chunk_start_offset,
+         chunk_end_offset = EXCLUDED.chunk_end_offset, source_updated_at = EXCLUDED.source_updated_at,
+         active = true`,
+      [
+        stableId('search-document', `${evidenceResourceId}:${contentVersionId}:${chunk.index}`),
+        IDS.workspace,
+        scopeId,
+        evidenceResourceId,
+        stance.assertionId,
+        contentVersionId,
+        `${record.evidence.title}. ${record.evidence.summary} ${chunk.text}`,
+        chunk.index,
+        chunk.startOffset,
+        chunk.endOffset,
+        record.authority,
+        record.evidence.confidence,
+        record.updatedAt,
+      ],
+    );
+  }
 }
 
 async function runSourceSync<T extends KnowledgeSourceRecord>(

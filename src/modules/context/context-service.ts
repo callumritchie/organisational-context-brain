@@ -46,29 +46,26 @@ async function retrieve(
   const result = await client.query<CandidateRow>(
     `WITH query AS (SELECT to_tsquery('english', $1) AS value),
     lexical_ranked AS (
-      SELECT ranked.id, ranked.lexical_score,
-        row_number() OVER (ORDER BY ranked.lexical_score DESC, ranked.id) AS lexical_rank
-      FROM (
-        SELECT document.id, ts_rank_cd(document.search_vector, query.value, 32) AS lexical_score
-        FROM search_documents document CROSS JOIN query
-        WHERE document.active AND document.search_vector @@ query.value
-        ORDER BY lexical_score DESC, document.id
-        LIMIT $2
-      ) ranked
+      SELECT lexical.id, lexical.lexical_score, lexical.lexical_rank
+      FROM query
+      CROSS JOIN LATERAL permissioned_lexical_search(query.value, $2) lexical
     ),
-    semantic_ranked AS (
-      SELECT ranked.id, ranked.semantic_score,
-        row_number() OVER (ORDER BY ranked.semantic_score DESC, ranked.id) AS semantic_rank
-      FROM (
-        SELECT document.id, 1 - (embedding.embedding <=> ($5::text)::vector) AS semantic_score
-        FROM search_embeddings embedding
-        JOIN search_documents document ON document.id = embedding.search_document_id
-        WHERE $5::text IS NOT NULL
-          AND document.active AND embedding.is_current
-          AND embedding.provider = $6 AND embedding.model = $7
-        ORDER BY embedding.embedding <=> ($5::text)::vector, document.id
-        LIMIT $2
-      ) ranked
+    semantic_candidates AS (
+      SELECT DISTINCT ON (document.resource_id)
+        document.id, document.resource_id,
+        1 - (embedding.embedding <=> ($5::text)::vector) AS semantic_score
+      FROM search_embeddings embedding
+      JOIN search_documents document ON document.id = embedding.search_document_id
+      WHERE $5::text IS NOT NULL
+        AND document.active AND embedding.is_current
+        AND embedding.provider = $6 AND embedding.model = $7
+      ORDER BY document.resource_id, semantic_score DESC, document.id
+    ), semantic_ranked AS (
+      SELECT candidate.id, candidate.semantic_score,
+        row_number() OVER (ORDER BY candidate.semantic_score DESC, candidate.id) AS semantic_rank
+      FROM semantic_candidates candidate
+      ORDER BY candidate.semantic_score DESC, candidate.id
+      LIMIT $2
     ),
     candidate_documents AS (
       SELECT id FROM lexical_ranked

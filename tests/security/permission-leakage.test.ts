@@ -18,6 +18,12 @@ describe('permission leakage', () => {
   it('fails closed outside an actor transaction', async () => {
     const result = await getAppPool().query<{ count: string }>('SELECT count(*)::text AS count FROM resources');
     expect(result.rows[0]?.count).toBe('0');
+
+    const lexical = await getAppPool().query<{ count: string }>(
+      `SELECT count(*)::text AS count
+       FROM permissioned_lexical_search(to_tsquery('english', 'atlas'), 100)`,
+    );
+    expect(lexical.rows[0]?.count).toBe('0');
   });
 
   it('uses a non-owning application role without RLS bypass', async () => {

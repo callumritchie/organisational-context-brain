@@ -22,6 +22,7 @@ describe('scale corpus', () => {
     expect(summary.duplicates).toBeGreaterThan(0);
     expect(summary.deleted).toBeGreaterThan(0);
     expect(summary.ambiguousAliases).toBeGreaterThan(0);
+    expect(summary.longDocuments).toBeGreaterThan(0);
     expect(Object.values(summary.sourceSystems)).toEqual([
       200, 200, 200, 200, 200,
     ]);
