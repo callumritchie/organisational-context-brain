@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  addVocabularyMismatchQuestions,
   generateScaleCorpus,
   generateScaleUpdateBatch,
   summarizeScaleCorpus,
@@ -57,6 +58,45 @@ describe('scale corpus', () => {
     expect(morgan.expectedRecordIds.length).toBeLessThan(
       jamie.expectedRecordIds.length,
     );
+  });
+
+  it('adds deterministic vocabulary-mismatch questions without leaking project names', () => {
+    const base = generateScaleCorpus({
+      recordCount: 1_000,
+      questionProjectCount: 5,
+      seed: 7,
+    });
+    const corpus = addVocabularyMismatchQuestions(base);
+    expect(corpus.questions).toHaveLength(30);
+    expect(validateScaleCorpus(corpus)).toEqual([]);
+    expect(addVocabularyMismatchQuestions(base)).toEqual(corpus);
+    expect(addVocabularyMismatchQuestions(corpus)).toEqual(corpus);
+
+    const mismatch = corpus.questions.filter(
+      (question) => question.cohort === 'vocabulary-mismatch',
+    );
+    expect(mismatch).toHaveLength(15);
+    for (const question of mismatch) {
+      const projectName = corpus.records.find(
+        (record) => record.canonicalProjectId === question.canonicalProjectId,
+      )!.canonicalProjectName;
+      const paired = corpus.questions.find(
+        (candidate) =>
+          candidate.canonicalProjectId === question.canonicalProjectId &&
+          candidate.actor === question.actor &&
+          candidate.cohort === 'exact-name',
+      )!;
+      expect(question.query).not.toContain(projectName);
+      expect(question.lexicalQuery).toBe(question.query);
+      expect(question.expectedRecordIds).toEqual(paired.expectedRecordIds);
+      expect(question.forbiddenRecordIds).toEqual(paired.forbiddenRecordIds);
+    }
+  });
+
+  it('reserves 50 unique queries in the default two-cohort semantic benchmark', () => {
+    const corpus = addVocabularyMismatchQuestions(generateScaleCorpus());
+    expect(corpus.questions).toHaveLength(150);
+    expect(new Set(corpus.questions.map((question) => question.query)).size).toBe(50);
   });
 
   it('creates deterministic revisions and deletions with updated expectations', () => {

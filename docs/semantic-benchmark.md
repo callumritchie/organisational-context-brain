@@ -34,7 +34,9 @@ This run does not justify making semantic retrieval dominant or adding a special
 
 PostgreSQL remains the appropriate datastore for the measured slice. Genuine embeddings stay supported, but hybrid ranking remains experimental rather than empirically optimised.
 
-The next meaningful semantic evaluation should add independently authored paraphrases, implicit references and vocabulary mismatch. A full 10,000-chunk vector latency run is also still required before deciding whether approximate pgvector indexing is warranted. Results from this 1,975-vector sample must not be extrapolated as a production guarantee.
+A fixed, manually specified vocabulary-mismatch cohort is now implemented alongside the original questions. Its local lexical baseline is intentionally poor: precision, recall and MRR are all zero across 75 actor-scoped questions, with zero permission leakage. This cohort has not yet been sent to an embedding provider, so there is no semantic or hybrid result for it yet. It is deterministic and reviewable, but it is not a blind, independently authored human evaluation.
+
+The next authorised semantic run will reserve 50 unique query inputs and select at most 1,950 document chunks, retaining the 2,000-input cap. It will report exact-name and vocabulary-mismatch metrics separately. A later evaluation should add blind human-authored questions, implicit references and real-world terminology distributions. A full 10,000-chunk vector latency run is also still required before deciding whether approximate pgvector indexing is warranted. Results from the existing 1,975-vector sample must not be extrapolated as a production guarantee.
 
 ## Running it
 
@@ -44,4 +46,4 @@ The command deliberately requires an egress confirmation flag:
 npm run benchmark:semantic -- --confirm-synthetic-egress
 ```
 
-Run it only after reviewing the synthetic corpus and authorising its transfer to the configured embedding provider. It rebuilds only the isolated benchmark workspace; the Northstar Labs demo workspace is separate.
+Run it only after reviewing the synthetic corpus and authorising that specific transfer to the configured embedding provider. A previous run's approval should not be reused. It rebuilds only the isolated benchmark workspace; the Northstar Labs demo workspace is separate.

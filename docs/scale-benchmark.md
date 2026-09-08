@@ -11,7 +11,7 @@ The default seed produces:
 - 1,880 multi-version records, 82 changed stances, 909 duplicates and 244 deletions;
 - 271 ambiguous source aliases represented by 542 unresolved identity candidates;
 - 323 long documents split into 10,646 overlapping, offset-addressable search chunks;
-- four access scopes and 75 actor-specific questions containing 1,525 forbidden-evidence checks.
+- four access scopes and 150 actor-specific questions containing 3,050 forbidden-evidence checks: 75 exact-name questions and 75 fixed vocabulary-mismatch questions.
 
 Run it locally after migrations:
 
@@ -23,7 +23,7 @@ The command recreates only the isolated benchmark workspace, performs an initial
 
 ## Current measured baseline
 
-The current 10,000-record local run loaded 12,407 versions and 10,646 search chunks in approximately 5.9 seconds. It then applied 500 changes in approximately 656 ms, or 762 records/second:
+The current 10,000-record local run loaded 12,407 versions and 10,646 search chunks in approximately 5.9 seconds. It then applied 500 changes in approximately 623 ms, or 802 records/second:
 
 - 450 new immutable source/content versions and 474 replacement chunks;
 - 50 source tombstones;
@@ -34,7 +34,7 @@ The current 10,000-record local run loaded 12,407 versions and 10,646 search chu
 - active chunks attached to superseded content versions: `0`;
 - invalid current-version pointers: `0`.
 
-Across 75 permission-scoped lexical questions after the update, at a limit of 20, it measured:
+Across the 75 permission-scoped exact-name questions after the update, at a limit of 20, it measured:
 
 - precision@20: `1.0`;
 - recall@20: `0.6147`;
@@ -42,9 +42,11 @@ Across 75 permission-scoped lexical questions after the update, at a limit of 20
 - forbidden evidence returned: `0`;
 - active deleted records: `0`;
 - stale-version search records: `0`;
-- p50 query latency: approximately `2.29 ms`;
-- p95 query latency: approximately `3.59 ms`;
-- maximum query latency: approximately `6.11 ms`.
+- p50 query latency: approximately `2.22 ms`;
+- p95 query latency: approximately `2.73 ms`;
+- maximum query latency: approximately `5.97 ms`.
+
+Across the paired 75 vocabulary-mismatch questions, lexical precision, recall and mean reciprocal rank were all `0`, with `0` forbidden records returned. The questions keep the client reference but replace canonical project terms—for example, account opening instead of onboarding—and lexical search receives the actual question rather than a hidden canonical project name. This deliberately difficult cohort now provides a fair test of whether semantic or hybrid retrieval adds value. Its provider-embedding comparison has not yet been run.
 
 These are development-machine observations, not production guarantees. Recall is bounded by the top-20 limit because each project intentionally has more than 20 relevant visible records.
 
@@ -52,6 +54,6 @@ The initial unchunked p95 was approximately 436 ms. Materialising the effective 
 
 ## What this does and does not establish
 
-This baseline establishes deterministic ingestion, version integrity, ambiguity preservation, deletion handling, long-document chunking, evidence-level result deduplication, replay-safe incremental update behavior, local update throughput, actor-scoped lexical relevance and a zero-leakage result for the current question set. It does not yet establish semantic retrieval quality, deep graph performance or production-scale latency.
+This baseline establishes deterministic ingestion, version integrity, ambiguity preservation, deletion handling, long-document chunking, evidence-level result deduplication, replay-safe incremental update behavior, local update throughput, actor-scoped lexical relevance and a zero-leakage result for both query cohorts. It also establishes that exact-name lexical results must not be treated as evidence of robust retrieval under vocabulary mismatch. It does not yet establish semantic retrieval quality on the new cohort, deep graph performance or production-scale latency.
 
-Next work: a representative provider-embedding sample, larger scale tiers, and exact-pgvector measurements before considering specialist vector or graph infrastructure.
+Next work: an explicitly authorised provider-embedding comparison on both cohorts, larger scale tiers, and exact-pgvector measurements before considering specialist vector or graph infrastructure.

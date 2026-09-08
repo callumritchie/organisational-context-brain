@@ -125,6 +125,11 @@ interface EvaluationAccumulator {
   reciprocalRankTotal: number;
 }
 
+interface ChannelEvaluation {
+  accumulator: EvaluationAccumulator;
+  latencies: number[];
+}
+
 function addResult(
   accumulator: EvaluationAccumulator,
   returned: string[],
@@ -165,6 +170,17 @@ function emptyAccumulator(): EvaluationAccumulator {
   };
 }
 
+function emptyChannelEvaluation(): ChannelEvaluation {
+  return { accumulator: emptyAccumulator(), latencies: [] };
+}
+
+function channelMetrics(evaluation: ChannelEvaluation, questionCount: number) {
+  return {
+    ...metrics(evaluation.accumulator, questionCount),
+    latencyMs: latencySummary(evaluation.latencies),
+  };
+}
+
 function vectorLiteral(values: number[]) {
   return `[${values.join(',')}]`;
 }
@@ -198,6 +214,15 @@ export async function evaluateSemanticBenchmark(
   const lexicalLatencies: number[] = [];
   const semanticLatencies: number[] = [];
   const hybridLatencies: number[] = [];
+  const cohorts = new Map<
+    BenchmarkQuestion['cohort'],
+    {
+      questions: number;
+      lexical: ChannelEvaluation;
+      semantic: ChannelEvaluation;
+      hybrid: ChannelEvaluation;
+    }
+  >();
 
   for (const actor of Object.keys(actorIds) as BenchmarkQuestion['actor'][]) {
     await withActorTransaction(
@@ -209,7 +234,7 @@ export async function evaluateSemanticBenchmark(
             `SELECT resource_id, lexical_rank::text AS rank
              FROM permissioned_lexical_resource_search(phraseto_tsquery('english', $1), $2)
              ORDER BY lexical_rank`,
-            [question.query.replace(/^.*completing /, '').replace(/\?$/, ''), limit],
+            [question.lexicalQuery, limit],
           );
           const lexicalDuration = performance.now() - lexicalStartedAt;
           lexicalLatencies.push(lexicalDuration);
@@ -251,6 +276,20 @@ export async function evaluateSemanticBenchmark(
           addResult(lexical, lexicalRecords, question);
           addResult(semantic, semanticRecords, question);
           addResult(hybrid, hybridRecords, question);
+          const cohort = cohorts.get(question.cohort) ?? {
+            questions: 0,
+            lexical: emptyChannelEvaluation(),
+            semantic: emptyChannelEvaluation(),
+            hybrid: emptyChannelEvaluation(),
+          };
+          cohort.questions += 1;
+          addResult(cohort.lexical.accumulator, lexicalRecords, question);
+          addResult(cohort.semantic.accumulator, semanticRecords, question);
+          addResult(cohort.hybrid.accumulator, hybridRecords, question);
+          cohort.lexical.latencies.push(lexicalDuration);
+          cohort.semantic.latencies.push(semanticDuration);
+          cohort.hybrid.latencies.push(lexicalDuration + semanticDuration);
+          cohorts.set(question.cohort, cohort);
         }
       },
     );
@@ -266,5 +305,16 @@ export async function evaluateSemanticBenchmark(
     lexical: { ...metrics(lexical, corpus.questions.length), latencyMs: latencySummary(lexicalLatencies) },
     semantic: { ...metrics(semantic, corpus.questions.length), latencyMs: latencySummary(semanticLatencies) },
     hybrid: { ...metrics(hybrid, corpus.questions.length), latencyMs: latencySummary(hybridLatencies) },
+    byCohort: Object.fromEntries(
+      [...cohorts.entries()].map(([cohort, result]) => [
+        cohort,
+        {
+          questions: result.questions,
+          lexical: channelMetrics(result.lexical, result.questions),
+          semantic: channelMetrics(result.semantic, result.questions),
+          hybrid: channelMetrics(result.hybrid, result.questions),
+        },
+      ]),
+    ),
   };
 }

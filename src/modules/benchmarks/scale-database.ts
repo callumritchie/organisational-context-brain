@@ -1031,18 +1031,24 @@ export async function evaluateScaleCorpus(corpus: ScaleCorpus, limit = 20) {
     jamie: SCALE_BENCHMARK_IDS.users.jamie,
     morgan: SCALE_BENCHMARK_IDS.users.morgan,
   };
-  const projectNames = new Map(
-    corpus.records.map((record) => [
-      record.canonicalProjectId,
-      record.canonicalProjectName,
-    ]),
-  );
   const latencies: number[] = [];
   let expectedReturned = 0;
   let totalReturned = 0;
   let totalExpected = 0;
   let forbiddenReturned = 0;
   let reciprocalRankTotal = 0;
+  const cohortResults = new Map<
+    BenchmarkQuestion['cohort'],
+    {
+      questions: number;
+      expectedReturned: number;
+      totalReturned: number;
+      totalExpected: number;
+      forbiddenReturned: number;
+      reciprocalRankTotal: number;
+      latencies: number[];
+    }
+  >();
 
   for (const actor of Object.keys(actorIds) as BenchmarkQuestion['actor'][]) {
     const questions = corpus.questions.filter(
@@ -1059,9 +1065,10 @@ export async function evaluateScaleCorpus(corpus: ScaleCorpus, limit = 20) {
              JOIN search_documents document ON document.id = lexical.id
              JOIN resources resource ON resource.id = document.resource_id
              ORDER BY lexical.lexical_rank`,
-            [projectNames.get(question.canonicalProjectId), limit],
+            [question.lexicalQuery, limit],
           );
-          latencies.push(performance.now() - startedAt);
+          const latency = performance.now() - startedAt;
+          latencies.push(latency);
           const returned = result.rows.map((row) => row.record_id);
           const expected = new Set(question.expectedRecordIds);
           const forbidden = new Set(question.forbiddenRecordIds);
@@ -1072,6 +1079,23 @@ export async function evaluateScaleCorpus(corpus: ScaleCorpus, limit = 20) {
           totalReturned += returned.length;
           totalExpected += expected.size;
           reciprocalRankTotal += reciprocalRank(returned, expected);
+          const cohort = cohortResults.get(question.cohort) ?? {
+            questions: 0,
+            expectedReturned: 0,
+            totalReturned: 0,
+            totalExpected: 0,
+            forbiddenReturned: 0,
+            reciprocalRankTotal: 0,
+            latencies: [],
+          };
+          cohort.questions += 1;
+          cohort.expectedReturned += returned.filter((id) => expected.has(id)).length;
+          cohort.forbiddenReturned += returned.filter((id) => forbidden.has(id)).length;
+          cohort.totalReturned += returned.length;
+          cohort.totalExpected += expected.size;
+          cohort.reciprocalRankTotal += reciprocalRank(returned, expected);
+          cohort.latencies.push(latency);
+          cohortResults.set(question.cohort, cohort);
         }
       },
     );
@@ -1091,6 +1115,29 @@ export async function evaluateScaleCorpus(corpus: ScaleCorpus, limit = 20) {
       p95: percentile(latencies, 0.95),
       max: Math.max(...latencies),
     },
+    byCohort: Object.fromEntries(
+      [...cohortResults.entries()].map(([cohort, result]) => [
+        cohort,
+        {
+          questions: result.questions,
+          precisionAtLimit: result.totalReturned
+            ? result.expectedReturned / result.totalReturned
+            : 0,
+          recallAtLimit: result.totalExpected
+            ? result.expectedReturned / result.totalExpected
+            : 0,
+          meanReciprocalRank: result.questions
+            ? result.reciprocalRankTotal / result.questions
+            : 0,
+          permissionLeakageCount: result.forbiddenReturned,
+          latencyMs: {
+            p50: percentile(result.latencies, 0.5),
+            p95: percentile(result.latencies, 0.95),
+            max: Math.max(...result.latencies),
+          },
+        },
+      ]),
+    ),
   };
 }
 

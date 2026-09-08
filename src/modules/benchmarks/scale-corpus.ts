@@ -17,6 +17,7 @@ export const BENCHMARK_VISIBILITIES = [
 export type BenchmarkSourceSystem = (typeof BENCHMARK_SOURCE_SYSTEMS)[number];
 export type BenchmarkVisibility = (typeof BENCHMARK_VISIBILITIES)[number];
 export type BenchmarkStance = 'SUPPORTS' | 'CONTRADICTS';
+export type BenchmarkQuestionCohort = 'exact-name' | 'vocabulary-mismatch';
 
 export interface BenchmarkVersion {
   version: number;
@@ -48,7 +49,9 @@ export interface BenchmarkRecord {
 export interface BenchmarkQuestion {
   id: string;
   actor: 'alex' | 'jamie' | 'morgan';
+  cohort: BenchmarkQuestionCohort;
   query: string;
+  lexicalQuery: string;
   canonicalProjectId: string;
   expectedRecordIds: string[];
   forbiddenRecordIds: string[];
@@ -331,9 +334,14 @@ export function generateScaleCorpus(
         );
         const projectName = projectRecords[0]!.canonicalProjectName;
         return {
-          id: stableId('benchmark-question', `${canonicalProjectId}:${actor}`),
+          id: stableId(
+            'benchmark-question',
+            `${canonicalProjectId}:${actor}:exact-name`,
+          ),
           actor,
+          cohort: 'exact-name' as const,
           query: `What is preventing customers from completing ${projectName}?`,
+          lexicalQuery: projectName,
           canonicalProjectId,
           expectedRecordIds: projectRecords
             .filter((record) => canRead(actor, record.visibility))
@@ -346,6 +354,68 @@ export function generateScaleCorpus(
   );
 
   return { seed, records, questions };
+}
+
+function vocabularyMismatchQuery(projectName: string, clientName: string) {
+  if (projectName.endsWith(' Onboarding')) {
+    return `Where are new ${clientName} applicants getting stuck while opening an account?`;
+  }
+  if (projectName.endsWith(' Renewal')) {
+    return `Why are existing ${clientName} customers failing to continue their service?`;
+  }
+  if (projectName.endsWith(' Migration')) {
+    return `What obstructs ${clientName} customers moving onto the replacement platform?`;
+  }
+  if (projectName.endsWith(' Discovery')) {
+    return `What unmet needs are emerging from early customer research for ${clientName}?`;
+  }
+  throw new Error(`No vocabulary-mismatch question exists for ${projectName}`);
+}
+
+/**
+ * Adds fixed, reviewable questions that deliberately avoid the canonical project
+ * name. Expected and forbidden evidence remain identical to the paired exact-name
+ * question, so only the query wording changes.
+ */
+export function addVocabularyMismatchQuestions(corpus: ScaleCorpus): ScaleCorpus {
+  const recordsByProject = new Map<string, BenchmarkRecord>();
+  for (const record of corpus.records) {
+    if (!recordsByProject.has(record.canonicalProjectId)) {
+      recordsByProject.set(record.canonicalProjectId, record);
+    }
+  }
+  const baseQuestions = corpus.questions.filter(
+    (question) => question.cohort !== 'vocabulary-mismatch',
+  );
+  const exactQuestions = baseQuestions.filter(
+    (question) => question.cohort === 'exact-name',
+  );
+  const vocabularyMismatchQuestions = exactQuestions.map((question) => {
+    const record = recordsByProject.get(question.canonicalProjectId);
+    if (!record) {
+      throw new Error(`Question ${question.id} has no project record`);
+    }
+    const query = vocabularyMismatchQuery(
+      record.canonicalProjectName,
+      record.canonicalClientName,
+    );
+    return {
+      ...question,
+      id: stableId(
+        'benchmark-question',
+        `${question.canonicalProjectId}:${question.actor}:vocabulary-mismatch`,
+      ),
+      cohort: 'vocabulary-mismatch' as const,
+      query,
+      lexicalQuery: query,
+      expectedRecordIds: [...question.expectedRecordIds],
+      forbiddenRecordIds: [...question.forbiddenRecordIds],
+    };
+  });
+  return {
+    ...corpus,
+    questions: [...baseQuestions, ...vocabularyMismatchQuestions],
+  };
 }
 
 export function summarizeScaleCorpus(corpus: ScaleCorpus) {
@@ -385,6 +455,15 @@ export function summarizeScaleCorpus(corpus: ScaleCorpus) {
       (record) => record.versions.at(-1)!.body.length > 1_600,
     ),
     evaluationQuestions: corpus.questions.length,
+    evaluationCohorts: Object.fromEntries(
+      [...new Set(corpus.questions.map((question) => question.cohort))].map(
+        (cohort) => [
+          cohort,
+          corpus.questions.filter((question) => question.cohort === cohort)
+            .length,
+        ],
+      ),
+    ),
     forbiddenEvidenceChecks: corpus.questions.reduce(
       (sum, question) => sum + question.forbiddenRecordIds.length,
       0,
@@ -460,9 +539,12 @@ export function generateScaleUpdateBatch(
 
 export function validateScaleCorpus(corpus: ScaleCorpus) {
   const ids = new Set(corpus.records.map((record) => record.id));
+  const questionIds = new Set(corpus.questions.map((question) => question.id));
   const errors: string[] = [];
   if (ids.size !== corpus.records.length)
     errors.push('Record IDs are not unique');
+  if (questionIds.size !== corpus.questions.length)
+    errors.push('Question IDs are not unique');
   for (const record of corpus.records) {
     if (!record.versions.length) errors.push(`${record.id} has no versions`);
     if (record.duplicateOf && !ids.has(record.duplicateOf))

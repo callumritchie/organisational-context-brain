@@ -13,6 +13,7 @@ import {
   SCALE_BENCHMARK_IDS,
 } from '@/src/modules/benchmarks/scale-database';
 import {
+  addVocabularyMismatchQuestions,
   generateScaleCorpus,
   generateScaleUpdateBatch,
 } from '@/src/modules/benchmarks/scale-corpus';
@@ -48,7 +49,7 @@ const provider = createOpenAIEmbeddingProvider({
     usage.requests += 1;
   },
 });
-const corpus = generateScaleCorpus();
+const corpus = addVocabularyMismatchQuestions(generateScaleCorpus());
 const updateBatch = generateScaleUpdateBatch(corpus);
 const ownerPool = getOwnerPool();
 const ownerClient = await ownerPool.connect();

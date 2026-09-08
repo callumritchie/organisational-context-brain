@@ -9,6 +9,7 @@ import {
   resetScaleBenchmarkWorkspace,
 } from '@/src/modules/benchmarks/scale-database';
 import {
+  addVocabularyMismatchQuestions,
   generateScaleCorpus,
   generateScaleUpdateBatch,
   summarizeScaleCorpus,
@@ -26,11 +27,13 @@ function integerArgument(name: string, fallback: number) {
   return value;
 }
 
-const corpus = generateScaleCorpus({
-  recordCount: integerArgument('--records', 10_000),
-  seed: integerArgument('--seed', 20_260_908),
-  questionProjectCount: integerArgument('--question-projects', 25),
-});
+const corpus = addVocabularyMismatchQuestions(
+  generateScaleCorpus({
+    recordCount: integerArgument('--records', 10_000),
+    seed: integerArgument('--seed', 20_260_908),
+    questionProjectCount: integerArgument('--question-projects', 25),
+  }),
+);
 const validationErrors = validateScaleCorpus(corpus);
 if (validationErrors.length) throw new Error(validationErrors.join('\n'));
 const updateBatch = generateScaleUpdateBatch(corpus, {

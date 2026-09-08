@@ -10,6 +10,7 @@ import {
   SCALE_BENCHMARK_IDS,
 } from '@/src/modules/benchmarks/scale-database';
 import {
+  addVocabularyMismatchQuestions,
   generateScaleCorpus,
   generateScaleUpdateBatch,
 } from '@/src/modules/benchmarks/scale-corpus';
@@ -17,13 +18,15 @@ import { selectSemanticBenchmarkSample } from '@/src/modules/benchmarks/semantic
 
 describe('scale benchmark database', () => {
   it('ingests isolated histories and retrieves without permission leakage', async () => {
-    const corpus = generateScaleCorpus({
-      recordCount: 200,
-      clientCount: 10,
-      projectsPerClient: 2,
-      questionProjectCount: 4,
-      seed: 91,
-    });
+    const corpus = addVocabularyMismatchQuestions(
+      generateScaleCorpus({
+        recordCount: 200,
+        clientCount: 10,
+        projectsPerClient: 2,
+        questionProjectCount: 4,
+        seed: 91,
+      }),
+    );
     const updateBatch = generateScaleUpdateBatch(corpus, {
       updateCount: 20,
       deletionEvery: 5,
@@ -75,12 +78,15 @@ describe('scale benchmark database', () => {
       expect(replayIntegrity.current_version_violations).toBe(0);
       expect(advancedSources.rows[0]?.count).toBe('5');
       expect(semanticSample.documents.length + semanticSample.queryTexts.length).toBe(100);
+      expect(semanticSample.queryTexts).toHaveLength(8);
       expect(semanticSample.requiredDocuments).toBeGreaterThan(0);
       expect(semanticSample.distractorDocuments).toBeGreaterThan(0);
       expect(integrity.ambiguous_candidates).toBeGreaterThan(0);
       expect(evaluation.permissionLeakageCount).toBe(0);
-      expect(evaluation.precisionAtLimit).toBe(1);
-      expect(evaluation.meanReciprocalRank).toBe(1);
+      expect(evaluation.byCohort['exact-name'].precisionAtLimit).toBe(1);
+      expect(evaluation.byCohort['exact-name'].meanReciprocalRank).toBe(1);
+      expect(evaluation.byCohort['vocabulary-mismatch'].questions).toBe(12);
+      expect(evaluation.byCohort['vocabulary-mismatch'].permissionLeakageCount).toBe(0);
     } finally {
       ingestionClient.release();
       ownerClient.release();
