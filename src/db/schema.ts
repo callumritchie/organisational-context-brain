@@ -167,6 +167,20 @@ export const resourceIdentityKeys = pgTable('resource_identity_keys', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const identityResolutionCandidates = pgTable('identity_resolution_candidates', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
+  sourceSystem: text('source_system').notNull(),
+  keyType: text('key_type').notNull(),
+  externalKey: text('external_key').notNull(),
+  candidateResourceId: uuid('candidate_resource_id').notNull().references(() => resources.id),
+  sourceObjectVersionId: uuid('source_object_version_id').notNull().references(() => sourceObjectVersions.id),
+  confidence: real('confidence').notNull(),
+  status: text('status').notNull(),
+  rationale: text('rationale').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const contentVersions = pgTable('content_versions', {
   id: uuid('id').primaryKey(),
   workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
@@ -228,6 +242,7 @@ export const provenanceSpans = pgTable('provenance_spans', {
 export const searchDocuments = pgTable('search_documents', {
   id: uuid('id').primaryKey(),
   workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
+  accessScopeId: uuid('access_scope_id').notNull().references(() => accessScopes.id),
   resourceId: uuid('resource_id').notNull().references(() => resources.id),
   assertionId: uuid('assertion_id').references(() => assertions.id),
   contentVersionId: uuid('content_version_id').references(() => contentVersions.id),

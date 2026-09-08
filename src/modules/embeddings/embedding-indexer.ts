@@ -16,9 +16,8 @@ export async function syncSearchEmbeddings(client: PoolClient, provider: Embeddi
     resource_id: string;
     body: string;
   }>(
-    `SELECT document.id, document.workspace_id, resource.access_scope_id, document.resource_id, document.body
+    `SELECT document.id, document.workspace_id, document.access_scope_id, document.resource_id, document.body
      FROM search_documents document
-     JOIN resources resource ON resource.id = document.resource_id
      WHERE document.active
      ORDER BY document.id`,
   );

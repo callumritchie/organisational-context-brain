@@ -447,14 +447,16 @@ async function mapRecord(
   });
   await client.query(
     `INSERT INTO search_documents
-      (id, workspace_id, resource_id, assertion_id, content_version_id, body, authority,
+      (id, workspace_id, access_scope_id, resource_id, assertion_id, content_version_id, body, authority,
        confidence, source_updated_at, active)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true)
      ON CONFLICT (id) DO UPDATE SET body = EXCLUDED.body, authority = EXCLUDED.authority,
-       confidence = EXCLUDED.confidence, source_updated_at = EXCLUDED.source_updated_at, active = true`,
+       access_scope_id = EXCLUDED.access_scope_id, confidence = EXCLUDED.confidence,
+       source_updated_at = EXCLUDED.source_updated_at, active = true`,
     [
       stableId('search-document', `${evidenceResourceId}:${contentVersionId}`),
       IDS.workspace,
+      scopeId,
       evidenceResourceId,
       stance.assertionId,
       contentVersionId,

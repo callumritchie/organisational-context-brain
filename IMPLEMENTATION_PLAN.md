@@ -108,6 +108,9 @@ Status: in progress.
 - Implemented: deterministic, configurable corpus generation with 10,000 logical records by default.
 - Implemented: five source-system shapes, canonical clients/projects, source-specific references, immutable versions, stance changes, duplicates, deletions, ambiguous aliases and four permission scopes.
 - Implemented: actor-specific evaluation questions with explicit expected and forbidden evidence sets.
-- Remaining: ingest the benchmark corpus into an isolated workspace through connector lifecycles.
-- Remaining: add chunking, incremental re-indexing and retrieval-quality/latency/cost measurements.
+- Implemented: isolated PostgreSQL benchmark workspace with batched source histories, canonical entities, assertions, provenance, search documents and successful sync-run records.
+- Implemented: ambiguity is preserved as scored resolution candidates; only unambiguous identities are promoted to canonical identity keys.
+- Implemented: lexical precision, recall, reciprocal-rank, latency, stale/deleted-record and permission-leakage measurements at 10,000 records.
+- Implemented: materialised retrieval scope reduced the observed p95 RLS query time from approximately 436 ms to 203 ms while retaining zero observed leakage.
+- Remaining: add chunking, incremental re-indexing and semantic retrieval quality/cost measurements.
 - Remaining: benchmark exact pgvector before deciding whether approximate indexing or specialist graph/vector infrastructure is warranted.

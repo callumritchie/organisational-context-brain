@@ -104,4 +104,4 @@ Domain work lives under `src/modules`; the application and API may depend on tho
 
 ## Current milestone state
 
-Milestones 0–6 are complete. Milestone 7 has begun with a deterministic scale corpus whose expected identities, versions, contradictions and permission boundaries are known before ingestion. This keeps benchmark truth independent from the retrieval implementation. The next slice will ingest it into an isolated workspace and measure retrieval quality and latency before any specialist datastore is selected.
+Milestones 0–6 are complete. Milestone 7 now generates and ingests a deterministic 10,000-record corpus into an isolated workspace whose expected identities, versions, contradictions and permission boundaries are known independently from retrieval. Ambiguous source identities remain explicit candidates rather than being silently merged. The baseline measures lexical quality, latency, current-version integrity and leakage; chunking, incremental updates and semantic-sample measurements remain before any specialist datastore is selected.

@@ -21,7 +21,7 @@ try {
   await ownerClient.query(`TRUNCATE TABLE
     trace_stages, query_traces, search_embeddings, signal_snapshots, signal_observations, search_documents,
     provenance_spans, assertions, relationships,
-    resource_identity_keys, ontology_versions,
+    identity_resolution_candidates, resource_identity_keys, ontology_versions,
     entity_aliases, content_objects, content_versions, entities, resources, source_object_versions, source_objects,
     sync_runs, sources, access_scope_grants, access_scopes, group_memberships, groups, users,
     workspaces CASCADE`);
