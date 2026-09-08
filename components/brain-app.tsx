@@ -11,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { PERSONAS } from '@/src/modules/canonical/ids';
+import type { AnswerResponse } from '@/src/modules/ai/types';
 import type { ContextEvidence, ContextResponse } from '@/src/modules/context/types';
 import { DEMO_RANKING_V3, type RankingFactor } from '@/src/modules/ranking/demo-ranking-v3';
 
@@ -263,6 +264,7 @@ export function BrainApp() {
   const [query, setQuery] = useState(PRESET);
   const [actorId, setActorId] = useState<string>(PERSONAS[0].id);
   const [result, setResult] = useState<ContextResponse | null>(null);
+  const [answer, setAnswer] = useState<AnswerResponse['answer'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mutationLoading, setMutationLoading] = useState(false);
@@ -272,21 +274,35 @@ export function BrainApp() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/v1/context', {
+      const response = await fetch('/api/v1/ask', {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-demo-actor': nextActorId },
         body: JSON.stringify({ query: nextQuery, maxEvidence: 6 }),
       });
-      if (!response.ok) throw new Error('The context service could not complete this request.');
-      const context = await response.json() as ContextResponse;
-      setResult(context);
-      return context;
+      if (!response.ok) throw new Error('The answer service could not complete this request.');
+      const payload = await response.json() as AnswerResponse;
+      setResult(payload.context);
+      setAnswer(payload.answer);
+      return payload;
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Context request failed.');
     } finally {
       setLoading(false);
     }
   }, [actorId, query]);
+
+  const resolveContext = useCallback(async (nextActorId: string, nextQuery: string) => {
+    const response = await fetch('/api/v1/context', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-demo-actor': nextActorId },
+      body: JSON.stringify({ query: nextQuery, maxEvidence: 6 }),
+    });
+    if (!response.ok) throw new Error('The context service could not complete this request.');
+    const context = await response.json() as ContextResponse;
+    setResult(context);
+    setAnswer(null);
+    return context;
+  }, []);
 
   const initialised = useRef(false);
   useEffect(() => {
@@ -317,13 +333,12 @@ export function BrainApp() {
         const nextQuery = (input as { query: string }).query.trim();
         if (nextQuery.length < 3 || nextQuery.length > 500) throw new Error('Query must be 3–500 characters.');
         setQuery(nextQuery);
-        const context = await ask(actorId, nextQuery);
-        if (!context) throw new Error('Context could not be resolved.');
+        const context = await resolveContext(actorId, nextQuery);
         return { traceId: context.traceId, actor: context.actor.name, summary: context.summary, evidenceCount: context.evidence.length };
       },
     }, { signal: lifecycle.signal })).catch(() => undefined);
     return () => lifecycle.abort();
-  }, [actorId, ask]);
+  }, [actorId, resolveContext]);
 
   function changeActor(nextActorId: string) {
     setActorId(nextActorId);
@@ -374,7 +389,7 @@ export function BrainApp() {
         <div className="sidebar-flow">
           <p>Context pipeline</p>
           <div><span>Source</span><ArrowRight /><span>Evidence</span><ArrowRight /><span>Context</span></div>
-          <small>Live · offline mode</small>
+          <small>Live · {answer?.mode === 'provider' ? 'provider synthesis' : 'offline mode'}</small>
         </div>
       </aside>
 
@@ -395,7 +410,7 @@ export function BrainApp() {
           <section className="main-column" id="ask">
             <div className="title-row">
               <div><span className="eyebrow green">Evidence before synthesis</span><h2>Ask the organisation</h2><p>Resolve a question into permission-aware evidence, entities and provenance.</p></div>
-              <span className="mode-badge"><CircleDot /> No generative AI</span>
+              <span className="mode-badge"><CircleDot /> {answer?.mode === 'provider' ? `${answer.provider} · ${answer.model}` : 'Deterministic fallback'}</span>
             </div>
 
             <Card className="question-card">
@@ -404,7 +419,7 @@ export function BrainApp() {
                 <textarea id="question" value={query} onChange={(event) => setQuery(event.target.value)} />
                 <div className="question-footer">
                   <span><ShieldCheck /> Context will be scoped to {PERSONAS.find((persona) => persona.id === actorId)?.name}</span>
-                  <Button onClick={() => void ask()} disabled={loading} size="lg">{loading ? 'Resolving…' : 'Resolve context'} <Send /></Button>
+                  <Button onClick={() => void ask()} disabled={loading} size="lg">{loading ? 'Assembling…' : 'Ask brain'} <Send /></Button>
                 </div>
               </CardContent>
             </Card>
@@ -416,13 +431,30 @@ export function BrainApp() {
                 <section className="answer-panel" aria-live="polite">
                   <div className="answer-heading">
                     <div className="answer-icon"><BrainCircuit /></div>
-                    <div><span>Context synthesis</span><strong>Evidence-led, deterministic</strong></div>
+                    <div><span>Answer synthesis</span><strong>{answer?.mode === 'provider' ? `Grounded by ${answer.provider} · ${answer.model}` : 'Evidence-led, deterministic'}</strong></div>
                     <span className="freshness">Updated from {result.evidence.length} accessible evidence items</span>
                   </div>
-                  <p>{result.summary}</p>
+                  {answer?.mode === 'provider' ? (
+                    <div className="generated-claims">
+                      {answer.claims.map((claim, claimIndex) => (
+                        <p key={`${claim.text}-${claimIndex}`}>
+                          <span>{claim.text}</span>
+                          <small>{claim.evidenceIds.map((evidenceId) => {
+                            const evidenceIndex = result.evidence.findIndex((item) => item.id === evidenceId);
+                            return evidenceIndex >= 0
+                              ? <a key={evidenceId} href={`#evidence-${evidenceIndex + 1}`}>[{evidenceIndex + 1}]</a>
+                              : null;
+                          })}</small>
+                        </p>
+                      ))}
+                    </div>
+                  ) : <p>{answer?.text ?? result.summary}</p>}
                   <div className="citation-row">
                     {result.evidence.map((item, index) => <a key={item.id} href={`#evidence-${index + 1}`}>[{index + 1}] {item.source.title}</a>)}
                   </div>
+                  {answer?.fallbackReason && answer.fallbackReason !== 'not-configured'
+                    ? <p className="answer-fallback">Provider output was not safely usable; the deterministic answer was returned.</p>
+                    : null}
                 </section>
 
                 <section className={`learning-panel ${result.epistemicState.status}`} aria-label="Evidence state and prepared learning demo">
@@ -504,6 +536,11 @@ export function BrainApp() {
                   {result.trace.map((stage, index) => (
                     <li key={stage.stage}><span>{index + 1}</span><div><strong>{stage.stage}</strong><p>{stage.detail}</p></div></li>
                   ))}
+                  {answer ? (
+                    <li><span>{result.trace.length + 1}</span><div><strong>Answer synthesis</strong><p>{answer.mode === 'provider'
+                      ? `${answer.provider} produced ${answer.claims.length} claim${answer.claims.length === 1 ? '' : 's'}; every evidence ID passed server validation.`
+                      : 'The authorised context packet was rendered deterministically; no external provider received data.'}</p></div></li>
+                  ) : null}
                 </ol>
                 <div className="security-note"><ShieldCheck /><div><strong>Fail-closed retrieval</strong><p>Only actor-visible resources enter candidate retrieval. Restricted titles, scores and snippets are never included here.</p></div></div>
                 <div className="trace-id"><span>Trace ID</span><code>{result.traceId}</code></div>

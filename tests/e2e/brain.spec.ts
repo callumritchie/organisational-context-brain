@@ -25,6 +25,23 @@ test('context API is independently consumable', async ({ request }) => {
   expect(JSON.stringify(context)).not.toContain('Internal verification operations note');
 });
 
+test('ask API reuses authorised context and works offline', async ({ request }) => {
+  const response = await request.post('/api/v1/ask', {
+    headers: { 'x-demo-actor': IDS.users.morgan },
+    data: { query: 'Why do customers abandon Atlas onboarding?', maxEvidence: 6 },
+  });
+  expect(response.ok()).toBe(true);
+  const payload = await response.json();
+  expect(payload.context.actor.name).toBe('Morgan Reed');
+  expect(payload.context.evidence).toHaveLength(3);
+  expect(payload.answer).toMatchObject({
+    mode: 'deterministic',
+    fallbackReason: 'not-configured',
+    provider: null,
+  });
+  expect(JSON.stringify(payload)).not.toContain('Internal verification operations note');
+});
+
 test('autocomplete API applies the same persona boundary', async ({ request }) => {
   const alex = await request.get('/api/v1/autocomplete?q=Cedar', {
     headers: { 'x-demo-actor': IDS.users.alex },

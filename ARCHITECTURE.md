@@ -8,7 +8,7 @@ The central product operation is:
 ContextRequest → ContextResponse
 ```
 
-`ContextResponse` is useful without chat. It contains interpreted entities, ranked evidence, relationships, sources, provenance, an explicit actor-visible epistemic state, a deterministic synthesis, and a safe execution trace. A future `/ask` endpoint will call this same context service.
+`ContextResponse` is useful without chat. It contains interpreted entities, ranked evidence, relationships, sources, provenance, an explicit actor-visible epistemic state, a deterministic synthesis, and a safe execution trace. `POST /api/v1/ask` calls this same context service before optionally passing only its selected authorised evidence to a chat provider.
 
 ## Canonical resource
 
@@ -56,6 +56,7 @@ TypeScript fixture
   → demo-ranking-v3
   → supported / contested / insufficient epistemic assessment
   → ContextResponse
+  → deterministic answer or grounded ChatProvider synthesis
   → Ask view and Brain Inspector
 ```
 
@@ -91,10 +92,16 @@ The application always supports lexical retrieval. When `EMBEDDING_PROVIDER=open
 
 The normal inspector is built only from permitted candidates. It does not know or report excluded candidate titles, names, URIs, snippets, or scores. It reports eligible resource count and permitted channel counts.
 
+## Disposable answer synthesis
+
+The chat provider sits after context assembly and has no retrieval tools. Its input is a compact projection of the selected `ContextResponse` evidence: evidence UUID, title, summary, stance, confidence, source type and authorised excerpt, plus the query and epistemic assessment. It does not receive the actor identity, hidden candidates, graph, access profile, source inventory or raw database access.
+
+Provider output is structured as claims with evidence UUIDs. The answer service rejects claims with missing or unknown citations. When the context is contested, at least one contradicting evidence UUID must be represented. Provider failures and invalid grounding return the existing deterministic answer. Offline mode is the default, answer outputs are not persisted, and the OpenAI adapter requests `store: false`.
+
 ## Module boundaries
 
 Domain work lives under `src/modules`; the application and API may depend on those modules, while domain modules may not import the UI/application layer. ESLint enforces this direction.
 
-## Next milestone
+## Current milestone state
 
-Milestones 0–5 are complete. Milestone 6 adds optional AI synthesis over the authorised context packet.
+Milestones 0–6 are complete. The next work should focus on production authentication and deployment hardening, broader evaluation, or a larger synthetic corpus rather than adding another retrieval path inside the model layer.

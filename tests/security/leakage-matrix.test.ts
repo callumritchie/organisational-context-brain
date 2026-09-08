@@ -3,6 +3,8 @@ import { getAppPool } from '@/src/db/pool';
 import { IDS } from '@/src/modules/canonical/ids';
 import { assembleContext } from '@/src/modules/context/context-service';
 import { autocompleteResources } from '@/src/modules/search/autocomplete-service';
+import { synthesizeAuthorisedContext } from '@/src/modules/ai/answer-service';
+import type { ChatSynthesisInput } from '@/src/modules/ai/types';
 
 const query = "What do we currently know about why users abandon Atlas Bank's onboarding journey?";
 const personas = {
@@ -56,5 +58,25 @@ describe('complete persona leakage matrix', () => {
     expect(alexHarbour).toEqual([]);
     expect(jamieHarbour.map((item) => item.name)).toEqual(['Harbour Discovery', 'Harbour Energy']);
     expect(morganHarbour).toEqual([]);
+  });
+
+  it('sends only Morgan-visible evidence to a chat provider', async () => {
+    const context = await assembleContext(personas.morgan, { query, maxEvidence: 10 });
+    let received: ChatSynthesisInput | null = null;
+    const answer = await synthesizeAuthorisedContext(query, context, {
+      id: 'capture-provider',
+      model: 'capture-model',
+      async synthesize(input) {
+        received = input;
+        return {
+          responseId: 'capture-response',
+          claims: [{ text: 'Visible evidence supports this view.', evidenceIds: [input.evidence[0]!.id] }],
+        };
+      },
+    });
+    expect(answer.mode).toBe('provider');
+    const serialized = JSON.stringify(received);
+    expect((received as ChatSynthesisInput | null)?.evidence).toHaveLength(3);
+    for (const marker of Object.values(markers).flat()) expect(serialized).not.toContain(marker);
   });
 });

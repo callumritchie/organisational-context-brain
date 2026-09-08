@@ -22,3 +22,7 @@ Ontology mutation and the prepared research-learning mutation are disabled when 
 - completing a deployment-specific security review, logging, rate limiting, backups, and recovery testing.
 
 A public GitHub repository exposes source code, not the running application or local `.env.local`. The ignored `.env.local` file must never be committed.
+
+## Optional AI provider
+
+AI synthesis is off by default. When deliberately enabled, selected actor-authorised evidence excerpts and the user's question are sent to the configured provider. The provider is given no retrieval tools, calls request non-persistence, and generated claims are accepted only when they cite evidence UUIDs from that same authorised packet. This application-level `store: false` setting does not replace reviewing the provider account's data controls, retention policy, regional processing, contractual terms, and model availability before using non-synthetic organisational data.

@@ -48,6 +48,8 @@ The internal actor is a dedicated Sync Service user that is not included in the 
 
 The intended public API derives its actor from authentication. The current prototype uses an allow-listed `x-demo-actor` header solely as a clearly labelled synthetic persona mechanism and rejects `actorId` in request bodies. Allow-listing prevents arbitrary database IDs but does not authenticate the caller; anyone who can reach the route can impersonate any listed persona.
 
+`POST /api/v1/ask` resolves the same demo actor and invokes the same actor-scoped context service as `POST /api/v1/context`. Only the context service's selected evidence projection can cross the chat-provider boundary. Citation validation permits only UUIDs present in that selected evidence and falls back to deterministic output on any failure.
+
 ## Inspector
 
 The ordinary Brain Inspector is produced from the already-scoped pipeline. It displays permitted counts and selected IDs only. A future privileged diagnostic mode must use a separate route, role and visual treatment.

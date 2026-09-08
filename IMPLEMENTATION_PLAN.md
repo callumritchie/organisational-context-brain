@@ -90,6 +90,13 @@ Status: implemented and validated.
 
 ## Milestone 6 — AI synthesis
 
-- Add provider interfaces and `/api/v1/ask`.
-- Supply only the already-authorised ContextResponse evidence.
-- Require evidence IDs in generated claims and retain deterministic/offline mode.
+Status: implemented and validated.
+
+- Added a provider-neutral `ChatProvider` boundary and an optional OpenAI Responses API adapter.
+- Added `POST /api/v1/ask`, which calls the same context application service as `POST /api/v1/context`.
+- The provider receives only the selected, actor-authorised evidence packet; it performs no retrieval and receives no inaccessible candidates.
+- Structured provider output requires one or more valid evidence UUIDs for every claim.
+- Server validation rejects unknown citations and contested answers that omit all contradicting evidence.
+- Provider errors or failed grounding return the deterministic answer without exposing provider details.
+- Offline mode remains the default and requires no API key.
+- The UI distinguishes grounded provider synthesis from deterministic fallback and exposes the answer stage after the durable context trace.

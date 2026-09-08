@@ -10,7 +10,7 @@ Sources → Canonical resources + assertions → Permissioned retrieval → Cont
 
 The completed Milestones 0–5 are intentionally small but real. Independent research, meeting, CRM, document, and message connectors ingest Northstar Labs knowledge about Atlas Bank, store immutable source versions, resolve aliases and source identity keys to canonical resources, create assertion-level provenance, apply forced PostgreSQL row-level security, retrieve evidence, expand a permission-safe resource graph, and expose the result through `POST /api/v1/context` and an evidence-first interface. The same response includes connector health, an editable checksummed ontology, first-class signal snapshots, transparent hybrid ranking, and an explicit evidence state.
 
-No LLM or API key is required.
+No LLM or API key is required. Optional provider synthesis is a disposable consumer of the permissioned context packet, not a second retrieval system.
 
 ## Quick start
 
@@ -39,6 +39,8 @@ npm run build
 
 Optional genuine semantic retrieval uses the OpenAI embeddings endpoint documented by [OpenAI](https://developers.openai.com/api/reference/resources/embeddings/methods/create). Put a real key only in ignored `.env.local`, set `EMBEDDING_PROVIDER=openai`, then run `npm run embeddings:sync`. With no provider or key, the app remains explicitly lexical-only; it never fabricates offline vectors.
 
+Optional answer synthesis uses the OpenAI Responses API. Put a real key only in ignored `.env.local`, set `AI_MODE=provider`, `CHAT_PROVIDER=openai`, and explicitly choose `OPENAI_CHAT_MODEL`. The provider receives only the evidence already selected for the current actor. Calls use structured output, disable response storage, and cannot perform independent tool retrieval. Every generated claim must cite visible evidence UUIDs; invalid citations, provider errors, or missing configuration fall back to the deterministic answer.
+
 ## What to try
 
 Ask the preset Atlas Onboarding question as each persona. Alex receives the public, internal and Alex-only executive evidence; Jamie receives the public, internal and Jamie-only fieldwork evidence; Morgan receives only the three public items. The access lens also shows Cedar Health/Cedar Renewal only to Alex and Harbour Energy/Harbour Discovery only to Jamie. Inaccessible names, sources and scores never enter another persona’s response, graph, trace or autocomplete results.
@@ -53,7 +55,7 @@ The ranking is named `demo-ranking-v3`. Its retrieval contribution uses reciproc
 
 ## Current scope
 
-Completed: Milestones 0–5. This includes source identity resolution, five connectors, governed ontology editing, a focused graph UI, permission-scoped signals, optional genuine provider embeddings, exact pgvector retrieval, reciprocal-rank fusion, four distinct access scopes, actor-safe autocomplete, a complete current-surface leakage matrix, and an idempotent contradiction-ingestion scenario that changes downstream context. Deliberately deferred: a populated semantic index until a provider key is supplied, broader signal producers, approximate vector indexing at scale, and provider-backed AI synthesis.
+Completed: Milestones 0–6. This includes source identity resolution, five connectors, governed ontology editing, a focused graph UI, permission-scoped signals, optional genuine provider embeddings, exact pgvector retrieval, reciprocal-rank fusion, four distinct access scopes, actor-safe autocomplete, a complete current-surface leakage matrix, an idempotent contradiction-ingestion scenario, and optional evidence-ID-grounded AI synthesis through `POST /api/v1/ask`. Deliberately deferred: a populated semantic index until a provider key is supplied, broader signal producers, approximate vector indexing at scale, and production authentication/deployment hardening.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md), [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md), and [docs/permissions.md](./docs/permissions.md).
 

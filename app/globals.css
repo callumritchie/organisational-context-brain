@@ -83,6 +83,11 @@ button, textarea, select { font: inherit; }
 .answer-heading strong { font-size: 12px; }
 .answer-heading .freshness { margin-left: auto; padding: 5px 8px; border-radius: 999px; color: #417063; background: #e9f4ef; letter-spacing: 0; text-transform: none; }
 .answer-panel > p { margin: 17px 0 14px; max-width: 850px; color: #263b34; font-family: Georgia,serif; font-size: 17px; line-height: 1.65; }
+.generated-claims { display: grid; gap: 10px; margin: 17px 0 14px; }
+.generated-claims p { display: flex; align-items: baseline; gap: 7px; max-width: 850px; margin: 0; color: #263b34; font-family: Georgia,serif; font-size: 16px; line-height: 1.6; }
+.generated-claims small { display: inline-flex; gap: 3px; font-family: ui-sans-serif,system-ui,sans-serif; font-size: 9px; }
+.generated-claims a { color: #28745e; font-weight: 750; text-decoration: none; }
+.answer-panel .answer-fallback { margin: 10px 0 0; padding-top: 9px; border-top: 1px solid #e1e8e4; color: #7c6b4f; font-family: ui-sans-serif,system-ui,sans-serif; font-size: 8px; line-height: 1.4; }
 .citation-row { display: flex; flex-wrap: wrap; gap: 7px; }
 .citation-row a { padding: 5px 8px; border: 1px solid #dce5df; border-radius: 7px; color: #386d5e; background: #fff; font-size: 9px; text-decoration: none; }
 
