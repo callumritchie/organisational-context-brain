@@ -100,3 +100,14 @@ Status: implemented and validated.
 - Provider errors or failed grounding return the deterministic answer without exposing provider details.
 - Offline mode remains the default and requires no API key.
 - The UI distinguishes grounded provider synthesis from deterministic fallback and exposes the answer stage after the durable context trace.
+
+## Milestone 7 — Scale and messiness validation
+
+Status: in progress.
+
+- Implemented: deterministic, configurable corpus generation with 10,000 logical records by default.
+- Implemented: five source-system shapes, canonical clients/projects, source-specific references, immutable versions, stance changes, duplicates, deletions, ambiguous aliases and four permission scopes.
+- Implemented: actor-specific evaluation questions with explicit expected and forbidden evidence sets.
+- Remaining: ingest the benchmark corpus into an isolated workspace through connector lifecycles.
+- Remaining: add chunking, incremental re-indexing and retrieval-quality/latency/cost measurements.
+- Remaining: benchmark exact pgvector before deciding whether approximate indexing or specialist graph/vector infrastructure is warranted.

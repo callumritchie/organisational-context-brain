@@ -104,4 +104,4 @@ Domain work lives under `src/modules`; the application and API may depend on tho
 
 ## Current milestone state
 
-Milestones 0–6 are complete. The next work should focus on production authentication and deployment hardening, broader evaluation, or a larger synthetic corpus rather than adding another retrieval path inside the model layer.
+Milestones 0–6 are complete. Milestone 7 has begun with a deterministic scale corpus whose expected identities, versions, contradictions and permission boundaries are known before ingestion. This keeps benchmark truth independent from the retrieval implementation. The next slice will ingest it into an isolated workspace and measure retrieval quality and latency before any specialist datastore is selected.

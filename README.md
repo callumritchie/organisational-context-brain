@@ -37,6 +37,15 @@ npm run test
 npm run build
 ```
 
+Generate and validate the deterministic Milestone 7 benchmark corpus without changing the demo database:
+
+```bash
+npm run benchmark:generate
+npm run benchmark:generate -- --records 50000 --output .benchmark/corpus.json
+```
+
+Generated benchmark files are ignored by Git. The default corpus spans five source systems and includes immutable versions, changed claims, near-duplicates, deletions, ambiguous aliases and actor-specific expected/forbidden evidence sets. Generation alone does not claim retrieval quality; database ingestion and measured evaluation are the remaining Milestone 7 work.
+
 Optional genuine semantic retrieval uses the OpenAI embeddings endpoint documented by [OpenAI](https://developers.openai.com/api/reference/resources/embeddings/methods/create). Put a real key only in ignored `.env.local`, set `EMBEDDING_PROVIDER=openai`, then run `npm run embeddings:sync`. With no provider or key, the app remains explicitly lexical-only; it never fabricates offline vectors.
 
 Optional answer synthesis uses the OpenAI Responses API. Put a real key only in ignored `.env.local`, set `AI_MODE=provider`, `CHAT_PROVIDER=openai`, and explicitly choose `OPENAI_CHAT_MODEL`. The provider receives only the evidence already selected for the current actor. Calls use structured output, disable response storage, and cannot perform independent tool retrieval. Every generated claim must cite visible evidence UUIDs; invalid citations, provider errors, or missing configuration fall back to the deterministic answer.
@@ -55,7 +64,7 @@ The ranking is named `demo-ranking-v3`. Its retrieval contribution uses reciproc
 
 ## Current scope
 
-Completed: Milestones 0–6. This includes source identity resolution, five connectors, governed ontology editing, a focused graph UI, permission-scoped signals, optional genuine provider embeddings, exact pgvector retrieval, reciprocal-rank fusion, four distinct access scopes, actor-safe autocomplete, a complete current-surface leakage matrix, an idempotent contradiction-ingestion scenario, and optional evidence-ID-grounded AI synthesis through `POST /api/v1/ask`. Deliberately deferred: a populated semantic index until a provider key is supplied, broader signal producers, approximate vector indexing at scale, and production authentication/deployment hardening.
+Completed: Milestones 0–6. Milestone 7 scale and messiness validation is in progress; its deterministic benchmark corpus and ground-truth permission sets are implemented, while isolated ingestion and measured retrieval evaluation remain. The system already includes source identity resolution, five connectors, governed ontology editing, a focused graph UI, permission-scoped signals, genuine provider embeddings, exact pgvector retrieval, reciprocal-rank fusion, four distinct access scopes, actor-safe autocomplete, a complete current-surface leakage matrix, an idempotent contradiction-ingestion scenario, and evidence-ID-grounded AI synthesis through `POST /api/v1/ask`. Deliberately deferred: broader signal producers, approximate vector indexing at scale, and production authentication/deployment hardening.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md), [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md), and [docs/permissions.md](./docs/permissions.md).
 

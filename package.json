@@ -20,6 +20,7 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
     "embeddings:sync": "tsx scripts/sync-embeddings.ts",
+    "benchmark:generate": "tsx scripts/generate-scale-corpus.ts",
     "demo:setup": "npm run db:migrate && npm run db:seed"
   },
   "dependencies": {
