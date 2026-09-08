@@ -14,6 +14,11 @@ describe('context service', () => {
       { query, maxEvidence: 6 },
     );
     expect(context.generatedBy).toBe('deterministic-extractive');
+    expect(context.epistemicState).toMatchObject({
+      status: 'supported',
+      supportingEvidence: 5,
+      contradictingEvidence: 0,
+    });
     expect(context.evidence).toHaveLength(5);
     expect(context.evidence.some((item) => item.source.uri.startsWith('meeting://'))).toBe(true);
     expect(context.evidence.every((item) => item.source.excerpt.length > 0)).toBe(true);

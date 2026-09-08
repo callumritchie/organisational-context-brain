@@ -78,10 +78,15 @@ Status: implemented and validated.
 
 ## Milestone 5 — The brain learned something
 
-- Add a research source mutation endpoint.
-- Connector observes the new eligibility finding.
-- Normal sync creates its source version, evidence Resource, assertions, provenance and `CONTRADICTS` edge.
-- Recalculate epistemic state and change every subsequent ContextResponse.
+Status: implemented and validated.
+
+- Project Lead-controlled, local-only research mutation endpoint with strict prepared input and production lockout.
+- Research connector advances to a new cursor and observes the eligibility-guidance finding idempotently.
+- Normal sync creates its immutable source version, evidence Resource, assertions, provenance, search document and `CONTRADICTS` edge.
+- Signal observations and the current signal snapshot are created through the same ingestion transaction.
+- Every subsequent ContextResponse explicitly reports supported, contested or insufficient actor-visible evidence.
+- Deterministic synthesis changes to a contested assessment when the contradiction is visible.
+- End-to-end coverage proves permission denial, mutation idempotency, provenance and the changed downstream response.
 
 ## Milestone 6 — AI synthesis
 

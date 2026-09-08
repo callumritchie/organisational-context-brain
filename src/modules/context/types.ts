@@ -74,6 +74,12 @@ export interface ContextResponse {
     }>;
   };
   summary: string;
+  epistemicState: {
+    status: 'supported' | 'contested' | 'insufficient';
+    supportingEvidence: number;
+    contradictingEvidence: number;
+    assessment: string;
+  };
   evidence: ContextEvidence[];
   relationships: Array<{ from: string; type: string; to: string }>;
   graph: {

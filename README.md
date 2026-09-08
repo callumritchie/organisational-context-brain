@@ -8,7 +8,7 @@ This project explores a different model: a shared organisational context layer t
 Sources → Canonical resources + assertions → Permissioned retrieval → Context API → Consumers
 ```
 
-The completed Milestone 2 foundation and current Milestone 3 slices are intentionally small but real. Independent research, meeting, CRM, document, and message connectors ingest Northstar Labs knowledge about Atlas Bank, store immutable source versions, resolve aliases and source identity keys to canonical resources, create assertion-level provenance, apply forced PostgreSQL row-level security, retrieve evidence, expand a permission-safe resource graph, and expose the result through `POST /api/v1/context` and an evidence-first interface. The same response includes connector health, an editable checksummed ontology, first-class signal snapshots, and transparent hybrid ranking.
+The completed Milestones 0–5 are intentionally small but real. Independent research, meeting, CRM, document, and message connectors ingest Northstar Labs knowledge about Atlas Bank, store immutable source versions, resolve aliases and source identity keys to canonical resources, create assertion-level provenance, apply forced PostgreSQL row-level security, retrieve evidence, expand a permission-safe resource graph, and expose the result through `POST /api/v1/context` and an evidence-first interface. The same response includes connector health, an editable checksummed ontology, first-class signal snapshots, transparent hybrid ranking, and an explicit evidence state.
 
 No LLM or API key is required.
 
@@ -26,7 +26,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The credentials in `.env.example`, Docker Compose, and CI are deliberately disposable local-test values. Replace them with generated secrets for any non-local environment. Publishing this source repository does not deploy the application. The demo persona header is not production authentication: a network user could forge Alex’s ID and inherit Alex’s permissions. Ontology writes are therefore blocked whenever `NODE_ENV=production`; do not expose this build directly to the public internet.
+The credentials in `.env.example`, Docker Compose, and CI are deliberately disposable local-test values. Replace them with generated secrets for any non-local environment. Publishing this source repository does not deploy the application. The demo persona header is not production authentication: a network user could forge Alex’s ID and inherit Alex’s permissions. Ontology and prepared research-mutation writes are therefore blocked whenever `NODE_ENV=production`; do not expose this build directly to the public internet.
 
 Useful checks:
 
@@ -47,11 +47,13 @@ Try replacing “Atlas Bank” with `Atlas`, `atlas-bank`, `CRM account 381`, or
 
 In the Ontology section, use Alex Chen to add the prepared `COLLABORATES_WITH` rule. The editor validates its endpoints, publishes `northstar-ontology-v2`, records Alex as publisher, and preserves v1 as superseded. Jamie and Morgan cannot publish. Run `npm run demo:setup` to restore the original fixture state.
 
+As Alex, choose **Ingest new research finding** beneath the answer. The research connector ingests a prepared public eligibility-guidance follow-up through the normal sync path. A new source version, evidence Resource, provenance, signal snapshot and `CONTRADICTS` assertion are persisted; the next answer changes from **supported** to **contested**. Repeating the action is idempotent. Jamie and Morgan cannot trigger it. Run `npm run demo:setup` to remove this synthetic mutation and restore the initial state.
+
 The ranking is named `demo-ranking-v3`. Its retrieval contribution uses reciprocal-rank fusion when genuine vectors are available, then combines authority, assertion confidence, freshness, engagement, affinity, epistemic confidence, and permission-filtered graph connectivity. Every contribution and retrieval rank is exposed. The weights and synthetic signal fixtures are illustrative and have not been empirically optimised.
 
 ## Current scope
 
-Completed: Milestones 0–4. This includes source identity resolution, five connectors, governed ontology editing, a focused graph UI, permission-scoped signals, optional genuine provider embeddings, exact pgvector retrieval, reciprocal-rank fusion, four distinct access scopes, actor-safe autocomplete and a complete current-surface leakage matrix. Deliberately deferred: a populated semantic index until a provider key is supplied, broader signal producers, approximate vector indexing at scale, the contradiction ingestion scenario, and provider-backed AI synthesis.
+Completed: Milestones 0–5. This includes source identity resolution, five connectors, governed ontology editing, a focused graph UI, permission-scoped signals, optional genuine provider embeddings, exact pgvector retrieval, reciprocal-rank fusion, four distinct access scopes, actor-safe autocomplete, a complete current-surface leakage matrix, and an idempotent contradiction-ingestion scenario that changes downstream context. Deliberately deferred: a populated semantic index until a provider key is supplied, broader signal producers, approximate vector indexing at scale, and provider-backed AI synthesis.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md), [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md), and [docs/permissions.md](./docs/permissions.md).
 

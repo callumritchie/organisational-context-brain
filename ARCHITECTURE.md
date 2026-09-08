@@ -8,7 +8,7 @@ The central product operation is:
 ContextRequest → ContextResponse
 ```
 
-`ContextResponse` is useful without chat. It contains interpreted entities, ranked evidence, relationships, sources, provenance, a deterministic synthesis, and a safe execution trace. A future `/ask` endpoint will call this same context service.
+`ContextResponse` is useful without chat. It contains interpreted entities, ranked evidence, relationships, sources, provenance, an explicit actor-visible epistemic state, a deterministic synthesis, and a safe execution trace. A future `/ask` endpoint will call this same context service.
 
 ## Canonical resource
 
@@ -54,11 +54,14 @@ TypeScript fixture
   → bounded actor-visible graph expansion
   → signal snapshot join + actor-visible graph feature
   → demo-ranking-v3
+  → supported / contested / insufficient epistemic assessment
   → ContextResponse
   → Ask view and Brain Inspector
 ```
 
 Cursor advancement occurs only after mapping succeeds. Replaying an unchanged cursor is idempotent.
+
+The Milestone 5 learning demonstration advances the research connector from its initial cursor to a prepared eligibility-guidance follow-up. It uses the same ingestion transaction and mapping path to persist a new immutable source version, content and evidence Resources, assertion, provenance, search document, signals and `CONTRADICTS` relationship. Subsequent actor-scoped context requests reassess only their selected visible evidence. The mutation route is Project Lead-controlled in the demo and entirely disabled in production until genuine authentication exists.
 
 CRM account `381`, the `atlas-bank` CRM slug, document folder `fld-atlas-381`, and `/clients/atlas-bank` folder path are stored as traceable identity keys backed by their source-object versions. They resolve to the existing Atlas Bank Resource rather than creating duplicate client or folder entities. The document itself remains a canonical content Resource.
 
@@ -92,6 +95,6 @@ The normal inspector is built only from permitted candidates. It does not know o
 
 Domain work lives under `src/modules`; the application and API may depend on those modules, while domain modules may not import the UI/application layer. ESLint enforces this direction.
 
-## Next milestones
+## Next milestone
 
-Milestones 0–4 are complete. Milestone 3 has first-class signals, optional genuine embeddings, exact vector retrieval, reciprocal-rank fusion and graph-assisted ranking. Milestone 4 proves materially different persona access across all current read surfaces. Milestone 5 adds the contradiction through the normal research connector. Milestone 6 adds optional AI synthesis over the authorised context packet.
+Milestones 0–5 are complete. Milestone 6 adds optional AI synthesis over the authorised context packet.

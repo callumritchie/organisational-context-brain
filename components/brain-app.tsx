@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Background, Controls, MarkerType, ReactFlow, type Edge, type Node } from '@xyflow/react';
 import {
   ArrowRight, BrainCircuit, Check, ChevronRight, CircleDot, Database,
-  FileSearch, GitBranch, KeyRound, Layers3, Network, PencilLine, Search, Send, ShieldCheck, Sparkles,
+  FileSearch, FlaskConical, GitBranch, KeyRound, Layers3, Network, PencilLine, Search, Send, ShieldCheck, Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -265,6 +265,8 @@ export function BrainApp() {
   const [result, setResult] = useState<ContextResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mutationLoading, setMutationLoading] = useState(false);
+  const [mutationMessage, setMutationMessage] = useState<string | null>(null);
 
   const ask = useCallback(async (nextActorId = actorId, nextQuery = query) => {
     setLoading(true);
@@ -325,7 +327,35 @@ export function BrainApp() {
 
   function changeActor(nextActorId: string) {
     setActorId(nextActorId);
+    setMutationMessage(null);
     void ask(nextActorId);
+  }
+
+  async function learnEligibilityFinding() {
+    setMutationLoading(true);
+    setMutationMessage(null);
+    try {
+      const response = await fetch('/api/v1/demo/research-mutation', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-demo-actor': actorId },
+        body: JSON.stringify({ mutation: 'eligibility-guidance-finding' }),
+      });
+      const payload = await response.json() as {
+        mutation?: { applied: boolean; finding: string };
+        title?: string;
+      };
+      if (!response.ok || !payload.mutation) {
+        throw new Error(payload.title ?? 'The prepared research finding could not be ingested.');
+      }
+      await ask(actorId, query);
+      setMutationMessage(payload.mutation.applied
+        ? `Learned: ${payload.mutation.finding}. The context has been reassessed.`
+        : 'That finding was already present. The context has been reassessed without creating duplicates.');
+    } catch (requestError) {
+      setMutationMessage(requestError instanceof Error ? requestError.message : 'Research ingestion failed.');
+    } finally {
+      setMutationLoading(false);
+    }
   }
 
   return (
@@ -393,6 +423,29 @@ export function BrainApp() {
                   <div className="citation-row">
                     {result.evidence.map((item, index) => <a key={item.id} href={`#evidence-${index + 1}`}>[{index + 1}] {item.source.title}</a>)}
                   </div>
+                </section>
+
+                <section className={`learning-panel ${result.epistemicState.status}`} aria-label="Evidence state and prepared learning demo">
+                  <div className="learning-state">
+                    <FlaskConical />
+                    <span><small>Evidence state</small><strong>{result.epistemicState.status}</strong></span>
+                  </div>
+                  <div className="learning-assessment">
+                    <p>{result.epistemicState.assessment}</p>
+                    <span>{result.epistemicState.supportingEvidence} supporting · {result.epistemicState.contradictingEvidence} contradicting</span>
+                  </div>
+                  <div className="learning-action">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={actorId !== PERSONAS[0].id || mutationLoading}
+                      onClick={() => void learnEligibilityFinding()}
+                    >
+                      {mutationLoading ? 'Ingesting…' : 'Ingest new research finding'}
+                    </Button>
+                    <small>{actorId === PERSONAS[0].id ? 'Prepared local demo mutation' : 'Switch to Alex Chen to run this demo mutation'}</small>
+                  </div>
+                  {mutationMessage ? <p className="learning-message" role="status">{mutationMessage}</p> : null}
                 </section>
 
                 <section id="entities" className="entity-strip">

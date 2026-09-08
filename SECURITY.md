@@ -12,7 +12,7 @@ Please use GitHub's private vulnerability reporting for this repository rather t
 
 The included personas, data, database names, and local/CI passwords are synthetic development fixtures. The `x-demo-actor` header is a UI demonstration mechanism, not authentication: any caller can send Alex Chen’s allow-listed identifier, and the server has no signed session or identity-provider proof that the caller is Alex. PostgreSQL row-level security correctly enforces the actor it receives, but cannot establish whether that actor claim is genuine.
 
-Ontology mutation is disabled when `NODE_ENV=production` as a fail-safe. Do not expose this application or its PostgreSQL service to the public internet without:
+Ontology mutation and the prepared research-learning mutation are disabled when `NODE_ENV=production` as a fail-safe. The research route accepts only a fixed mutation identifier—not arbitrary source content—and authorises the demo Project Lead before opening its ingestion transaction. Do not expose this application or its PostgreSQL service to the public internet without:
 
 - replacing `x-demo-actor` with server-validated authentication and sessions;
 - adding server-side workspace membership and role authorisation;

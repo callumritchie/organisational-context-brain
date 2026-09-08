@@ -11,7 +11,7 @@ A relationship is visible when:
 
 Restricted assertions are invisible, including their predicate, score, provenance, source URI and existence within normal application traces.
 
-Ontology versions are workspace-scoped. In the local demo, only the allow-listed Project Lead may publish a validated relationship addition. Publication supersedes the prior current version inside one transaction, records the actor, and inserts a checksummed snapshot whose content is protected from later updates by a database trigger. Production mutation is disabled until the demo actor header is replaced by real authentication.
+Ontology versions are workspace-scoped. In the local demo, only the allow-listed Project Lead may publish a validated relationship addition. Publication supersedes the prior current version inside one transaction, records the actor, and inserts a checksummed snapshot whose content is protected from later updates by a database trigger. The prepared research-learning mutation has the same Project Lead restriction, accepts no caller-supplied content, and writes through the Sync Service actor and normal connector transaction. Both mutation routes are disabled in production until the demo actor header is replaced by real authentication.
 
 Source identity keys are visible only when their canonical Resource is visible, so a restricted entity cannot leak through alias or source-key resolution.
 

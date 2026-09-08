@@ -38,3 +38,48 @@ test('autocomplete API applies the same persona boundary', async ({ request }) =
     .toEqual(['Cedar Health', 'Cedar Renewal']);
   expect((await morgan.json()).results).toEqual([]);
 });
+
+test('a controlled research mutation makes later context contested', async ({ request }) => {
+  const denied = await request.post('/api/v1/demo/research-mutation', {
+    headers: { 'x-demo-actor': IDS.users.jamie },
+    data: { mutation: 'eligibility-guidance-finding' },
+  });
+  expect(denied.status()).toBe(403);
+
+  const applied = await request.post('/api/v1/demo/research-mutation', {
+    headers: { 'x-demo-actor': IDS.users.alex },
+    data: { mutation: 'eligibility-guidance-finding' },
+  });
+  expect(applied.status()).toBe(201);
+  expect((await applied.json()).mutation).toMatchObject({
+    applied: true,
+    finding: 'Clear eligibility guidance enables verification completion',
+  });
+
+  const replay = await request.post('/api/v1/demo/research-mutation', {
+    headers: { 'x-demo-actor': IDS.users.alex },
+    data: { mutation: 'eligibility-guidance-finding' },
+  });
+  expect(replay.status()).toBe(200);
+  expect((await replay.json()).mutation.applied).toBe(false);
+
+  const response = await request.post('/api/v1/context', {
+    headers: { 'x-demo-actor': IDS.users.morgan },
+    data: { query: 'Why do customers abandon Atlas onboarding?', maxEvidence: 6 },
+  });
+  expect(response.ok()).toBe(true);
+  const context = await response.json();
+  expect(context.evidence).toHaveLength(4);
+  expect(context.epistemicState).toMatchObject({
+    status: 'contested',
+    supportingEvidence: 3,
+    contradictingEvidence: 1,
+  });
+  expect(context.summary).toContain('However, newer evidence disputes a single-cause explanation');
+  expect(context.evidence).toEqual(expect.arrayContaining([
+    expect.objectContaining({
+      stance: 'CONTRADICTS',
+      source: expect.objectContaining({ uri: 'research://northstar/atlas/studies/eligibility-followup-009' }),
+    }),
+  ]));
+});

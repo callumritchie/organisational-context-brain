@@ -6,6 +6,7 @@ import { understandQuery } from '@/src/modules/search/query-understanding';
 import { getConfiguredEmbeddingProvider } from '@/src/modules/embeddings/embedding-provider';
 import { DEMO_RANKING_V3, scoreCandidate } from '@/src/modules/ranking/demo-ranking-v3';
 import { reciprocalRankFusion } from '@/src/modules/search/reciprocal-rank-fusion';
+import { assessEpistemicState } from './epistemic-state';
 import type { ContextEvidence, ContextRequest, ContextResponse } from './types';
 
 interface CandidateRow {
@@ -428,6 +429,7 @@ export async function assembleContext(
       })
       .sort((a, b) => b.ranking.total - a.ranking.total)
       .slice(0, request.maxEvidence);
+    const epistemicState = assessEpistemicState(evidence);
     const graph = await buildGraph(client, evidence.map((item) => item.id));
     const [ontology, sourceSystems, accessProfile] = await Promise.all([
       readOntology(client),
@@ -443,6 +445,7 @@ export async function assembleContext(
         ? `${rows.length} permitted candidates fused from lexical and genuine ${embeddingProvider!.model} vector ranks. Inaccessible candidates never entered the pipeline.`
         : `${rows.length} permitted lexical candidates. Semantic retrieval is ${embeddingStatus}; inaccessible candidates never entered the pipeline.`, count: rows.length },
       { stage: 'Ranking', detail: `${DEMO_RANKING_V3.id} exposed reciprocal-rank fusion, five snapshot signals and permission-filtered graph connectivity.`, count: evidence.length },
+      { stage: 'Epistemic assessment', detail: `${epistemicState.supportingEvidence} supporting and ${epistemicState.contradictingEvidence} contradicting actor-visible evidence items make this view ${epistemicState.status}.`, count: evidence.length },
       { stage: 'Graph expansion', detail: `${graph.edges.length} actor-visible edges connect selected evidence across sources.`, count: graph.edges.length },
       { stage: 'Context selection', detail: `${evidence.length} evidence items selected within the requested budget.`, count: evidence.length },
     ];
@@ -458,6 +461,7 @@ export async function assembleContext(
       actor: { id: actor.id, name: actor.name, role: actor.role },
       interpretedQuery: { intent: interpreted.intent, entities: interpreted.entities },
       summary: deterministicSummary(evidence),
+      epistemicState,
       evidence,
       relationships: evidence.map((item) => ({
         from: item.title,
