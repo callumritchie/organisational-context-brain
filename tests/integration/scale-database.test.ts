@@ -13,6 +13,7 @@ import {
   generateScaleCorpus,
   generateScaleUpdateBatch,
 } from '@/src/modules/benchmarks/scale-corpus';
+import { selectSemanticBenchmarkSample } from '@/src/modules/benchmarks/semantic-benchmark';
 
 describe('scale benchmark database', () => {
   it('ingests isolated histories and retrieves without permission leakage', async () => {
@@ -45,6 +46,11 @@ describe('scale benchmark database', () => {
       const integrity = await inspectScaleCorpusIntegrity(ownerClient);
       await applyScaleUpdateBatch(ingestionClient, updateBatch);
       const replayIntegrity = await inspectScaleCorpusIntegrity(ownerClient);
+      const semanticSample = await selectSemanticBenchmarkSample(
+        ownerClient,
+        updateBatch.corpus,
+        100,
+      );
       const advancedSources = await ownerClient.query<{ count: string }>(
         `SELECT count(*)::text AS count FROM sources
          WHERE workspace_id = $1 AND cursor LIKE '%-incremental-20'`,
@@ -68,6 +74,9 @@ describe('scale benchmark database', () => {
       expect(replayIntegrity.stale_search_documents).toBe(0);
       expect(replayIntegrity.current_version_violations).toBe(0);
       expect(advancedSources.rows[0]?.count).toBe('5');
+      expect(semanticSample.documents.length + semanticSample.queryTexts.length).toBe(100);
+      expect(semanticSample.requiredDocuments).toBeGreaterThan(0);
+      expect(semanticSample.distractorDocuments).toBeGreaterThan(0);
       expect(integrity.ambiguous_candidates).toBeGreaterThan(0);
       expect(evaluation.permissionLeakageCount).toBe(0);
       expect(evaluation.precisionAtLimit).toBe(1);

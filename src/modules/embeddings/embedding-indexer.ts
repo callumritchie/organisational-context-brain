@@ -4,17 +4,28 @@ import type { EmbeddingProvider } from './embedding-provider';
 
 const BATCH_SIZE = 32;
 
+export interface EmbeddingSyncOptions {
+  documentIds?: string[];
+}
+
 function vectorLiteral(values: number[]) {
   return `[${values.join(',')}]`;
 }
 
-export async function syncSearchEmbeddings(client: PoolClient, provider: EmbeddingProvider) {
+export async function syncSearchEmbeddings(
+  client: PoolClient,
+  provider: EmbeddingProvider,
+  options: EmbeddingSyncOptions = {},
+) {
   await client.query(
     `UPDATE search_embeddings embedding SET is_current = false
      FROM search_documents document
      WHERE embedding.search_document_id = document.id
        AND embedding.is_current AND NOT document.active`,
   );
+  if (options.documentIds && !options.documentIds.length) {
+    return { indexed: 0, unchanged: 0, total: 0 };
+  }
   const documents = await client.query<{
     id: string;
     workspace_id: string;
@@ -24,8 +35,9 @@ export async function syncSearchEmbeddings(client: PoolClient, provider: Embeddi
   }>(
     `SELECT document.id, document.workspace_id, document.access_scope_id, document.resource_id, document.body
      FROM search_documents document
-     WHERE document.active
+     WHERE document.active AND ($1::uuid[] IS NULL OR document.id = ANY($1::uuid[]))
      ORDER BY document.id`,
+    [options.documentIds ?? null],
   );
   let indexed = 0;
   let unchanged = 0;

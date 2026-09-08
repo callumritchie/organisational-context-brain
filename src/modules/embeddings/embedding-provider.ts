@@ -9,17 +9,27 @@ export interface EmbeddingProvider {
   embed(inputs: string[]): Promise<number[][]>;
 }
 
+export interface EmbeddingUsage {
+  promptTokens: number;
+  totalTokens: number;
+}
+
 const responseSchema = z.object({
   data: z.array(z.object({
     embedding: z.array(z.number()),
     index: z.number().int().nonnegative(),
   })),
+  usage: z.object({
+    prompt_tokens: z.number().int().nonnegative(),
+    total_tokens: z.number().int().nonnegative(),
+  }).optional(),
 });
 
 export function createOpenAIEmbeddingProvider(options: {
   apiKey: string;
   model?: string;
   fetchImplementation?: typeof fetch;
+  onUsage?: (usage: EmbeddingUsage) => void;
 }): EmbeddingProvider {
   const model = options.model ?? 'text-embedding-3-small';
   const fetchImplementation = options.fetchImplementation ?? fetch;
@@ -47,6 +57,12 @@ export function createOpenAIEmbeddingProvider(options: {
       });
       if (!response.ok) throw new Error(`Embedding provider returned HTTP ${response.status}`);
       const parsed = responseSchema.parse(await response.json());
+      if (parsed.usage) {
+        options.onUsage?.({
+          promptTokens: parsed.usage.prompt_tokens,
+          totalTokens: parsed.usage.total_tokens,
+        });
+      }
       const ordered = [...parsed.data].sort((left, right) => left.index - right.index);
       if (ordered.length !== inputs.length) throw new Error('Embedding provider returned an unexpected result count');
       for (const item of ordered) {

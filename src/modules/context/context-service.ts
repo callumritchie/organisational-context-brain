@@ -46,31 +46,23 @@ async function retrieve(
   const result = await client.query<CandidateRow>(
     `WITH query AS (SELECT to_tsquery('english', $1) AS value),
     lexical_ranked AS (
-      SELECT lexical.id, lexical.lexical_score, lexical.lexical_rank
+      SELECT lexical.id, lexical.resource_id, lexical.lexical_score, lexical.lexical_rank
       FROM query
-      CROSS JOIN LATERAL permissioned_lexical_search(query.value, $2) lexical
+      CROSS JOIN LATERAL permissioned_lexical_resource_search(query.value, $2) lexical
     ),
-    semantic_candidates AS (
-      SELECT DISTINCT ON (document.resource_id)
-        document.id, document.resource_id,
-        1 - (embedding.embedding <=> ($5::text)::vector) AS semantic_score
-      FROM search_embeddings embedding
-      JOIN search_documents document ON document.id = embedding.search_document_id
-      WHERE $5::text IS NOT NULL
-        AND document.active AND embedding.is_current
-        AND embedding.provider = $6 AND embedding.model = $7
-      ORDER BY document.resource_id, semantic_score DESC, document.id
-    ), semantic_ranked AS (
-      SELECT candidate.id, candidate.semantic_score,
-        row_number() OVER (ORDER BY candidate.semantic_score DESC, candidate.id) AS semantic_rank
-      FROM semantic_candidates candidate
-      ORDER BY candidate.semantic_score DESC, candidate.id
-      LIMIT $2
+    semantic_ranked AS (
+      SELECT semantic.id, semantic.resource_id, semantic.semantic_score, semantic.semantic_rank
+      FROM permissioned_semantic_resource_search(($5::text)::vector, $6, $7, $2) semantic
     ),
     candidate_documents AS (
-      SELECT id FROM lexical_ranked
-      UNION
-      SELECT id FROM semantic_ranked
+      SELECT COALESCE(lexical.id, semantic.id) AS id,
+        COALESCE(lexical.resource_id, semantic.resource_id) AS resource_id,
+        COALESCE(lexical.lexical_score, 0) AS lexical_score,
+        lexical.lexical_rank,
+        semantic.semantic_score,
+        semantic.semantic_rank
+      FROM lexical_ranked lexical
+      FULL OUTER JOIN semantic_ranked semantic ON semantic.resource_id = lexical.resource_id
     ), candidates AS (
       SELECT evidence.id AS evidence_id,
         evidence.canonical_name AS evidence_title,
@@ -86,10 +78,10 @@ async function retrieve(
         source_system.source_type,
         source_object.source_updated_at,
         provenance.excerpt,
-        COALESCE(lexical.lexical_score, 0) AS lexical_score,
-        lexical.lexical_rank,
-        semantic.semantic_score,
-        semantic.semantic_rank,
+        candidate.lexical_score,
+        candidate.lexical_rank,
+        candidate.semantic_score,
+        candidate.semantic_rank,
         COALESCE(signal.authority, document.authority) AS authority,
         COALESCE(signal.freshness,
           greatest(0, 1 - extract(epoch FROM (now() - document.source_updated_at)) / 15552000)) AS freshness,
@@ -106,8 +98,6 @@ async function retrieve(
         COALESCE(signal.model_version, 'fallback-document-signals') AS signal_snapshot_version
       FROM search_documents document
       JOIN candidate_documents candidate ON candidate.id = document.id
-      LEFT JOIN lexical_ranked lexical ON lexical.id = document.id
-      LEFT JOIN semantic_ranked semantic ON semantic.id = document.id
       JOIN resources evidence ON evidence.id = document.resource_id
       JOIN assertions assertion_row ON assertion_row.id = document.assertion_id
       JOIN provenance_spans provenance ON provenance.assertion_id = assertion_row.id

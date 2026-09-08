@@ -115,5 +115,7 @@ Status: in progress.
 - Implemented: synchronisation retires every older search chunk for an evidence Resource, while the embedding indexer retires vectors belonging to inactive chunks.
 - Implemented: a narrowly scoped permission-aware lexical function preserves fail-closed access checks while allowing PostgreSQL to use the text index. With maintained indexes and fresh planner statistics, the current measured 10,000-record p95 is approximately 3.59 ms, with zero observed leakage.
 - Implemented: a deterministic 500-record incremental batch mixes 450 revisions with 50 deletions, advances source cursors and content provenance, retires old chunks, updates identity provenance and is safe to replay. The measured local run sustained approximately 762 records/second.
-- Remaining: measure semantic retrieval quality/cost on a representative sample.
-- Remaining: benchmark exact pgvector before deciding whether approximate indexing or specialist graph/vector infrastructure is warranted.
+- Implemented: a capped, stratified sample sent 1,975 synthetic chunks and 25 synthetic queries to `text-embedding-3-small`, recording 227,377 input tokens, measured vector storage, indexing time and actor-scoped lexical, semantic and hybrid quality/latency.
+- Implemented: resource-level fusion prevents different lexical and semantic chunks from duplicating one evidence Resource; both candidate functions fail closed and enforce document plus parent-Resource scopes.
+- Finding: on exact-name benchmark questions, lexical precision@20 was 1.0 while semantic and hybrid precision were approximately 0.865 and 0.87, with no recall gain. Exact-vector p95 was approximately 74 ms over 1,975 vectors. PostgreSQL remains sufficient for this measured slice.
+- Remaining: add independently authored paraphrase and vocabulary-mismatch questions, then benchmark a full vector corpus before deciding whether approximate pgvector or specialist graph/vector infrastructure is warranted.

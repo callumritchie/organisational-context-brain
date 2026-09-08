@@ -24,6 +24,12 @@ describe('permission leakage', () => {
        FROM permissioned_lexical_search(to_tsquery('english', 'atlas'), 100)`,
     );
     expect(lexical.rows[0]?.count).toBe('0');
+
+    const semantic = await getAppPool().query<{ count: string }>(
+      `SELECT count(*)::text AS count
+       FROM permissioned_semantic_resource_search(NULL::vector, 'openai', 'text-embedding-3-small', 100)`,
+    );
+    expect(semantic.rows[0]?.count).toBe('0');
   });
 
   it('uses a non-owning application role without RLS bypass', async () => {
