@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import { getAppPool, getIngestionPool, getOwnerPool } from '@/src/db/pool';
 import {
   analyzeScaleBenchmarkTables,
+  applyScaleUpdateBatch,
   evaluateScaleCorpus,
   ingestScaleCorpus,
   inspectScaleCorpusIntegrity,
@@ -9,6 +10,7 @@ import {
 } from '@/src/modules/benchmarks/scale-database';
 import {
   generateScaleCorpus,
+  generateScaleUpdateBatch,
   summarizeScaleCorpus,
   validateScaleCorpus,
 } from '@/src/modules/benchmarks/scale-corpus';
@@ -31,6 +33,12 @@ const corpus = generateScaleCorpus({
 });
 const validationErrors = validateScaleCorpus(corpus);
 if (validationErrors.length) throw new Error(validationErrors.join('\n'));
+const updateBatch = generateScaleUpdateBatch(corpus, {
+  updateCount: integerArgument('--updates', Math.min(500, corpus.records.filter((record) => !record.deleted).length)),
+  deletionEvery: integerArgument('--deletion-every', 10),
+});
+const updatedValidationErrors = validateScaleCorpus(updateBatch.corpus);
+if (updatedValidationErrors.length) throw new Error(updatedValidationErrors.join('\n'));
 
 const ownerPool = getOwnerPool();
 const ownerClient = await ownerPool.connect();
@@ -43,8 +51,10 @@ try {
 const ingestionPool = getIngestionPool();
 const ingestionClient = await ingestionPool.connect();
 let ingestion;
+let incremental;
 try {
   ingestion = await ingestScaleCorpus(ingestionClient, corpus);
+  incremental = await applyScaleUpdateBatch(ingestionClient, updateBatch);
 } finally {
   ingestionClient.release();
   await ingestionPool.end();
@@ -54,13 +64,13 @@ const inspectionClient = await ownerPool.connect();
 let integrity;
 try {
   await analyzeScaleBenchmarkTables(inspectionClient);
-  // Measure against fresh planner statistics rather than autovacuum timing.
+  // Measure against maintained indexes and fresh statistics rather than autovacuum timing.
   integrity = await inspectScaleCorpusIntegrity(inspectionClient);
 } finally {
   inspectionClient.release();
 }
 
-const evaluation = await evaluateScaleCorpus(corpus);
+const evaluation = await evaluateScaleCorpus(updateBatch.corpus);
 await Promise.all([ownerPool.end(), getAppPool().end()]);
 
 console.log(
@@ -68,6 +78,8 @@ console.log(
     {
       corpus: summarizeScaleCorpus(corpus),
       ingestion,
+      incremental,
+      postUpdateCorpus: summarizeScaleCorpus(updateBatch.corpus),
       integrity,
       retrieval: evaluation,
     },

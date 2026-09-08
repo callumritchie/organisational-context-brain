@@ -8,6 +8,7 @@ import type {
   BenchmarkRecord,
   BenchmarkVisibility,
   ScaleCorpus,
+  ScaleUpdateBatch,
 } from './scale-corpus';
 import { BENCHMARK_SOURCE_SYSTEMS } from './scale-corpus';
 
@@ -659,9 +660,355 @@ export async function ingestScaleCorpus(
   }
 }
 
+export async function applyScaleUpdateBatch(
+  client: PoolClient,
+  batch: ScaleUpdateBatch,
+) {
+  const startedAt = performance.now();
+  const workspaceId = SCALE_BENCHMARK_IDS.workspace;
+  const revisions = batch.records.filter((record) => !record.deleted);
+  const deletions = batch.records.filter((record) => record.deleted);
+  const changedResources = batch.records.map((record) => ({
+    evidenceId: evidenceResourceId(record),
+    contentId: contentResourceId(record),
+    deleted: record.deleted,
+    title: record.versions.at(-1)!.title,
+    body: record.versions.at(-1)!.body,
+  }));
+  const revisionRows = revisions.map((record, index) => {
+    const latest = record.versions.at(-1)!;
+    const relationshipId = stableId(
+      'benchmark-relationship',
+      `${evidenceResourceId(record)}:${latest.stance}:${hypothesisResourceId(record.canonicalProjectId)}`,
+    );
+    return {
+      record,
+      index,
+      latest,
+      sourceObjectId: sourceObjectId(record),
+      sourceVersionId: sourceVersionId(record, latest.version),
+      contentId: contentResourceId(record),
+      contentVersionId: contentVersionId(record, latest.version),
+      evidenceId: evidenceResourceId(record),
+      scopeId: scopeId(record.visibility),
+      relationshipId,
+      assertionId: stableId(
+        'benchmark-assertion-update',
+        `${record.id}:${latest.version}`,
+      ),
+      confidence: 0.55 + (index % 40) / 100,
+    };
+  });
+  const identityKeyUpdates = new Map<string, { id: string; sourceVersionId: string }>();
+  for (const row of revisionRows) {
+    if (row.record.ambiguousAlias) continue;
+    for (const key of [
+      `client-ref:${row.record.sourceClientReference}`,
+      `project-ref:${row.record.sourceProjectReference}`,
+    ]) {
+      const id = stableId(
+        'benchmark-identity-key',
+        `${row.record.sourceSystem}:${key}`,
+      );
+      identityKeyUpdates.set(id, { id, sourceVersionId: row.sourceVersionId });
+    }
+  }
+  const sourceUpdates = BENCHMARK_SOURCE_SYSTEMS.map((system) => {
+    const changed = batch.records.filter(
+      (record) => record.sourceSystem === system,
+    ).length;
+    return {
+      id: stableId(
+        'benchmark-sync-run-update',
+        `${batch.corpus.seed}:${system}:${batch.records.length}`,
+      ),
+      workspaceId,
+      sourceId: sourceId(system),
+      cursorBefore: `benchmark-${batch.corpus.seed}`,
+      cursorAfter: `benchmark-${batch.corpus.seed}-incremental-${batch.records.length}`,
+      changed,
+    };
+  });
+
+  await client.query('BEGIN');
+  try {
+    await client.query("SELECT set_config('app.actor_id', $1, true)", [
+      SCALE_BENCHMARK_IDS.users.ingestion,
+    ]);
+    await client.query("SELECT set_config('app.workspace_id', $1, true)", [
+      workspaceId,
+    ]);
+
+    await insertBatches(
+      client,
+      batch.records.map((record) => ({
+        id: sourceObjectId(record),
+        hash: record.versions.at(-1)!.contentHashKey,
+        updatedAt: record.versions.at(-1)!.updatedAt,
+        deleted: record.deleted,
+      })),
+      `UPDATE source_objects target SET current_content_hash = row.hash,
+         source_updated_at = row."updatedAt", deleted = row.deleted, updated_at = now()
+       FROM jsonb_to_recordset($1::jsonb)
+       AS row(id uuid, hash text, "updatedAt" timestamptz, deleted boolean)
+       WHERE target.id = row.id`,
+    );
+    await insertBatches(
+      client,
+      changedResources,
+      `UPDATE resources target SET canonical_name = row.title, summary = row.body,
+         status = CASE WHEN row.deleted THEN 'deleted' ELSE 'active' END,
+         properties = target.properties || jsonb_build_object('deleted', row.deleted), updated_at = now()
+       FROM jsonb_to_recordset($1::jsonb)
+       AS row("evidenceId" uuid, "contentId" uuid, deleted boolean, title text, body text)
+       WHERE target.id IN (row."evidenceId", row."contentId")`,
+    );
+    await insertBatches(
+      client,
+      batch.records.map((record) => ({ resourceId: evidenceResourceId(record) })),
+      `UPDATE search_documents target SET active = false
+       FROM jsonb_to_recordset($1::jsonb) AS row("resourceId" uuid)
+       WHERE target.resource_id = row."resourceId" AND target.active`,
+    );
+    await client.query(
+      `UPDATE search_embeddings embedding SET is_current = false
+       FROM search_documents document
+       WHERE embedding.search_document_id = document.id
+         AND embedding.is_current AND NOT document.active`,
+    );
+
+    await insertBatches(
+      client,
+      revisionRows.map((row) => ({
+        id: row.sourceVersionId,
+        workspaceId,
+        sourceObjectId: row.sourceObjectId,
+        scopeId: row.scopeId,
+        hash: row.latest.contentHashKey,
+        payload: {
+          ...row.latest,
+          sourceSystem: row.record.sourceSystem,
+          externalId: row.record.externalId,
+        },
+        updatedAt: row.latest.updatedAt,
+      })),
+      `INSERT INTO source_object_versions
+        (id, workspace_id, source_object_id, access_scope_id, content_hash, raw_payload, source_updated_at)
+       SELECT id, "workspaceId", "sourceObjectId", "scopeId", hash, payload, "updatedAt"
+       FROM jsonb_to_recordset($1::jsonb)
+       AS row(id uuid, "workspaceId" uuid, "sourceObjectId" uuid, "scopeId" uuid,
+         hash text, payload jsonb, "updatedAt" timestamptz)
+       ON CONFLICT (id) DO NOTHING`,
+    );
+    await insertBatches(
+      client,
+      revisionRows.map((row) => ({ contentId: row.contentId })),
+      `UPDATE content_versions target SET is_current = false, updated_at = now()
+       FROM jsonb_to_recordset($1::jsonb) AS row("contentId" uuid)
+       WHERE target.content_resource_id = row."contentId" AND target.is_current`,
+    );
+    await insertBatches(
+      client,
+      revisionRows.map((row) => ({
+        id: row.contentVersionId,
+        workspaceId,
+        contentId: row.contentId,
+        sourceVersionId: row.sourceVersionId,
+        scopeId: row.scopeId,
+        body: row.latest.body,
+        hash: row.latest.contentHashKey,
+        version: row.latest.version,
+      })),
+      `INSERT INTO content_versions
+        (id, workspace_id, content_resource_id, source_object_version_id, access_scope_id,
+         body, content_hash, version_number, is_current)
+       SELECT id, "workspaceId", "contentId", "sourceVersionId", "scopeId", body, hash, version, true
+       FROM jsonb_to_recordset($1::jsonb)
+       AS row(id uuid, "workspaceId" uuid, "contentId" uuid, "sourceVersionId" uuid,
+         "scopeId" uuid, body text, hash text, version integer)
+       ON CONFLICT (id) DO UPDATE SET is_current = true`,
+    );
+    await insertBatches(
+      client,
+      revisionRows.map((row) => ({
+        resourceId: row.contentId,
+        versionId: row.contentVersionId,
+      })),
+      `UPDATE content_objects target SET current_version_id = row."versionId"
+       FROM jsonb_to_recordset($1::jsonb) AS row("resourceId" uuid, "versionId" uuid)
+       WHERE target.resource_id = row."resourceId"`,
+    );
+    await insertBatches(
+      client,
+      revisionRows.map((row) => ({
+        evidenceId: row.evidenceId,
+        sourceVersionId: row.sourceVersionId,
+        validTo: row.latest.updatedAt,
+      })),
+      `UPDATE assertions target SET valid_to = row."validTo", updated_at = now()
+       FROM jsonb_to_recordset($1::jsonb)
+       AS row("evidenceId" uuid, "sourceVersionId" uuid, "validTo" timestamptz)
+       WHERE target.subject_resource_id = row."evidenceId" AND target.valid_to IS NULL
+         AND target.source_object_version_id IS DISTINCT FROM row."sourceVersionId"`,
+    );
+    await insertBatches(
+      client,
+      revisionRows.map((row) => ({
+        id: row.assertionId,
+        workspaceId,
+        scopeId: row.scopeId,
+        subjectId: row.evidenceId,
+        predicate: row.latest.stance,
+        objectId: hypothesisResourceId(row.record.canonicalProjectId),
+        relationshipId: row.relationshipId,
+        sourceVersionId: row.sourceVersionId,
+        confidence: row.confidence,
+        validFrom: row.latest.updatedAt,
+      })),
+      `INSERT INTO assertions (id, workspace_id, access_scope_id, subject_resource_id, predicate,
+         object_resource_id, relationship_id, assertion_kind, source_object_version_id,
+         process_name, process_version, confidence, valid_from)
+       SELECT id, "workspaceId", "scopeId", "subjectId", predicate, "objectId", "relationshipId",
+         'source-backed', "sourceVersionId", 'benchmark-incremental-mapper', '1.0.0', confidence, "validFrom"
+       FROM jsonb_to_recordset($1::jsonb)
+       AS row(id uuid, "workspaceId" uuid, "scopeId" uuid, "subjectId" uuid, predicate text,
+         "objectId" uuid, "relationshipId" uuid, "sourceVersionId" uuid, confidence real,
+         "validFrom" timestamptz)
+       ON CONFLICT (id) DO UPDATE SET valid_to = NULL, updated_at = now()`,
+    );
+    await insertBatches(
+      client,
+      revisionRows.map((row) => ({
+        id: stableId(
+          'benchmark-provenance-update',
+          `${row.record.id}:${row.latest.version}`,
+        ),
+        workspaceId,
+        assertionId: row.assertionId,
+        sourceVersionId: row.sourceVersionId,
+        excerpt: row.latest.body,
+      })),
+      `INSERT INTO provenance_spans
+        (id, workspace_id, assertion_id, source_object_version_id, start_offset, end_offset, excerpt)
+       SELECT id, "workspaceId", "assertionId", "sourceVersionId", 0, length(excerpt), excerpt
+       FROM jsonb_to_recordset($1::jsonb)
+       AS row(id uuid, "workspaceId" uuid, "assertionId" uuid, "sourceVersionId" uuid, excerpt text)
+       ON CONFLICT (id) DO NOTHING`,
+    );
+
+    const searchChunks = revisionRows.flatMap((row) =>
+      chunkText(row.latest.body).map((chunk) => ({
+        id: stableId(
+          'benchmark-search-document-update',
+          `${row.record.id}:${row.latest.version}:${chunk.index}`,
+        ),
+        workspaceId,
+        scopeId: row.scopeId,
+        resourceId: row.evidenceId,
+        assertionId: row.assertionId,
+        contentVersionId: row.contentVersionId,
+        body: `${row.latest.title}. Client: ${row.record.canonicalClientName}. Project: ${row.record.canonicalProjectName}. ${chunk.text} ${row.record.sourceClientReference} ${row.record.sourceProjectReference}`,
+        chunkIndex: chunk.index,
+        chunkStartOffset: chunk.startOffset,
+        chunkEndOffset: chunk.endOffset,
+        authority: 0.5 + (row.index % 45) / 100,
+        confidence: row.confidence,
+        updatedAt: row.latest.updatedAt,
+      })),
+    );
+    await insertBatches(
+      client,
+      searchChunks,
+      `INSERT INTO search_documents
+        (id, workspace_id, access_scope_id, resource_id, assertion_id, content_version_id, body,
+         chunk_index, chunk_start_offset, chunk_end_offset, authority, confidence, source_updated_at, active)
+       SELECT id, "workspaceId", "scopeId", "resourceId", "assertionId", "contentVersionId", body,
+         "chunkIndex", "chunkStartOffset", "chunkEndOffset", authority, confidence, "updatedAt", true
+       FROM jsonb_to_recordset($1::jsonb)
+       AS row(id uuid, "workspaceId" uuid, "scopeId" uuid, "resourceId" uuid, "assertionId" uuid,
+         "contentVersionId" uuid, body text, "chunkIndex" integer, "chunkStartOffset" integer,
+         "chunkEndOffset" integer, authority real, confidence real, "updatedAt" timestamptz)
+       ON CONFLICT (id) DO UPDATE SET body = EXCLUDED.body, active = true,
+         authority = EXCLUDED.authority, confidence = EXCLUDED.confidence,
+         source_updated_at = EXCLUDED.source_updated_at`,
+    );
+
+    await insertBatches(
+      client,
+      revisionRows.flatMap((row) => [
+        {
+          id: stableId(
+            'benchmark-resolution-candidate',
+            `${row.record.id}:client-ref:${row.record.canonicalClientId}`,
+          ),
+          sourceVersionId: row.sourceVersionId,
+        },
+        {
+          id: stableId(
+            'benchmark-resolution-candidate',
+            `${row.record.id}:project-ref:${row.record.canonicalProjectId}`,
+          ),
+          sourceVersionId: row.sourceVersionId,
+        },
+      ]),
+      `UPDATE identity_resolution_candidates target
+       SET source_object_version_id = row."sourceVersionId"
+       FROM jsonb_to_recordset($1::jsonb) AS row(id uuid, "sourceVersionId" uuid)
+       WHERE target.id = row.id`,
+    );
+    await insertBatches(
+      client,
+      [...identityKeyUpdates.values()],
+      `UPDATE resource_identity_keys target
+       SET source_object_version_id = row."sourceVersionId"
+       FROM jsonb_to_recordset($1::jsonb) AS row(id uuid, "sourceVersionId" uuid)
+       WHERE target.id = row.id`,
+    );
+
+    await insertBatches(
+      client,
+      sourceUpdates,
+      `UPDATE sources target SET cursor = row."cursorAfter", status = 'healthy',
+         last_successful_sync_at = now(), updated_at = now()
+       FROM jsonb_to_recordset($1::jsonb) AS row("sourceId" uuid, "cursorAfter" text)
+       WHERE target.id = row."sourceId"`,
+    );
+    await insertBatches(
+      client,
+      sourceUpdates,
+      `INSERT INTO sync_runs
+        (id, workspace_id, source_id, status, cursor_before, cursor_after,
+         objects_seen, objects_changed, finished_at)
+       SELECT id, "workspaceId", "sourceId", 'succeeded', "cursorBefore", "cursorAfter",
+         changed, changed, now()
+       FROM jsonb_to_recordset($1::jsonb)
+       AS row(id uuid, "workspaceId" uuid, "sourceId" uuid, "cursorBefore" text,
+         "cursorAfter" text, changed integer)
+       ON CONFLICT (id) DO UPDATE SET cursor_after = EXCLUDED.cursor_after,
+         objects_seen = EXCLUDED.objects_seen, objects_changed = EXCLUDED.objects_changed,
+         finished_at = EXCLUDED.finished_at`,
+    );
+    await client.query('COMMIT');
+    const durationMs = performance.now() - startedAt;
+    return {
+      durationMs,
+      records: batch.records.length,
+      revisions: revisions.length,
+      deletions: deletions.length,
+      versions: revisionRows.length,
+      chunks: searchChunks.length,
+      recordsPerSecond: batch.records.length / (durationMs / 1_000),
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  }
+}
+
 export async function analyzeScaleBenchmarkTables(client: PoolClient) {
+  await client.query('VACUUM (ANALYZE) search_documents');
   await client.query(
-    `ANALYZE search_documents, resources, access_scopes, access_scope_grants, group_memberships`,
+    `ANALYZE resources, access_scopes, access_scope_grants, group_memberships`,
   );
 }
 
@@ -755,7 +1102,10 @@ export async function inspectScaleCorpusIntegrity(client: PoolClient) {
     active_deleted_records: string;
     stale_search_documents: string;
     search_chunks: string;
+    active_search_chunks: string;
+    inactive_search_chunks: string;
     multi_chunk_resources: string;
+    current_version_violations: string;
     ambiguous_candidates: string;
     resolved_keys: string;
   }>(
@@ -765,11 +1115,18 @@ export async function inspectScaleCorpusIntegrity(client: PoolClient) {
       (SELECT count(*) FROM search_documents document JOIN resources resource ON resource.id = document.resource_id
         WHERE document.workspace_id = $1 AND document.active AND resource.status = 'deleted') AS active_deleted_records,
       (SELECT count(*) FROM search_documents document JOIN content_versions version ON version.id = document.content_version_id
-        WHERE document.workspace_id = $1 AND NOT version.is_current) AS stale_search_documents,
+        WHERE document.workspace_id = $1 AND document.active AND NOT version.is_current) AS stale_search_documents,
       (SELECT count(*) FROM search_documents WHERE workspace_id = $1) AS search_chunks,
+      (SELECT count(*) FROM search_documents WHERE workspace_id = $1 AND active) AS active_search_chunks,
+      (SELECT count(*) FROM search_documents WHERE workspace_id = $1 AND NOT active) AS inactive_search_chunks,
       (SELECT count(*) FROM (
-        SELECT resource_id FROM search_documents WHERE workspace_id = $1 GROUP BY resource_id HAVING count(*) > 1
+        SELECT resource_id FROM search_documents WHERE workspace_id = $1 AND active
+        GROUP BY resource_id HAVING count(*) > 1
       ) multi_chunk) AS multi_chunk_resources,
+      (SELECT count(*) FROM content_objects content
+        JOIN resources resource ON resource.id = content.resource_id
+        LEFT JOIN content_versions version ON version.id = content.current_version_id
+        WHERE resource.workspace_id = $1 AND (version.id IS NULL OR NOT version.is_current)) AS current_version_violations,
       (SELECT count(*) FROM identity_resolution_candidates WHERE workspace_id = $1 AND status = 'ambiguous') AS ambiguous_candidates,
       (SELECT count(*) FROM resource_identity_keys WHERE workspace_id = $1) AS resolved_keys`,
     [workspaceId],

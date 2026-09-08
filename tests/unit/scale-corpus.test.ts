@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   generateScaleCorpus,
+  generateScaleUpdateBatch,
   summarizeScaleCorpus,
   validateScaleCorpus,
 } from '@/src/modules/benchmarks/scale-corpus';
@@ -56,5 +57,23 @@ describe('scale corpus', () => {
     expect(morgan.expectedRecordIds.length).toBeLessThan(
       jamie.expectedRecordIds.length,
     );
+  });
+
+  it('creates deterministic revisions and deletions with updated expectations', () => {
+    const corpus = generateScaleCorpus({ recordCount: 1_000, seed: 42 });
+    const left = generateScaleUpdateBatch(corpus, { updateCount: 100, deletionEvery: 10 });
+    const right = generateScaleUpdateBatch(corpus, { updateCount: 100, deletionEvery: 10 });
+
+    expect(left).toEqual(right);
+    expect(left.records).toHaveLength(100);
+    expect(left.revisions).toBe(90);
+    expect(left.deletions).toBe(10);
+    expect(validateScaleCorpus(left.corpus)).toEqual([]);
+    expect(summarizeScaleCorpus(left.corpus).immutableVersions)
+      .toBe(summarizeScaleCorpus(corpus).immutableVersions + 90);
+    for (const question of left.corpus.questions) {
+      expect(question.expectedRecordIds.some((id) => left.records.find((record) => record.id === id)?.deleted))
+        .toBe(false);
+    }
   });
 });

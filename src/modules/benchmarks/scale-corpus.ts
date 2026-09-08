@@ -68,6 +68,18 @@ export interface ScaleCorpusOptions {
   seed?: number;
 }
 
+export interface ScaleUpdateBatch {
+  corpus: ScaleCorpus;
+  records: BenchmarkRecord[];
+  revisions: number;
+  deletions: number;
+}
+
+export interface ScaleUpdateOptions {
+  updateCount?: number;
+  deletionEvery?: number;
+}
+
 const CLIENT_WORDS = [
   'Aster',
   'Beacon',
@@ -377,6 +389,72 @@ export function summarizeScaleCorpus(corpus: ScaleCorpus) {
       (sum, question) => sum + question.forbiddenRecordIds.length,
       0,
     ),
+  };
+}
+
+export function generateScaleUpdateBatch(
+  corpus: ScaleCorpus,
+  options: ScaleUpdateOptions = {},
+): ScaleUpdateBatch {
+  const eligible = corpus.records.filter((record) => !record.deleted);
+  const updateCount = options.updateCount ?? Math.min(500, eligible.length);
+  const deletionEvery = options.deletionEvery ?? 10;
+  if (!Number.isInteger(updateCount) || updateCount < 1 || updateCount > eligible.length) {
+    throw new Error(`updateCount must be an integer between 1 and ${eligible.length}`);
+  }
+  if (!Number.isInteger(deletionEvery) || deletionEvery < 2) {
+    throw new Error('deletionEvery must be an integer of at least 2');
+  }
+
+  let revisions = 0;
+  let deletions = 0;
+  const records = eligible.slice(0, updateCount).map((record, index) => {
+    if (index % deletionEvery === 0) {
+      deletions += 1;
+      return { ...record, deleted: true };
+    }
+
+    revisions += 1;
+    const latest = record.versions.at(-1)!;
+    const version = latest.version + 1;
+    const body = `${latest.body}\n\nIncremental benchmark revision ${version} confirms the current interpretation for ${record.canonicalProjectName}.`;
+    return {
+      ...record,
+      versions: [
+        ...record.versions,
+        {
+          version,
+          title: `${record.canonicalProjectName}: incremental evidence refresh (v${version})`,
+          body,
+          updatedAt: new Date(Date.parse(latest.updatedAt) + 31_536_000_000).toISOString(),
+          stance: latest.stance,
+          contentHashKey: stableId('benchmark-content', body),
+        },
+      ],
+    };
+  });
+  const updates = new Map(records.map((record) => [record.id, record]));
+  const updatedRecords = corpus.records.map((record) => updates.get(record.id) ?? record);
+  const questions = corpus.questions.map((question) => {
+    const projectRecords = updatedRecords.filter(
+      (record) => record.canonicalProjectId === question.canonicalProjectId && !record.deleted,
+    );
+    return {
+      ...question,
+      expectedRecordIds: projectRecords
+        .filter((record) => canRead(question.actor, record.visibility))
+        .map((record) => record.id),
+      forbiddenRecordIds: projectRecords
+        .filter((record) => !canRead(question.actor, record.visibility))
+        .map((record) => record.id),
+    };
+  });
+
+  return {
+    corpus: { ...corpus, records: updatedRecords, questions },
+    records,
+    revisions,
+    deletions,
   };
 }
 
