@@ -30,13 +30,38 @@ Indexing 1,975 chunks took approximately 31.9 seconds. Embedding the 25 query st
 
 ## Decision
 
-This run does not justify making semantic retrieval dominant or adding a specialist vector database. The benchmark questions contain exact client and project names, so lexical search is exceptionally well matched to them. Semantic candidates added false positives without improving top-20 recall, and exact vector search added roughly 72 ms at p95.
+The first run did not justify making semantic retrieval dominant or adding a specialist vector database. The benchmark questions contained exact client and project names, so lexical search was exceptionally well matched to them. Semantic candidates added false positives without improving top-20 recall, and exact vector search added roughly 72 ms at p95.
 
-PostgreSQL remains the appropriate datastore for the measured slice. Genuine embeddings stay supported, but hybrid ranking remains experimental rather than empirically optimised.
+## Vocabulary-mismatch follow-up
 
-A fixed, manually specified vocabulary-mismatch cohort is now implemented alongside the original questions. Its local lexical baseline is intentionally poor: precision, recall and MRR are all zero across 75 actor-scoped questions, with zero permission leakage. This cohort has not yet been sent to an embedding provider, so there is no semantic or hybrid result for it yet. It is deterministic and reviewable, but it is not a blind, independently authored human evaluation.
+On 9 September 2026, a second explicitly authorised run evaluated the original 75 questions alongside 75 fixed, manually specified vocabulary-mismatch questions. It used exactly 2,000 external inputs:
 
-The next authorised semantic run will reserve 50 unique query inputs and select at most 1,950 document chunks, retaining the 2,000-input cap. It will report exact-name and vocabulary-mismatch metrics separately. A later evaluation should add blind human-authored questions, implicit references and real-world terminology distributions. A full 10,000-chunk vector latency run is also still required before deciding whether approximate pgvector indexing is warranted. Results from the existing 1,975-vector sample must not be extrapolated as a production guarantee.
+- 1,950 document chunks, including all 1,290 chunks required by the evaluated projects and 660 stratified distractors;
+- 50 unique synthetic query strings;
+- 223,891 input tokens across 62 requests;
+- 1,950 stored 1,536-dimension vectors occupying 11,988,600 bytes at the column level.
+
+At the published price used by the benchmark, the estimated embedding cost was approximately $0.00448. Indexing took approximately 34.1 seconds and embedding the 50 query strings took approximately 494 ms.
+
+Across the exact-name cohort:
+
+| Mode | Precision@20 | Recall@20 | MRR | Leakage | p95 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Lexical | 1.0000 | 0.6147 | 1.0000 | 0 | 2.12 ms |
+| Semantic | 0.8640 | 0.6105 | 1.0000 | 0 | 63.92 ms |
+| Hybrid RRF | 0.8700 | 0.6147 | 1.0000 | 0 | 65.95 ms |
+
+Across the vocabulary-mismatch cohort:
+
+| Mode | Precision@20 | Recall@20 | MRR | Leakage | p95 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Lexical | 0.0000 | 0.0000 | 0.0000 | 0 | 0.37 ms |
+| Semantic | 0.5447 | 0.3848 | 0.8052 | 0 | 64.73 ms |
+| Hybrid RRF | 0.5447 | 0.3848 | 0.8052 | 0 | 65.00 ms |
+
+The follow-up establishes that semantic retrieval materially improves vocabulary-mismatched questions, while exact-name lexical retrieval remains more precise and much faster. Hybrid equals semantic on the mismatch cohort because the phrase-based lexical channel returns no candidates to fuse. The measured evidence therefore supports retaining permission-scoped PostgreSQL lexical and pgvector channels, then improving query routing or fusion rather than replacing lexical retrieval or introducing a specialist vector database.
+
+The vocabulary-mismatch cohort is deterministic and reviewable, but it is not a blind, independently authored human evaluation. A later evaluation should add blind human-authored questions, implicit references and real-world terminology distributions. A full 10,000-chunk vector latency run is also still required before deciding whether approximate pgvector indexing is warranted. Results from these 1,950–1,975-vector samples must not be extrapolated as a production guarantee.
 
 ## Running it
 
