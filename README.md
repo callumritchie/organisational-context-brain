@@ -44,11 +44,15 @@ npm run benchmark:generate
 npm run benchmark:generate -- --records 50000 --output .benchmark/corpus.json
 npm run benchmark:run
 npm run benchmark:run -- --records 50000 --updates 2500
+npm run benchmark:questions
+npm run benchmark:questions -- --validate .benchmark/human-question-authoring.json
 ```
 
 Generated benchmark files are ignored by Git. The default corpus spans five source systems and includes immutable versions, changed claims, near-duplicates, deletions, ambiguous aliases, long documents and actor-specific expected/forbidden evidence sets. Generation alone does not claim retrieval quality; `benchmark:run` performs the database evaluation.
 
 `benchmark:run` recreates only an isolated benchmark workspace, ingests the corpus without calling AI providers, and reports version integrity, identity ambiguity, retrieval quality, permission leakage and latency. See [the scale benchmark report](./docs/scale-benchmark.md) for the current baseline and its limitations.
+
+`benchmark:questions` creates or validates a Git-ignored blind-question authoring packet that excludes scorer answer sets and canonical project labels. See [the human evaluation protocol](./docs/human-evaluation.md).
 
 The separately authorised `benchmark:semantic` command sends a maximum of 2,000 synthetic benchmark inputs to the configured embedding provider and compares lexical, exact-vector and hybrid retrieval, with exact-name and vocabulary-mismatch results reported separately. It requires the explicit `--confirm-synthetic-egress` flag. See [the semantic benchmark report](./docs/semantic-benchmark.md) for the measured result and decision.
 
@@ -70,7 +74,7 @@ The ranking is named `demo-ranking-v3`. Its retrieval contribution uses reciproc
 
 ## Current scope
 
-Completed: Milestones 0–6. Milestone 7 scale and messiness validation is in progress; deterministic 10,000-record ingestion, ambiguity preservation, long-document chunks, current-version retirement, replay-safe incremental updates, permission-scoped lexical measurements, and two genuine capped semantic samples are implemented. The paired follow-up shows semantic retrieval materially improving vocabulary-mismatched questions with zero permission leakage. Blind human-authored evaluation and full-scale vector measurements remain. The system already includes source identity resolution, five connectors, governed ontology editing, a focused graph UI, permission-scoped signals, genuine provider embeddings, exact pgvector retrieval, resource-level reciprocal-rank fusion, four distinct access scopes, actor-safe autocomplete, a complete current-surface leakage matrix, an idempotent contradiction-ingestion scenario, and evidence-ID-grounded AI synthesis through `POST /api/v1/ask`. Deliberately deferred: broader signal producers, approximate vector indexing at scale, and production authentication/deployment hardening.
+Completed: Milestones 0–6. Milestone 7 scale and messiness validation is in progress; deterministic 10,000-record ingestion, ambiguity preservation, long-document chunks, current-version retirement, replay-safe incremental updates, permission-scoped lexical measurements, two genuine capped semantic samples, and a fail-closed blind-question authoring/validation workflow are implemented. The paired follow-up shows semantic retrieval materially improving vocabulary-mismatched questions with zero permission leakage. Collection of independently authored questions and full-scale vector measurements remain. The system already includes source identity resolution, five connectors, governed ontology editing, a focused graph UI, permission-scoped signals, genuine provider embeddings, exact pgvector retrieval, resource-level reciprocal-rank fusion, four distinct access scopes, actor-safe autocomplete, a complete current-surface leakage matrix, an idempotent contradiction-ingestion scenario, and evidence-ID-grounded AI synthesis through `POST /api/v1/ask`. Deliberately deferred: broader signal producers, approximate vector indexing at scale, and production authentication/deployment hardening.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md), [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md), and [docs/permissions.md](./docs/permissions.md).
 

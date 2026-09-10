@@ -1,4 +1,6 @@
 import { performance } from 'node:perf_hooks';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import dotenv from 'dotenv';
 import {
   getAppPool,
@@ -21,6 +23,7 @@ import {
   evaluateSemanticBenchmark,
   selectSemanticBenchmarkSample,
 } from '@/src/modules/benchmarks/semantic-benchmark';
+import { addHumanAuthoredQuestions } from '@/src/modules/benchmarks/human-question-benchmark';
 import {
   createOpenAIEmbeddingProvider,
   type EmbeddingUsage,
@@ -28,6 +31,11 @@ import {
 import { syncSearchEmbeddings } from '@/src/modules/embeddings/embedding-indexer';
 
 dotenv.config({ path: '.env.local', quiet: true });
+
+function stringArgument(name: string) {
+  const index = process.argv.indexOf(name);
+  return index === -1 ? null : (process.argv[index + 1] ?? null);
+}
 
 if (!process.argv.includes('--confirm-synthetic-egress')) {
   throw new Error('Pass --confirm-synthetic-egress only after approving the synthetic benchmark transfer');
@@ -49,7 +57,14 @@ const provider = createOpenAIEmbeddingProvider({
     usage.requests += 1;
   },
 });
-const corpus = addVocabularyMismatchQuestions(generateScaleCorpus());
+let corpus = addVocabularyMismatchQuestions(generateScaleCorpus());
+const humanQuestionsPath = stringArgument('--human-questions');
+if (humanQuestionsPath) {
+  const packet: unknown = JSON.parse(
+    await readFile(resolve(humanQuestionsPath), 'utf8'),
+  );
+  corpus = addHumanAuthoredQuestions(corpus, packet);
+}
 const updateBatch = generateScaleUpdateBatch(corpus);
 const ownerPool = getOwnerPool();
 const ownerClient = await ownerPool.connect();

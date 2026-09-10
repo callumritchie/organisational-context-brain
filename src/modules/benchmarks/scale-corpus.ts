@@ -17,7 +17,10 @@ export const BENCHMARK_VISIBILITIES = [
 export type BenchmarkSourceSystem = (typeof BENCHMARK_SOURCE_SYSTEMS)[number];
 export type BenchmarkVisibility = (typeof BENCHMARK_VISIBILITIES)[number];
 export type BenchmarkStance = 'SUPPORTS' | 'CONTRADICTS';
-export type BenchmarkQuestionCohort = 'exact-name' | 'vocabulary-mismatch';
+export type BenchmarkQuestionCohort =
+  | 'exact-name'
+  | 'vocabulary-mismatch'
+  | 'human-authored';
 
 export interface BenchmarkVersion {
   version: number;

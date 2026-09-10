@@ -61,7 +61,7 @@ Across the vocabulary-mismatch cohort:
 
 The follow-up establishes that semantic retrieval materially improves vocabulary-mismatched questions, while exact-name lexical retrieval remains more precise and much faster. Hybrid equals semantic on the mismatch cohort because the phrase-based lexical channel returns no candidates to fuse. The measured evidence therefore supports retaining permission-scoped PostgreSQL lexical and pgvector channels, then improving query routing or fusion rather than replacing lexical retrieval or introducing a specialist vector database.
 
-The vocabulary-mismatch cohort is deterministic and reviewable, but it is not a blind, independently authored human evaluation. A later evaluation should add blind human-authored questions, implicit references and real-world terminology distributions. A full 10,000-chunk vector latency run is also still required before deciding whether approximate pgvector indexing is warranted. Results from these 1,950–1,975-vector samples must not be extrapolated as a production guarantee.
+The vocabulary-mismatch cohort is deterministic and reviewable, but it is not a blind, independently authored human evaluation. A [blind authoring and validation workflow](./human-evaluation.md) is implemented; collecting its first held-out question set remains human work. A full 10,000-chunk vector latency run is also still required before deciding whether approximate pgvector indexing is warranted. Results from these 1,950–1,975-vector samples must not be extrapolated as a production guarantee.
 
 ## Running it
 
