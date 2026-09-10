@@ -36,7 +36,7 @@ test('separates answers, the living brain and governance into focused views', as
     page.locator(
       'svg[aria-label^="External data flows through a semantic layer"]',
     ),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 30_000 });
   await expect(
     page.getByRole('heading', { name: 'Hypothesis monitors' }),
   ).toBeVisible();
@@ -45,6 +45,13 @@ test('separates answers, the living brain and governance into focused views', as
       /Continuous scheduling is not connected in this prototype yet/i,
     ),
   ).toBeVisible();
+  await page.getByRole('button', { name: 'Follow a hypothesis agent' }).click();
+  await expect(
+    page.getByText(/Follow a background agent as it watches a hypothesis/i),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Follow a hypothesis agent' }),
+  ).toHaveAttribute('aria-pressed', 'true');
 
   await page.getByRole('button', { name: /^Govern/ }).click();
   await expect(

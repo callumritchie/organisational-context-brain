@@ -156,6 +156,15 @@ function EvidenceCard({
 
 function SystemFlow({ result }: { result: ContextResponse }) {
   const contested = result.epistemicState.status === 'contested';
+  const [focus, setFocus] = useState<'question' | 'monitor' | 'system'>(
+    'question',
+  );
+  const focusCopy =
+    focus === 'question'
+      ? 'Follow a question from permissioned source evidence, through shared meaning and graph relationships, into a cited answer and recommendation.'
+      : focus === 'monitor'
+        ? 'Follow a background agent as it watches a hypothesis, detects a material signal, and returns an observation for governed review.'
+        : 'Explore the complete architecture: both loops reuse the same identities, ontology, provenance, permissions and knowledge graph.';
   return (
     <section className="system-map" aria-labelledby="system-map-title">
       <div className="map-heading">
@@ -172,7 +181,37 @@ function SystemFlow({ result }: { result: ContextResponse }) {
           <span className="verified-key">Verified</span>
         </div>
       </div>
-      <div className="map-stage">
+      <div
+        className="flow-controls"
+        role="group"
+        aria-label="Choose a system flow"
+      >
+        <button
+          type="button"
+          className={focus === 'question' ? 'active' : ''}
+          aria-pressed={focus === 'question'}
+          onClick={() => setFocus('question')}
+        >
+          <UserRound /> Follow a human question
+        </button>
+        <button
+          type="button"
+          className={focus === 'monitor' ? 'active' : ''}
+          aria-pressed={focus === 'monitor'}
+          onClick={() => setFocus('monitor')}
+        >
+          <Bot /> Follow a hypothesis agent
+        </button>
+        <button
+          type="button"
+          className={focus === 'system' ? 'active' : ''}
+          aria-pressed={focus === 'system'}
+          onClick={() => setFocus('system')}
+        >
+          <Network /> Show the whole system
+        </button>
+      </div>
+      <div className={`map-stage focus-${focus}`}>
         <svg
           className="map-lines"
           viewBox="0 0 1200 590"
@@ -235,11 +274,11 @@ function SystemFlow({ result }: { result: ContextResponse }) {
             d="M565 290 C620 290 620 290 675 290"
           />
           <path
-            className="flow brain-flow"
+            className="flow brain-flow question-flow"
             d="M835 260 C890 225 915 185 970 160"
           />
           <path
-            className="flow brain-flow"
+            className="flow brain-flow monitor-flow"
             d="M835 320 C890 350 915 385 970 415"
           />
           <path
@@ -322,6 +361,17 @@ function SystemFlow({ result }: { result: ContextResponse }) {
           <BellRing /> New observations become governed evidence—not automatic
           truth
         </div>
+      </div>
+      <div className="flow-narration" aria-live="polite">
+        <span>
+          {focus === 'question'
+            ? 'Human loop'
+            : focus === 'monitor'
+              ? 'Agent loop'
+              : 'Shared context'}
+        </span>
+        <p>{focusCopy}</p>
+        <ArrowRight />
       </div>
     </section>
   );
@@ -1102,11 +1152,7 @@ function AnswerView({
 }
 
 export function BrainApp() {
-  const [view, setView] = useState<View>(() => {
-    if (typeof window === 'undefined') return 'ask';
-    const hash = window.location.hash.slice(1);
-    return hash === 'brain' || hash === 'govern' ? hash : 'ask';
-  });
+  const [view, setView] = useState<View>('ask');
   const [query, setQuery] = useState(PRESET);
   const [actorId, setActorId] = useState<string>(PERSONAS[0].id);
   const [result, setResult] = useState<ContextResponse | null>(null);
@@ -1171,6 +1217,10 @@ export function BrainApp() {
   useEffect(() => {
     if (initialised.current) return;
     initialised.current = true;
+    queueMicrotask(() => {
+      const hash = window.location.hash.slice(1);
+      if (hash === 'brain' || hash === 'govern') setView(hash);
+    });
     void ask();
   }, [ask]);
   useEffect(() => {

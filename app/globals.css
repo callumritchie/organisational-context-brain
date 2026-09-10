@@ -308,6 +308,7 @@ a:focus-visible {
   width: min(1210px, calc(100% - 68px));
   margin: 0 auto;
   padding: 34px 0 64px;
+  animation: view-enter 300ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
 }
 .hero-row {
   display: flex;
@@ -918,6 +919,15 @@ a:focus-visible {
   border-radius: 12px;
   background: var(--paper);
   box-shadow: 0 5px 15px rgba(32, 36, 55, 0.035);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+.evidence-card:hover {
+  transform: translateY(-3px);
+  border-color: #c8bddb;
+  box-shadow: 0 12px 25px rgba(49, 43, 75, 0.09);
 }
 .evidence-index {
   flex: none;
@@ -1125,6 +1135,44 @@ a:focus-visible {
   color: #35705e;
   background: #e4f1eb;
 }
+.flow-controls {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 10px;
+  padding: 4px;
+  border: 1px solid #d8d2c7;
+  border-radius: 11px;
+  background: rgba(255, 253, 248, 0.72);
+}
+.flow-controls button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 11px;
+  border: 0;
+  border-radius: 8px;
+  color: #777b88;
+  background: transparent;
+  cursor: pointer;
+  font-size: 8px;
+  font-weight: 680;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+.flow-controls button svg {
+  width: 13px;
+}
+.flow-controls button:hover {
+  color: var(--indigo);
+  background: #f0f1fa;
+}
+.flow-controls button.active {
+  color: #fff;
+  background: var(--indigo-deep);
+  box-shadow: 0 5px 12px rgba(40, 54, 127, 0.18);
+}
 .map-stage {
   position: relative;
   height: 590px;
@@ -1152,7 +1200,12 @@ a:focus-visible {
 .flow {
   fill: none;
   stroke-width: 1.7;
+  stroke-dasharray: 7 5;
   marker-end: url(#arrow-indigo);
+  animation: signal-flow 1.7s linear infinite;
+  transition:
+    opacity 220ms ease,
+    stroke-width 220ms ease;
 }
 .external-flow {
   stroke: var(--amber);
@@ -1172,6 +1225,7 @@ a:focus-visible {
   stroke-dasharray: 7 6;
   marker-end: url(#arrow-indigo);
   opacity: 0.7;
+  animation: signal-flow 2.2s linear infinite;
 }
 .pulse.amber {
   fill: var(--amber);
@@ -1247,6 +1301,14 @@ a:focus-visible {
   border-radius: 10px;
   background: #fffaf0;
   box-shadow: 0 5px 12px rgba(95, 67, 26, 0.06);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    opacity 220ms ease;
+}
+.map-source:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(95, 67, 26, 0.13);
 }
 .map-source > svg {
   width: 18px;
@@ -1295,6 +1357,10 @@ a:focus-visible {
   place-items: center;
   border-radius: 50%;
   transform: translate(-50%, -50%);
+  transition:
+    transform 240ms ease,
+    opacity 220ms ease,
+    box-shadow 220ms ease;
 }
 .ring > span {
   position: absolute;
@@ -1327,6 +1393,7 @@ a:focus-visible {
   color: #fff;
   background: #7656b5;
   box-shadow: 0 10px 25px rgba(96, 70, 145, 0.18);
+  animation: brain-breathe 3.2s ease-in-out infinite;
 }
 .ring-inner svg {
   width: 20px;
@@ -1375,6 +1442,14 @@ a:focus-visible {
   background: var(--indigo-deep);
   box-shadow: 0 13px 28px rgba(39, 53, 124, 0.17);
   text-align: center;
+  transition:
+    transform 220ms ease,
+    opacity 220ms ease,
+    box-shadow 220ms ease;
+}
+.context-engine:hover {
+  transform: translateY(-4px) rotate(-1deg);
+  box-shadow: 0 18px 36px rgba(39, 53, 124, 0.25);
 }
 .context-engine .stage-label {
   position: absolute;
@@ -1409,6 +1484,15 @@ a:focus-visible {
   border-radius: 12px;
   background: #f6f7ff;
   box-shadow: 0 8px 20px rgba(35, 44, 94, 0.09);
+  transition:
+    transform 220ms ease,
+    opacity 220ms ease,
+    box-shadow 220ms ease,
+    filter 220ms ease;
+}
+.map-output:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 28px rgba(35, 44, 94, 0.16);
 }
 .map-output > svg {
   flex: none;
@@ -1480,6 +1564,77 @@ a:focus-visible {
   width: 11px;
   color: var(--indigo);
 }
+.map-stage.focus-question .agent-output,
+.map-stage.focus-question .monitor-flow,
+.map-stage.focus-question .feedback-flow,
+.map-stage.focus-question .feedback-label {
+  opacity: 0.18;
+  filter: grayscale(0.6);
+}
+.map-stage.focus-question .answer-output,
+.map-stage.focus-question .question-flow {
+  opacity: 1;
+  stroke-width: 2.8;
+}
+.map-stage.focus-monitor .answer-output,
+.map-stage.focus-monitor .question-flow {
+  opacity: 0.18;
+  filter: grayscale(0.6);
+}
+.map-stage.focus-monitor .agent-output,
+.map-stage.focus-monitor .monitor-flow,
+.map-stage.focus-monitor .feedback-flow,
+.map-stage.focus-monitor .feedback-label {
+  opacity: 1;
+  stroke-width: 2.8;
+}
+.flow-narration {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin: -1px 18px 0;
+  padding: 13px 16px;
+  border: 1px solid #d7d0e5;
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+  background: #f7f4fc;
+  box-shadow: 0 8px 20px rgba(45, 40, 70, 0.05);
+}
+.flow-narration span {
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--purple);
+  font-size: 7px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.flow-narration p {
+  margin: 0;
+  color: #5e6170;
+  font-size: 9px;
+  line-height: 1.45;
+}
+.flow-narration > svg {
+  width: 14px;
+  color: var(--purple);
+}
+@keyframes signal-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+@keyframes brain-breathe {
+  0%,
+  100% {
+    box-shadow: 0 10px 25px rgba(96, 70, 145, 0.18);
+  }
+  50% {
+    box-shadow: 0 14px 34px rgba(96, 70, 145, 0.34);
+  }
+}
 
 .monitor-intro {
   display: flex;
@@ -1518,6 +1673,15 @@ a:focus-visible {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--paper);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+.monitor-card:hover {
+  transform: translateY(-4px);
+  border-color: #bbaad4;
+  box-shadow: 0 13px 26px rgba(65, 50, 95, 0.1);
 }
 .monitor-card.primary {
   border-color: #c3b5db;
@@ -2016,6 +2180,28 @@ a:focus-visible {
   font-size: 9px;
 }
 
+@keyframes view-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @media (max-width: 1120px) {
   .answer-layout {
     grid-template-columns: 1fr;
@@ -2030,6 +2216,14 @@ a:focus-visible {
     display: grid;
     grid-template-columns: 1fr;
     gap: 12px;
+  }
+  .flow-controls {
+    display: flex;
+    width: 100%;
+  }
+  .flow-controls button {
+    flex: 1;
+    justify-content: center;
   }
   .map-lines,
   .map-boundary {
@@ -2182,6 +2376,20 @@ a:focus-visible {
   }
   .source-stack {
     grid-template-columns: 1fr 1fr;
+  }
+  .flow-controls {
+    overflow-x: auto;
+  }
+  .flow-controls button {
+    flex: none;
+    white-space: nowrap;
+  }
+  .flow-narration {
+    margin-inline: 8px;
+    grid-template-columns: 1fr;
+  }
+  .flow-narration > svg {
+    display: none;
   }
   .semantic-core {
     text-align: center;
