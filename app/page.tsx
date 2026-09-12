@@ -1,5 +1,5 @@
-import { ContextBlueprint } from '@/components/context-blueprint';
+import { ContextWorkspace } from '@/components/context-workspace';
 
 export default function Home() {
-  return <ContextBlueprint />;
+  return <ContextWorkspace />;
 }

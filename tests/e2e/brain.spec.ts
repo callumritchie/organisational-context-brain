@@ -7,15 +7,20 @@ test('resolves evidence and changes safely for Morgan', async ({ page }) => {
     page.getByText(/Evidence-led, deterministic|Grounded by openai/).first(),
   ).toBeVisible();
   await expect(page.getByText('5 sources healthy')).toBeVisible();
-  await expect(page.getByText('northstar-ontology-v1 · current')).toBeVisible();
-  await expect(page.getByText('5 permitted results')).toBeVisible();
+  await expect(page.getByText(/northstar-ontology-v1/)).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Inspect 5 evidence items' }),
+  ).toBeVisible();
   await page.getByLabel('Demo persona').selectOption(IDS.users.morgan);
-  await expect(page.getByText('3 permitted results')).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Inspect 3 evidence items' }),
+  ).toBeVisible();
   await expect(
     page.getByText('Manual compliance hand-offs compound verification delays'),
   ).toHaveCount(0);
+  await page.getByRole('button', { name: /Limit access/ }).click();
   await expect(
-    page.getByText(/inaccessible candidates never entered the pipeline/i),
+    page.getByText(/Inaccessible objects were excluded before search began/i),
   ).toBeVisible();
   expect(
     await page.evaluate(
@@ -28,33 +33,23 @@ test('turns the brain into an inspectable product blueprint without page scrolli
   page,
 }) => {
   test.setTimeout(60_000);
-  await page.goto('/#brain');
+  await page.goto('/');
   await expect(
-    page.getByRole('heading', { name: 'The intelligence, layer by layer' }),
+    page.getByText('How the system produced this exact answer'),
   ).toBeVisible({ timeout: 30_000 });
   await expect(
     page.getByRole('button', { name: /Apply meaning/ }),
   ).toBeVisible();
   await page.getByRole('button', { name: /Apply meaning/ }).click();
-  await expect(page.getByText('Semantic data layer').first()).toBeVisible();
+  await expect(page.getByText('Semantic layer').first()).toBeVisible();
+  await expect(page.getByText('Requirement seed')).toBeVisible();
   await expect(
-    page.getByRole('heading', { name: 'Layer contract' }),
+    page.getByText(/concepts and .* relationship rules/i),
   ).toBeVisible();
+  await page.getByRole('button', { name: /Background monitor/ }).click();
+  await expect(page.getByText('Not built')).toBeVisible();
   await expect(
-    page.getByRole('heading', { name: 'Requirement seeds' }),
-  ).toBeVisible();
-  await page
-    .getByRole('button', { name: 'Hypothesis agent', exact: true })
-    .click();
-  await expect(
-    page.getByRole('button', { name: /Define watch/ }),
-  ).toBeVisible();
-  await page.getByRole('button', { name: /Define watch/ }).click();
-  await expect(
-    page.getByText('Required next; not yet implemented'),
-  ).toBeVisible();
-  await expect(
-    page.getByText(/owner, cadence, permitted scope and stop conditions/i),
+    page.getByText(/monitor the durable hypothesis behind this question/i),
   ).toBeVisible();
   expect(
     await page.evaluate(
@@ -62,28 +57,13 @@ test('turns the brain into an inspectable product blueprint without page scrolli
     ),
   ).toBe(true);
 
-  await page.getByRole('button', { name: /^Govern/ }).click();
+  await page.getByRole('button', { name: 'Shared meaning' }).click();
   await expect(
-    page.getByRole('heading', { name: 'Govern the brain' }),
+    page.getByText('Evidence — SUPPORTS → Hypothesis'),
   ).toBeVisible();
+  await page.getByRole('button', { name: /Inspect \d evidence items/ }).click();
   await expect(
-    page.getByRole('heading', { name: 'External source systems' }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole('heading', { name: 'Durable organisational context' }),
-  ).toBeVisible();
-  await page.getByRole('tab', { name: 'Ontology', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: /concepts the brain understands/ }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole('heading', { name: /permitted connections/ }),
-  ).toBeVisible();
-  await page.getByRole('tab', { name: 'Access model', exact: true }).click();
-  await expect(
-    page.getByRole('heading', {
-      name: 'Access changes context before an AI sees it',
-    }),
+    page.getByRole('heading', { name: 'Evidence used for this answer' }),
   ).toBeVisible();
   expect(
     await page.evaluate(
