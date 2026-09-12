@@ -8,60 +8,88 @@ test('resolves evidence and changes safely for Morgan', async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByText('5 sources healthy')).toBeVisible();
   await expect(page.getByText('northstar-ontology-v1 · current')).toBeVisible();
-  await expect(
-    page.locator('.section-heading').getByText('5 permitted results'),
-  ).toBeVisible();
+  await expect(page.getByText('5 permitted results')).toBeVisible();
   await page.getByLabel('Demo persona').selectOption(IDS.users.morgan);
-  await expect(
-    page.locator('.section-heading').getByText('3 permitted results'),
-  ).toBeVisible();
+  await expect(page.getByText('3 permitted results')).toBeVisible();
   await expect(
     page.getByText('Manual compliance hand-offs compound verification delays'),
   ).toHaveCount(0);
   await expect(
-    page
-      .locator('.security-summary')
-      .getByText(/inaccessible candidates never entered the pipeline/i),
+    page.getByText(/inaccessible candidates never entered the pipeline/i),
   ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollHeight <= window.innerHeight,
+    ),
+  ).toBe(true);
 });
 
-test('separates answers, the living brain and governance into focused views', async ({
+test('turns the brain into an inspectable product blueprint without page scrolling', async ({
   page,
 }) => {
+  test.setTimeout(60_000);
   await page.goto('/#brain');
   await expect(
-    page.getByRole('heading', { name: 'The living context model' }),
-  ).toBeVisible();
-  await expect(
-    page.locator(
-      'svg[aria-label^="External data flows through a semantic layer"]',
-    ),
+    page.getByRole('heading', { name: 'The intelligence, layer by layer' }),
   ).toBeVisible({ timeout: 30_000 });
   await expect(
-    page.getByRole('heading', { name: 'Hypothesis monitors' }),
+    page.getByRole('button', { name: /Apply meaning/ }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: /Apply meaning/ }).click();
+  await expect(page.getByText('Semantic data layer').first()).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Layer contract' }),
   ).toBeVisible();
   await expect(
-    page.getByText(
-      /Continuous scheduling is not connected in this prototype yet/i,
+    page.getByRole('heading', { name: 'Requirement seeds' }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: 'Hypothesis agent', exact: true })
+    .click();
+  await expect(
+    page.getByRole('button', { name: /Define watch/ }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: /Define watch/ }).click();
+  await expect(
+    page.getByText('Required next; not yet implemented'),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/owner, cadence, permitted scope and stop conditions/i),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollHeight <= window.innerHeight,
     ),
-  ).toBeVisible();
-  await page.getByRole('button', { name: 'Follow a hypothesis agent' }).click();
-  await expect(
-    page.getByText(/Follow a background agent as it watches a hypothesis/i),
-  ).toBeVisible();
-  await expect(
-    page.getByRole('button', { name: 'Follow a hypothesis agent' }),
-  ).toHaveAttribute('aria-pressed', 'true');
+  ).toBe(true);
 
   await page.getByRole('button', { name: /^Govern/ }).click();
   await expect(
     page.getByRole('heading', { name: 'Govern the brain' }),
   ).toBeVisible();
   await expect(
-    page.getByRole('heading', { name: 'Source systems' }),
+    page.getByRole('heading', { name: 'External source systems' }),
   ).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Ontology' })).toBeVisible();
-  await expect(page.getByText('Add a relationship rule')).toBeHidden();
+  await expect(
+    page.getByRole('heading', { name: 'Durable organisational context' }),
+  ).toBeVisible();
+  await page.getByRole('tab', { name: 'Ontology', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: /concepts the brain understands/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: /permitted connections/ }),
+  ).toBeVisible();
+  await page.getByRole('tab', { name: 'Access model', exact: true }).click();
+  await expect(
+    page.getByRole('heading', {
+      name: 'Access changes context before an AI sees it',
+    }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollHeight <= window.innerHeight,
+    ),
+  ).toBe(true);
 });
 
 test('context API is independently consumable', async ({ request }) => {

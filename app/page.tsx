@@ -1,5 +1,5 @@
-import { BrainApp } from '@/components/brain-app';
+import { ContextBlueprint } from '@/components/context-blueprint';
 
 export default function Home() {
-  return <BrainApp />;
+  return <ContextBlueprint />;
 }
