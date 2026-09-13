@@ -14,6 +14,8 @@ This plan supersedes the original horizontal roadmap. Work proceeds as sequentia
 8. Offline means lexical, structured and graph retrieval—not pretend semantic embeddings.
 9. Demo mutations must enter through a source connector and normal sync lifecycle.
 10. Ranking models are transparent and illustrative, with evaluation-based ordering checks; `demo-ranking-v3` adds reciprocal-rank fusion to first-class signals and actor-visible graph connectivity.
+11. A machine-formed learning is a provenance-linked `memory_candidate`, not trusted organisational memory; review is required before promotion to a canonical Resource.
+12. Background evaluation reuses the same actor-scoped Context Service and may not broaden the monitor service identity beyond its declared access scope.
 
 ## Milestone 0 — Repository foundation
 
@@ -121,3 +123,16 @@ Status: in progress.
 - Implemented: 75 paired vocabulary-mismatch questions expose lexical brittleness without injecting canonical project names into retrieval. In a capped 1,950-vector follow-up, semantic retrieval achieved approximately 0.545 precision@20, 0.385 recall@20 and 0.805 MRR on that cohort, with zero observed leakage.
 - Implemented: a blind human-question authoring packet excludes scorer answer sets and canonical project labels; validation requires authorship attestation and fails closed on missing, duplicated or label-leaking questions. The semantic runner accepts a validated packet while preserving its 2,000-input ceiling.
 - Remaining: collect genuinely independently authored held-out questions, then benchmark a full vector corpus before deciding whether approximate pgvector or specialist graph/vector infrastructure is warranted.
+
+## Milestone 8 — Continual hypotheses and durable memory
+
+Status: first event-driven vertical slice implemented; generalisation remains.
+
+- Implemented: an explicit monitor policy with hypothesis, owner, restricted service actor, source-change trigger, materiality rule, mandatory review policy and stop conditions.
+- Implemented: a separate Hypothesis Monitor identity that can read workspace-wide evidence but has none of the Sync Service’s internal or user-private grants.
+- Implemented: successful relevant source changes are recorded as durable, replay-safe events and rerun the Context Service with external embeddings disabled.
+- Implemented: permission-scoped context snapshots and evidence deltas retain the before/change/after explanation for each monitor run.
+- Implemented: a deterministic formation rule turns newly supporting or contradicting evidence into an attributable memory candidate; the prepared contradiction forms a counter-hypothesis rather than silently rewriting the original claim.
+- Implemented: Project Lead review can dismiss a candidate or promote it to a canonical Hypothesis Resource with a source-version-backed assertion and provenance span. Production review writes remain disabled until genuine authentication exists.
+- Implemented: the fixed-viewport prototype exposes the whole loop through progressive disclosure in the existing answer trace rather than adding another page or tab.
+- Remaining: general-purpose hypothesis extraction, scheduled/asynchronous workers, connector-independent routing, repeated testing over multiple events, staleness/supersession policy, notifications, monitor operations, and evaluation against a larger messy corpus.

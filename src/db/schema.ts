@@ -320,3 +320,101 @@ export const traceStages = pgTable('trace_stages', {
   payload: jsonb('payload').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const monitorPolicies = pgTable('monitor_policies', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
+  accessScopeId: uuid('access_scope_id').notNull().references(() => accessScopes.id),
+  hypothesisResourceId: uuid('hypothesis_resource_id').notNull().references(() => resources.id),
+  ownerActorId: uuid('owner_actor_id').notNull().references(() => users.id),
+  serviceActorId: uuid('service_actor_id').notNull().references(() => users.id),
+  name: text('name').notNull(),
+  queryText: text('query_text').notNull(),
+  status: text('status').notNull().default('active'),
+  triggerPolicy: jsonb('trigger_policy').notNull(),
+  materialityPolicy: jsonb('materiality_policy').notNull(),
+  reviewPolicy: jsonb('review_policy').notNull(),
+  stopConditions: jsonb('stop_conditions').notNull(),
+  latestSnapshotId: uuid('latest_snapshot_id'),
+  ...timestamps,
+});
+
+export const sourceChangeEvents = pgTable('source_change_events', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
+  accessScopeId: uuid('access_scope_id').notNull().references(() => accessScopes.id),
+  sourceId: uuid('source_id').notNull().references(() => sources.id),
+  triggerRef: text('trigger_ref').notNull(),
+  changedObjects: integer('changed_objects').notNull(),
+  status: text('status').notNull().default('pending'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  processedAt: timestamp('processed_at', { withTimezone: true }),
+}, (table) => [uniqueIndex('source_change_events_trigger_ref').on(table.workspaceId, table.triggerRef)]);
+
+export const monitorRuns = pgTable('monitor_runs', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
+  accessScopeId: uuid('access_scope_id').notNull().references(() => accessScopes.id),
+  monitorPolicyId: uuid('monitor_policy_id').notNull().references(() => monitorPolicies.id),
+  sourceChangeEventId: uuid('source_change_event_id').notNull().references(() => sourceChangeEvents.id),
+  serviceActorId: uuid('service_actor_id').notNull().references(() => users.id),
+  status: text('status').notNull(),
+  material: boolean('material').notNull().default(false),
+  beforeSnapshotId: uuid('before_snapshot_id'),
+  afterSnapshotId: uuid('after_snapshot_id'),
+  rationale: text('rationale'),
+  startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+  finishedAt: timestamp('finished_at', { withTimezone: true }),
+}, (table) => [uniqueIndex('monitor_runs_policy_event').on(table.monitorPolicyId, table.sourceChangeEventId)]);
+
+export const contextSnapshots = pgTable('context_snapshots', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
+  accessScopeId: uuid('access_scope_id').notNull().references(() => accessScopes.id),
+  monitorPolicyId: uuid('monitor_policy_id').notNull().references(() => monitorPolicies.id),
+  monitorRunId: uuid('monitor_run_id').references(() => monitorRuns.id),
+  traceId: uuid('trace_id').references(() => queryTraces.id),
+  contextHash: text('context_hash').notNull(),
+  epistemicStatus: text('epistemic_status').notNull(),
+  supportingEvidence: integer('supporting_evidence').notNull(),
+  contradictingEvidence: integer('contradicting_evidence').notNull(),
+  evidencePayload: jsonb('evidence_payload').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const evidenceDeltas = pgTable('evidence_deltas', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
+  accessScopeId: uuid('access_scope_id').notNull().references(() => accessScopes.id),
+  monitorRunId: uuid('monitor_run_id').notNull().references(() => monitorRuns.id),
+  evidenceResourceId: uuid('evidence_resource_id').notNull().references(() => resources.id),
+  deltaType: text('delta_type').notNull(),
+  previousStance: text('previous_stance'),
+  currentStance: text('current_stance'),
+  payload: jsonb('payload').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const memoryCandidates = pgTable('memory_candidates', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
+  accessScopeId: uuid('access_scope_id').notNull().references(() => accessScopes.id),
+  monitorPolicyId: uuid('monitor_policy_id').notNull().references(() => monitorPolicies.id),
+  monitorRunId: uuid('monitor_run_id').notNull().references(() => monitorRuns.id),
+  hypothesisResourceId: uuid('hypothesis_resource_id').notNull().references(() => resources.id),
+  evidenceResourceId: uuid('evidence_resource_id').notNull().references(() => resources.id),
+  evidenceAssertionId: uuid('evidence_assertion_id').notNull().references(() => assertions.id),
+  candidateKind: text('candidate_kind').notNull(),
+  statement: text('statement').notNull(),
+  rationale: text('rationale').notNull(),
+  confidence: real('confidence').notNull(),
+  status: text('status').notNull().default('proposed'),
+  processName: text('process_name').notNull(),
+  processVersion: text('process_version').notNull(),
+  reviewedBy: uuid('reviewed_by').references(() => users.id),
+  reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+  reviewNote: text('review_note'),
+  promotedResourceId: uuid('promoted_resource_id').references(() => resources.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});

@@ -326,9 +326,12 @@ function deterministicSummary(evidence: ContextEvidence[]) {
 export async function assembleContext(
   actor: { id: string; workspaceId: string; name: string; role: string },
   request: ContextRequest,
+  options: { allowExternalEmbeddings?: boolean } = {},
 ): Promise<ContextResponse> {
   const parsedQuery = understandQuery(request.query);
-  const embeddingProvider = getConfiguredEmbeddingProvider();
+  const embeddingProvider = options.allowExternalEmbeddings === false
+    ? null
+    : getConfiguredEmbeddingProvider();
   let semanticQuery: { vector: string; provider: string; model: string } | null = null;
   let embeddingStatus: ContextResponse['retrieval']['embeddingStatus'] = embeddingProvider ? 'provider-error' : 'disabled';
   if (embeddingProvider) {

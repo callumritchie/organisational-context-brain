@@ -6,6 +6,11 @@ import { stableId } from '@/src/modules/canonical/stable-id';
 import { ResearchFixtureConnector } from '@/src/modules/connectors/research-fixture-connector';
 import { upsertEvidenceSignals } from '@/src/modules/signals/signal-service';
 import { runResearchSync } from '@/src/modules/sync/research-sync';
+import {
+  initializeDefaultMonitor,
+  newSourceTriggerRef,
+  recordAndEvaluateSourceChange,
+} from '@/src/modules/memory/hypothesis-monitor';
 
 export const researchMutationSchema = z.object({
   mutation: z.literal('eligibility-guidance-finding'),
@@ -21,6 +26,7 @@ export async function applyResearchMutation(
     throw new ResearchMutationPermissionError('Only the demo Project Lead can trigger the prepared research mutation');
   }
   researchMutationSchema.parse(rawInput);
+  await initializeDefaultMonitor({ catchUpPreparedMutation: true });
   const pool = getIngestionPool();
   const client = await pool.connect();
   try {
@@ -41,11 +47,17 @@ export async function applyResearchMutation(
       },
     });
     await client.query('COMMIT');
+    const memory = await recordAndEvaluateSourceChange({
+      sourceId: IDS.sources.research,
+      triggerRef: newSourceTriggerRef(sync.runId),
+      changedObjects: sync.changed,
+    });
     return {
       applied: sync.changed > 0,
       cursor: sync.cursorAfter,
       evidenceId: stableId('evidence-resource', ELIGIBILITY_RESEARCH_MUTATION.externalId),
       finding: ELIGIBILITY_RESEARCH_MUTATION.evidence!.title,
+      memory,
     };
   } catch (error) {
     await client.query('ROLLBACK');

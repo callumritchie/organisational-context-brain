@@ -139,12 +139,14 @@ export async function seedIdentityAndScopes(client: PoolClient) {
   );
   await client.query(
     `INSERT INTO users (id, workspace_id, name, role_label) VALUES
-      ($1, $5, 'Alex Chen', 'Project Lead'),
-      ($2, $5, 'Jamie Patel', 'Consultant'),
-      ($3, $5, 'Morgan Reed', 'External Contractor'),
-      ($4, $5, 'Sync Service', 'System')
+      ($1, $6, 'Alex Chen', 'Project Lead'),
+      ($2, $6, 'Jamie Patel', 'Consultant'),
+      ($3, $6, 'Morgan Reed', 'External Contractor'),
+      ($4, $6, 'Sync Service', 'System'),
+      ($5, $6, 'Hypothesis Monitor', 'System')
      ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, role_label = EXCLUDED.role_label`,
-    [IDS.users.alex, IDS.users.jamie, IDS.users.morgan, IDS.users.ingestion, IDS.workspace],
+    [IDS.users.alex, IDS.users.jamie, IDS.users.morgan, IDS.users.ingestion,
+      IDS.users.memoryAgent, IDS.workspace],
   );
   await client.query(
     `INSERT INTO groups (id, workspace_id, name) VALUES ($1, $2, 'Northstar delivery team')
