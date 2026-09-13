@@ -1,5 +1,5 @@
-import { ContextWorkspace } from '@/components/context-workspace';
+import { ContextStory } from '@/components/context-story';
 
 export default function Home() {
-  return <ContextWorkspace />;
+  return <ContextStory />;
 }

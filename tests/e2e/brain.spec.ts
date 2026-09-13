@@ -4,21 +4,20 @@ import { IDS } from '@/src/modules/canonical/ids';
 test('resolves evidence and changes safely for Morgan', async ({ page }) => {
   await page.goto('/');
   await expect(
-    page.getByText(/Evidence-led, deterministic|Grounded by openai/).first(),
+    page.getByText(/mode=deterministic|provider=openai/).first(),
   ).toBeVisible();
-  await expect(page.getByText('5 sources healthy')).toBeVisible();
-  await expect(page.getByText(/northstar-ontology-v1/)).toBeVisible();
+  await expect(page.getByText('sources_healthy=5')).toBeVisible();
   await expect(
-    page.getByRole('button', { name: 'Inspect 5 evidence items' }),
+    page.getByRole('button', { name: /Open 5 evidence files/ }),
   ).toBeVisible();
   await page.getByLabel('Demo persona').selectOption(IDS.users.morgan);
   await expect(
-    page.getByRole('button', { name: 'Inspect 3 evidence items' }),
+    page.getByRole('button', { name: /Open 3 evidence files/ }),
   ).toBeVisible();
   await expect(
     page.getByText('Manual compliance hand-offs compound verification delays'),
   ).toHaveCount(0);
-  await page.getByRole('button', { name: /Limit access/ }).click();
+  await page.getByRole('button', { name: /Constrain access/ }).click();
   await expect(
     page.getByText(/Inaccessible objects were excluded before search began/i),
   ).toBeVisible();
@@ -35,21 +34,35 @@ test('turns the brain into an inspectable product blueprint without page scrolli
   test.setTimeout(60_000);
   await page.goto('/');
   await expect(
-    page.getByText('How the system produced this exact answer'),
+    page.getByRole('heading', { name: 'How this output was produced' }),
   ).toBeVisible({ timeout: 30_000 });
   await expect(
-    page.getByRole('button', { name: /Apply meaning/ }),
+    page.getByRole('button', { name: /Connect meaning/ }),
   ).toBeVisible();
-  await page.getByRole('button', { name: /Apply meaning/ }).click();
-  await expect(page.getByText('Semantic layer').first()).toBeVisible();
-  await expect(page.getByText('Requirement seed')).toBeVisible();
+  await page.getByRole('button', { name: /Connect meaning/ }).click();
+  const meaningDialog = page.getByRole('dialog', {
+    name: 'Connect meaning details',
+  });
+  await expect(meaningDialog.getByText('INPUT', { exact: true })).toBeVisible();
   await expect(
-    page.getByText(/concepts and .* relationship rules/i),
+    meaningDialog.getByText('OUTPUT', { exact: true }),
   ).toBeVisible();
-  await page.getByRole('button', { name: /Background monitor/ }).click();
-  await expect(page.getByText('Not built')).toBeVisible();
+  await expect(meaningDialog.getByText(/northstar-ontology-v1/)).toBeVisible();
   await expect(
-    page.getByText(/monitor the durable hypothesis behind this question/i),
+    meaningDialog.getByText('PM-ready requirement seed'),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Close operation details' }).click();
+  await page
+    .getByRole('button', { name: /Monitor this same hypothesis/ })
+    .click();
+  const monitorDialog = page.getByRole('dialog', {
+    name: 'Monitor hypothesis details',
+  });
+  await expect(monitorDialog.getByText('Not built')).toBeVisible();
+  await expect(
+    monitorDialog.getByText(
+      /watch the durable hypothesis behind this question/i,
+    ),
   ).toBeVisible();
   expect(
     await page.evaluate(
@@ -57,13 +70,10 @@ test('turns the brain into an inspectable product blueprint without page scrolli
     ),
   ).toBe(true);
 
-  await page.getByRole('button', { name: 'Shared meaning' }).click();
+  await page.getByRole('button', { name: 'Close operation details' }).click();
+  await page.getByRole('button', { name: /Open \d evidence files/ }).click();
   await expect(
-    page.getByText('Evidence — SUPPORTS → Hypothesis'),
-  ).toBeVisible();
-  await page.getByRole('button', { name: /Inspect \d evidence items/ }).click();
-  await expect(
-    page.getByRole('heading', { name: 'Evidence used for this answer' }),
+    page.getByRole('heading', { name: 'Evidence used for this output' }),
   ).toBeVisible();
   expect(
     await page.evaluate(

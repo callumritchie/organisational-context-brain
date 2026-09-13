@@ -1,0 +1,857 @@
+'use client';
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  Bot,
+  BrainCircuit,
+  Check,
+  ChevronRight,
+  CircleDot,
+  Copy,
+  Database,
+  FileSearch,
+  GitBranch,
+  RefreshCw,
+  Send,
+  ShieldCheck,
+  Sparkles,
+  UserRound,
+  X,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from '@/components/ui/native-select';
+import { PERSONAS } from '@/src/modules/canonical/ids';
+import type { AnswerResponse } from '@/src/modules/ai/types';
+import type { ContextResponse } from '@/src/modules/context/types';
+import {
+  DEMO_RANKING_V3,
+  type RankingFactor,
+} from '@/src/modules/ranking/demo-ranking-v3';
+import styles from './context-story.module.css';
+
+const PRESET =
+  "What do we currently know about why users abandon Atlas Bank's onboarding journey?";
+const RANKING_FACTORS = Object.keys(DEMO_RANKING_V3.weights) as RankingFactor[];
+
+type StageId = 'scope' | 'identity' | 'meaning' | 'evidence' | 'monitor';
+
+interface StoryStage {
+  id: StageId;
+  step: number | null;
+  operation: string;
+  layer: string;
+  status: 'working' | 'planned';
+  runtime: string[];
+  summary: string;
+  why: string;
+  input: string;
+  output: string;
+  requirement: string;
+  examples: string[];
+}
+
+function safeToken(value: string) {
+  return value
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/g, '_')
+    .replaceAll(/^_|_$/g, '');
+}
+
+function stagesFor(result: ContextResponse): StoryStage[] {
+  const entities = result.interpretedQuery.entities
+    .map((entity) => entity.name)
+    .join(', ');
+  const reliability =
+    result.epistemicState.status === 'contested' ? 'cautious' : 'supported';
+  return [
+    {
+      id: 'scope',
+      step: 1,
+      operation: 'Constrain access',
+      layer: 'Permission boundary',
+      status: 'working',
+      runtime: [
+        `actor=${safeToken(result.actor.name)}`,
+        `source_objects=${result.accessProfile.sourceObjects}`,
+      ],
+      summary: `${result.actor.name} was allowed to search ${result.accessProfile.sourceObjects} source objects across ${result.accessProfile.projects.length} projects. Inaccessible objects were excluded before retrieval began.`,
+      why: 'Filtering later can leak restricted titles, snippets, scores or source text into traces and AI prompts.',
+      input: `ActorContext { actor_id: "${result.actor.id}", role: "${result.actor.role}" }`,
+      output: `EligibleScope { source_objects: ${result.accessProfile.sourceObjects}, projects: [${result.accessProfile.projects.map((project) => `"${project}"`).join(', ')}] }`,
+      requirement:
+        'All permission-sensitive reads shall execute inside an actor-scoped database transaction before candidate retrieval.',
+      examples: [
+        `clients=[${result.accessProfile.clients.join(', ')}]`,
+        'enforcement=pre_retrieval',
+        'restricted_metadata=absent',
+      ],
+    },
+    {
+      id: 'identity',
+      step: 2,
+      operation: 'Resolve resources',
+      layer: 'Canonical model',
+      status: 'working',
+      runtime: [
+        `entities=${result.interpretedQuery.entities.length}`,
+        'aliases=resolved',
+      ],
+      summary: `Names, aliases and source-system identifiers in this question resolved to ${result.interpretedQuery.entities.length} stable organisational resources: ${entities}.`,
+      why: 'The same client or project appears under different names in different systems. Context fragments if those records remain separate.',
+      input: `QueryEntities { text: "Atlas Bank", source_aliases: true }`,
+      output: `CanonicalResources { count: ${result.interpretedQuery.entities.length}, names: [${result.interpretedQuery.entities.map((entity) => `"${entity.name}"`).join(', ')}] }`,
+      requirement:
+        'Every entity or content object shall resolve to one canonical Resource while retaining its source identities and provenance.',
+      examples: result.interpretedQuery.entities.map(
+        (entity) =>
+          `${entity.matchedAlias ?? entity.name} -> ${entity.type}/${safeToken(entity.name)}`,
+      ),
+    },
+    {
+      id: 'meaning',
+      step: 3,
+      operation: 'Connect meaning',
+      layer: 'Ontology + knowledge graph',
+      status: 'working',
+      runtime: [
+        `ontology=${result.ontology.version}`,
+        `graph_edges=${result.graph.edges.length}`,
+      ],
+      summary: `The versioned ontology classified the resources, then the graph followed ${result.graph.edges.length} actor-visible connections between projects, evidence, people and hypotheses.`,
+      why: 'Similarity finds related words. A semantic model explains what each object is, which relationships are valid, and how context connects across systems.',
+      input: `Assertions { resources: ${result.graph.nodes.length}, ontology: "${result.ontology.version}" }`,
+      output: `SemanticGraph { types: ${result.ontology.resourceTypes.length}, relationship_rules: ${result.ontology.relationships.length}, visible_edges: ${result.graph.edges.length} }`,
+      requirement:
+        'Semantic mappings shall use an immutable ontology version, and a graph edge shall be visible only when an establishing assertion is actor-visible.',
+      examples: [
+        'Evidence --SUPPORTS--> Hypothesis',
+        'ResearchNote --BELONGS_TO--> Project',
+        'Evidence --CONTRADICTS--> Hypothesis',
+      ],
+    },
+    {
+      id: 'evidence',
+      step: 4,
+      operation: 'Rank + assess evidence',
+      layer: 'Retrieval + epistemic assessment',
+      status: 'working',
+      runtime: [
+        `evidence=${result.evidence.length}`,
+        `reliability=${reliability}`,
+      ],
+      summary:
+        result.epistemicState.status === 'contested'
+          ? `${result.retrieval.mode} retrieval ranked ${result.evidence.length} permitted items. ${result.epistemicState.supportingEvidence} support the current explanation and ${result.epistemicState.contradictingEvidence} challenges a single-cause view, so reliability is “Cautious”.`
+          : `${result.retrieval.mode} retrieval ranked ${result.evidence.length} permitted items. ${result.epistemicState.supportingEvidence} support the current explanation and no visible evidence challenges it, so reliability is “Supported”.`,
+      why: 'The most similar passage is not always the most authoritative. The product must also preserve disagreement rather than synthesising false certainty.',
+      input: `Candidates { lexical: true, semantic: ${result.retrieval.mode === 'hybrid'}, graph: true, ranking: "${result.rankingVersion}" }`,
+      output: `ContextPacket { evidence: ${result.evidence.length}, supports: ${result.epistemicState.supportingEvidence}, challenges: ${result.epistemicState.contradictingEvidence}, reliability: "${reliability}" }`,
+      requirement:
+        'Every ranking contribution shall be inspectable, and context responses shall distinguish supported, contested and insufficient evidence states.',
+      examples: [
+        `ranking=${result.rankingVersion}`,
+        `supports=${result.epistemicState.supportingEvidence}`,
+        `challenges=${result.epistemicState.contradictingEvidence}`,
+      ],
+    },
+    {
+      id: 'monitor',
+      step: null,
+      operation: 'Monitor hypothesis',
+      layer: 'Background agent',
+      status: 'planned',
+      runtime: ['status=not_built', 'execution=background'],
+      summary:
+        'A future agent would watch the durable hypothesis behind this question. When permitted source versions change, it would rerun the same four operations and propose an attributable update.',
+      why: 'Context can improve between human questions, but a continuous agent needs explicit scope, cadence, ownership, materiality thresholds and stop conditions.',
+      input:
+        'MonitorPolicy { hypothesis_id, service_actor_id, cadence, scope, materiality_threshold }',
+      output:
+        'ChangeProposal { evidence_delta, hypothesis_delta, rationale, notification_targets }',
+      requirement:
+        'Every monitor shall declare an owner, cadence, permitted scope, materiality threshold, notification policy and stop conditions.',
+      examples: [
+        'trigger=source_version_changed',
+        'review=required',
+        'notifications=not_connected',
+      ],
+    },
+  ];
+}
+
+function responseClaims(
+  answer: AnswerResponse['answer'] | null,
+  result: ContextResponse,
+) {
+  if (answer?.mode === 'provider' && answer.claims.length) {
+    return answer.claims.slice(0, 2);
+  }
+  return [{ text: answer?.text ?? result.summary, evidenceIds: [] }];
+}
+
+function StageDrawer({
+  stage,
+  onClose,
+}: {
+  stage: StoryStage;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  async function copyRequirement() {
+    await navigator.clipboard.writeText(stage.requirement);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1200);
+  }
+  return (
+    <div className={styles.overlay} onMouseDown={onClose}>
+      <section
+        className={styles.stageDrawer}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${stage.operation} details`}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <header>
+          <div>
+            <span className={styles.uiLabel}>
+              {stage.step
+                ? `Operation ${String(stage.step).padStart(2, '0')}`
+                : 'Planned background path'}
+            </span>
+            <h2>{stage.operation}</h2>
+            <p>{stage.layer}</p>
+          </div>
+          <b
+            className={
+              stage.status === 'working' ? styles.working : styles.notBuilt
+            }
+          >
+            {stage.status === 'working' ? 'Working now' : 'Not built'}
+          </b>
+          <button
+            type="button"
+            aria-label="Close operation details"
+            onClick={onClose}
+          >
+            <X />
+          </button>
+        </header>
+        <div className={styles.stageDrawerBody}>
+          <section>
+            <span className={styles.uiLabel}>What happened in this trace</span>
+            <p className={styles.storyCopy}>{stage.summary}</p>
+          </section>
+          <section>
+            <span className={styles.uiLabel}>Why this capability exists</span>
+            <p>{stage.why}</p>
+          </section>
+          <div className={styles.ioGrid}>
+            <article>
+              <span className={styles.dataLabel}>INPUT</span>
+              <code>{stage.input}</code>
+            </article>
+            <ArrowRight />
+            <article>
+              <span className={styles.dataLabel}>OUTPUT</span>
+              <code>{stage.output}</code>
+            </article>
+          </div>
+          <section className={styles.runtimeExamples}>
+            <span className={styles.uiLabel}>Values from this run</span>
+            <div>
+              {stage.examples.map((example) => (
+                <code key={example}>{example}</code>
+              ))}
+            </div>
+          </section>
+          <section className={styles.requirementSeed}>
+            <header>
+              <span className={styles.uiLabel}>PM-ready requirement seed</span>
+              <button type="button" onClick={() => void copyRequirement()}>
+                {copied ? <Check /> : <Copy />}
+                {copied ? 'Copied' : 'Copy requirement'}
+              </button>
+            </header>
+            <p>{stage.requirement}</p>
+          </section>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function EvidenceDrawer({
+  result,
+  onClose,
+}: {
+  result: ContextResponse;
+  onClose: () => void;
+}) {
+  const [index, setIndex] = useState(0);
+  const item = result.evidence[index]!;
+  return (
+    <div className={styles.overlay} onMouseDown={onClose}>
+      <section
+        className={styles.evidenceDrawer}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Evidence used for this output"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <header>
+          <div>
+            <span className={styles.uiLabel}>
+              Supporting data for this trace
+            </span>
+            <h2>Evidence used for this output</h2>
+          </div>
+          <button type="button" aria-label="Close evidence" onClick={onClose}>
+            <X />
+          </button>
+        </header>
+        <div className={styles.evidenceLayout}>
+          <nav aria-label="Evidence files">
+            {result.evidence.map((evidence, evidenceIndex) => (
+              <button
+                key={evidence.id}
+                type="button"
+                className={evidenceIndex === index ? styles.activeEvidence : ''}
+                onClick={() => setIndex(evidenceIndex)}
+              >
+                <span className={styles.dataLabel}>
+                  FILE {String(evidenceIndex + 1).padStart(2, '0')}
+                </span>
+                <strong>{evidence.title}</strong>
+                <code>{evidence.source.uri}</code>
+                <b>
+                  {evidence.stance === 'SUPPORTS' ? 'supports' : 'challenges'}
+                </b>
+                <ChevronRight />
+              </button>
+            ))}
+          </nav>
+          <article className={styles.evidenceDetail}>
+            <header>
+              <span className={styles.dataLabel}>SELECTED ASSERTION</span>
+              <code>confidence={item.confidence.toFixed(2)}</code>
+            </header>
+            <h3>{item.title}</h3>
+            <p className={styles.storyCopy}>{item.summary}</p>
+            <blockquote>
+              <FileSearch />
+              <div>
+                <span className={styles.uiLabel}>Source excerpt</span>
+                <strong>{item.source.title}</strong>
+                <p>{item.source.excerpt}</p>
+                <span className={styles.dataLabel}>SOURCE URI</span>
+                <code>{item.source.uri}</code>
+              </div>
+            </blockquote>
+            <section className={styles.ranking}>
+              <span className={styles.uiLabel}>Ranking contributions</span>
+              {RANKING_FACTORS.map((factor) => {
+                const value = item.ranking[factor];
+                return (
+                  <div key={factor}>
+                    <code>{factor}</code>
+                    <i>
+                      <b
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            Math.round(
+                              (value / DEMO_RANKING_V3.weights[factor]) * 100,
+                            ),
+                          )}%`,
+                        }}
+                      />
+                    </i>
+                    <strong>+{value.toFixed(2)}</strong>
+                  </div>
+                );
+              })}
+            </section>
+            <footer>
+              <span className={styles.dataLabel}>ASSERTION ID</span>
+              <code>{item.provenance.assertionId}</code>
+              <span className={styles.dataLabel}>PROCESS</span>
+              <code>
+                {item.provenance.process}@{item.provenance.processVersion}
+              </code>
+            </footer>
+          </article>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function OutputCard({
+  result,
+  answer,
+  onEvidence,
+}: {
+  result: ContextResponse;
+  answer: AnswerResponse['answer'] | null;
+  onEvidence: () => void;
+}) {
+  const cautious = result.epistemicState.status === 'contested';
+  const claims = responseClaims(answer, result);
+  return (
+    <section className={styles.outputCard}>
+      <header>
+        <div>
+          <span className={styles.dataLabel}>OUTPUT · ANSWER_RESPONSE</span>
+          <h2>The organisational answer</h2>
+        </div>
+        <span className={styles.provider}>
+          <CircleDot />
+          {answer?.mode === 'provider'
+            ? `provider=${answer.provider}`
+            : 'mode=deterministic'}
+        </span>
+      </header>
+      <article className={styles.answerBlock}>
+        <span className={styles.uiLabel}>Answer</span>
+        {claims.map((claim, claimIndex) => (
+          <p key={`${claim.text}-${claimIndex}`} className={styles.storyCopy}>
+            {claim.text}
+            {claim.evidenceIds.map((evidenceId) => {
+              const evidenceIndex = result.evidence.findIndex(
+                (evidence) => evidence.id === evidenceId,
+              );
+              return evidenceIndex >= 0 ? (
+                <button key={evidenceId} type="button" onClick={onEvidence}>
+                  [evidence:{String(evidenceIndex + 1).padStart(2, '0')}]
+                </button>
+              ) : null;
+            })}
+          </p>
+        ))}
+      </article>
+      <article className={styles.outputField}>
+        <header>
+          <span className={styles.dataLabel}>OUTPUT FIELD · RELIABILITY</span>
+          <code>state=&quot;{cautious ? 'cautious' : 'supported'}&quot;</code>
+        </header>
+        <strong>
+          {cautious
+            ? 'Use this answer cautiously'
+            : 'Supported by current evidence'}
+        </strong>
+        <p>
+          {cautious
+            ? `${result.epistemicState.supportingEvidence} items support the explanation; ${result.epistemicState.contradictingEvidence} challenges a single-cause view.`
+            : `${result.epistemicState.supportingEvidence} visible items support the explanation and none challenges it.`}
+        </p>
+      </article>
+      <article className={styles.inferenceField}>
+        <header>
+          <Sparkles />
+          <div>
+            <span className={styles.dataLabel}>
+              OUTPUT FIELD · SUGGESTED_ACTION
+            </span>
+            <strong>Included in this response</strong>
+          </div>
+        </header>
+        <p className={styles.storyCopy}>
+          {cautious
+            ? 'Separate the competing explanations before scaling a fix.'
+            : 'Start with the document-check hand-off, then test clearer guidance.'}
+        </p>
+        <small>
+          System inference from visible evidence · not a source fact
+        </small>
+      </article>
+      <footer>
+        <button type="button" onClick={onEvidence}>
+          <FileSearch />
+          <span>
+            <small className={styles.uiLabel}>Progressive disclosure</small>
+            <strong>Open {result.evidence.length} evidence files</strong>
+          </span>
+          <ChevronRight />
+        </button>
+        <code>trace_id={result.traceId.slice(0, 8)}</code>
+      </footer>
+    </section>
+  );
+}
+
+function TraceCard({
+  result,
+  onStage,
+  mutationLoading,
+  mutationMessage,
+  learn,
+}: {
+  result: ContextResponse;
+  onStage: (stage: StageId) => void;
+  mutationLoading: boolean;
+  mutationMessage: string | null;
+  learn: () => void;
+}) {
+  const stages = useMemo(() => stagesFor(result), [result]);
+  const operations = stages.filter((stage) => stage.step !== null);
+  const cautious = result.epistemicState.status === 'contested';
+  return (
+    <section className={styles.traceCard}>
+      <header>
+        <div>
+          <span className={styles.dataLabel}>TRACE · ANSWER_RESPONSE</span>
+          <h2>How this output was produced</h2>
+        </div>
+        <p>
+          Select an operation for its rationale, input, output and requirement.
+        </p>
+      </header>
+      <div className={styles.traceBody}>
+        <section className={styles.inputSet}>
+          <div>
+            <span className={styles.dataLabel}>INPUT SET · SOURCE_OBJECTS</span>
+            <strong>Lives outside the Context Brain</strong>
+          </div>
+          <div className={styles.inputFiles}>
+            {result.sourceSystems.slice(0, 4).map((source) => (
+              <code key={source.id} title={source.name}>
+                <Database />
+                {source.type}
+              </code>
+            ))}
+            <code>+{Math.max(0, result.sourceSystems.length - 4)} more</code>
+          </div>
+        </section>
+        <ArrowDown className={styles.downArrow} />
+        <section className={styles.brainBox}>
+          <header>
+            <BrainCircuit />
+            <div>
+              <span className={styles.uiLabel}>System boundary</span>
+              <strong>Context Brain</strong>
+            </div>
+            <code>operations=4</code>
+          </header>
+          <div className={styles.operations}>
+            {operations.map((stage, index) => (
+              <div key={stage.id} className={styles.operationRow}>
+                <button type="button" onClick={() => onStage(stage.id)}>
+                  <i>{String(stage.step).padStart(2, '0')}</i>
+                  <span>
+                    <small className={styles.uiLabel}>Operation</small>
+                    <strong>{stage.operation}</strong>
+                  </span>
+                  <div>
+                    {stage.runtime.map((value) => (
+                      <code key={value}>{value}</code>
+                    ))}
+                  </div>
+                  <ChevronRight />
+                </button>
+                {index < operations.length - 1 ? <ArrowDown /> : null}
+              </div>
+            ))}
+          </div>
+          <footer>
+            <ShieldCheck />
+            <span>
+              <small className={styles.uiLabel}>Cross-cutting controls</small>
+              <strong>Permissions · provenance · versioned meaning</strong>
+            </span>
+          </footer>
+        </section>
+        <div className={styles.outputLink}>
+          <ArrowLeft />
+          <span>
+            <small className={styles.uiLabel}>Produces</small>
+            <strong>OUTPUT shown on the left</strong>
+          </span>
+        </div>
+        <section className={styles.persistedState}>
+          <header>
+            <GitBranch />
+            <div>
+              <span className={styles.dataLabel}>PERSISTED AFTER THIS RUN</span>
+              <strong>Context compounds instead of disappearing</strong>
+            </div>
+          </header>
+          <div>
+            <code>hypothesis=identity_verification_driver</code>
+            <code>evidence_history={result.evidence.length}</code>
+            <code>trace={result.traceId.slice(0, 8)}</code>
+          </div>
+          <button type="button" onClick={() => onStage('monitor')}>
+            <Bot />
+            <span>
+              <small className={styles.uiLabel}>Planned extension</small>
+              <strong>Monitor this same hypothesis</strong>
+            </span>
+            <b>Not built</b>
+            <ChevronRight />
+          </button>
+          {cautious ? (
+            <p>
+              <RefreshCw />
+              <span>
+                <code>research/eligibility-followup-009</code> changed this
+                output to <code>reliability=cautious</code>.
+              </span>
+            </p>
+          ) : (
+            <div className={styles.changeDemo}>
+              <span>
+                Add one synthetic research file and rerun this exact trace.
+              </span>
+              <Button
+                variant="outline"
+                disabled={mutationLoading}
+                onClick={learn}
+              >
+                {mutationLoading ? 'Adding file…' : 'Run change demo'}
+              </Button>
+            </div>
+          )}
+          {mutationMessage ? <small>{mutationMessage}</small> : null}
+        </section>
+      </div>
+    </section>
+  );
+}
+
+export function ContextStory() {
+  const [query, setQuery] = useState(PRESET);
+  const [actorId, setActorId] = useState<string>(PERSONAS[0].id);
+  const [result, setResult] = useState<ContextResponse | null>(null);
+  const [answer, setAnswer] = useState<AnswerResponse['answer'] | null>(null);
+  const [stageId, setStageId] = useState<StageId | null>(null);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [mutationLoading, setMutationLoading] = useState(false);
+  const [mutationMessage, setMutationMessage] = useState<string | null>(null);
+
+  const ask = useCallback(
+    async (nextActorId = actorId, nextQuery = query) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch('/api/v1/ask', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'x-demo-actor': nextActorId,
+          },
+          body: JSON.stringify({ query: nextQuery, maxEvidence: 6 }),
+        });
+        if (!response.ok)
+          throw new Error(
+            'The answer service could not complete this request.',
+          );
+        const payload = (await response.json()) as AnswerResponse;
+        setResult(payload.context);
+        setAnswer(payload.answer);
+        return payload;
+      } catch (requestError) {
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : 'Context request failed.',
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [actorId, query],
+  );
+
+  const initialised = useRef(false);
+  useEffect(() => {
+    if (initialised.current) return;
+    initialised.current = true;
+    void ask();
+  }, [ask]);
+
+  useEffect(() => {
+    const modelContext = document.modelContext;
+    if (!modelContext?.registerTool) return;
+    const lifecycle = new AbortController();
+    void Promise.resolve(
+      modelContext.registerTool(
+        {
+          name: 'resolve_organisational_context',
+          title: 'Resolve organisational context',
+          description:
+            'Resolve a question into permission-aware evidence and an auditable context trace.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              query: { type: 'string', minLength: 3, maxLength: 500 },
+            },
+            required: ['query'],
+            additionalProperties: false,
+          },
+          annotations: { readOnlyHint: true, untrustedContentHint: false },
+          async execute(input: unknown) {
+            if (
+              !input ||
+              typeof input !== 'object' ||
+              typeof (input as { query?: unknown }).query !== 'string'
+            )
+              throw new Error('A query string is required.');
+            const nextQuery = (input as { query: string }).query.trim();
+            setQuery(nextQuery);
+            const payload = await ask(actorId, nextQuery);
+            if (!payload) throw new Error('Context could not be resolved.');
+            return {
+              traceId: payload.context.traceId,
+              actor: payload.context.actor.name,
+              summary: payload.context.summary,
+              evidenceCount: payload.context.evidence.length,
+            };
+          },
+        },
+        { signal: lifecycle.signal },
+      ),
+    ).catch(() => undefined);
+    return () => lifecycle.abort();
+  }, [actorId, ask]);
+
+  function changeActor(nextActorId: string) {
+    setActorId(nextActorId);
+    setMutationMessage(null);
+    void ask(nextActorId);
+  }
+
+  async function learn() {
+    setMutationLoading(true);
+    setMutationMessage(null);
+    try {
+      const response = await fetch('/api/v1/demo/research-mutation', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-demo-actor': actorId,
+        },
+        body: JSON.stringify({ mutation: 'eligibility-guidance-finding' }),
+      });
+      const payload = (await response.json()) as {
+        mutation?: { applied: boolean; finding: string };
+        title?: string;
+      };
+      if (!response.ok || !payload.mutation)
+        throw new Error(
+          payload.title ?? 'The research finding could not be ingested.',
+        );
+      await ask(actorId, query);
+      setMutationMessage(
+        payload.mutation.applied
+          ? 'The source version was mapped, connected and reassessed.'
+          : 'That source version already exists; no duplicate was created.',
+      );
+    } catch (requestError) {
+      setMutationMessage(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Research ingestion failed.',
+      );
+    } finally {
+      setMutationLoading(false);
+    }
+  }
+
+  const stages = result ? stagesFor(result) : [];
+  const selectedStage = stages.find((stage) => stage.id === stageId) ?? null;
+  const healthyCount =
+    result?.sourceSystems.filter((source) => source.status === 'healthy')
+      .length ?? 5;
+  return (
+    <main className={styles.shell}>
+      <header className={styles.topbar}>
+        <div className={styles.brand}>
+          <BrainCircuit />
+          <span>
+            <small className={styles.uiLabel}>Northstar Labs</small>
+            <strong>Organisational Context Brain</strong>
+          </span>
+        </div>
+        <div className={styles.topMeta}>
+          <code>sources_healthy={healthyCount}</code>
+          {result ? <code>trace={result.traceId.slice(0, 8)}</code> : null}
+          <NativeSelect
+            aria-label="Demo persona"
+            value={actorId}
+            onChange={(event) => changeActor(event.target.value)}
+          >
+            {PERSONAS.map((persona) => (
+              <NativeSelectOption key={persona.id} value={persona.id}>
+                {persona.name} · {persona.role}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </div>
+      </header>
+      <section className={styles.questionBar}>
+        <div>
+          <span className={styles.dataLabel}>INPUT · QUESTION</span>
+          <UserRound />
+        </div>
+        <input
+          aria-label="Question"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') void ask();
+          }}
+        />
+        <Button disabled={loading} onClick={() => void ask()}>
+          {loading ? 'Tracing…' : 'Run question'}
+          <Send />
+        </Button>
+      </section>
+      <div className={styles.workspace}>
+        {error ? <div className={styles.error}>{error}</div> : null}
+        {!result ? (
+          <div className={styles.loading}>
+            <BrainCircuit />
+            <span>
+              <strong>Tracing the question</strong>
+              <small>
+                Permissions → resources → meaning → evidence → output
+              </small>
+            </span>
+          </div>
+        ) : (
+          <>
+            <OutputCard
+              result={result}
+              answer={answer}
+              onEvidence={() => setEvidenceOpen(true)}
+            />
+            <TraceCard
+              result={result}
+              onStage={setStageId}
+              mutationLoading={mutationLoading}
+              mutationMessage={mutationMessage}
+              learn={() => void learn()}
+            />
+          </>
+        )}
+      </div>
+      {selectedStage ? (
+        <StageDrawer stage={selectedStage} onClose={() => setStageId(null)} />
+      ) : null}
+      {result && evidenceOpen ? (
+        <EvidenceDrawer
+          result={result}
+          onClose={() => setEvidenceOpen(false)}
+        />
+      ) : null}
+    </main>
+  );
+}
