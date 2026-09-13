@@ -24,6 +24,7 @@
     "benchmark:run": "tsx scripts/run-scale-benchmark.ts",
     "benchmark:semantic": "tsx scripts/run-semantic-benchmark.ts",
     "benchmark:questions": "tsx scripts/human-benchmark-questions.ts",
+    "memory:bootstrap": "tsx scripts/bootstrap-monitor.ts",
     "demo:setup": "npm run db:migrate && npm run db:seed"
   },
   "dependencies": {

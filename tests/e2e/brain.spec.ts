@@ -160,9 +160,27 @@ test('a controlled research mutation makes later context contested', async ({
     data: { mutation: 'eligibility-guidance-finding' },
   });
   expect(applied.status()).toBe(201);
-  expect((await applied.json()).mutation).toMatchObject({
+  const appliedPayload = await applied.json();
+  expect(appliedPayload.mutation).toMatchObject({
     applied: true,
     finding: 'Clear eligibility guidance enables verification completion',
+    memory: {
+      configured: true,
+      latestRun: {
+        status: 'completed',
+        material: true,
+        before: { epistemicStatus: 'supported' },
+        after: { epistemicStatus: 'contested' },
+      },
+      candidates: [
+        expect.objectContaining({
+          kind: 'counter-hypothesis',
+          status: 'proposed',
+          sourceUri:
+            'research://northstar/atlas/studies/eligibility-followup-009',
+        }),
+      ],
+    },
   });
 
   const replay = await request.post('/api/v1/demo/research-mutation', {
@@ -171,6 +189,29 @@ test('a controlled research mutation makes later context contested', async ({
   });
   expect(replay.status()).toBe(200);
   expect((await replay.json()).mutation.applied).toBe(false);
+
+  const candidateId = appliedPayload.mutation.memory.candidates[0].id;
+  const deniedReview = await request.post(
+    `/api/v1/memory/candidates/${candidateId}/review`,
+    {
+      headers: { 'x-demo-actor': IDS.users.jamie },
+      data: { decision: 'accept' },
+    },
+  );
+  expect(deniedReview.status()).toBe(403);
+
+  const acceptedReview = await request.post(
+    `/api/v1/memory/candidates/${candidateId}/review`,
+    {
+      headers: { 'x-demo-actor': IDS.users.alex },
+      data: { decision: 'accept' },
+    },
+  );
+  expect(acceptedReview.ok()).toBe(true);
+  expect((await acceptedReview.json()).memory.candidates[0]).toMatchObject({
+    id: candidateId,
+    status: 'accepted',
+  });
 
   const response = await request.post('/api/v1/context', {
     headers: { 'x-demo-actor': IDS.users.morgan },

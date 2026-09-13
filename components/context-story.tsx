@@ -18,6 +18,7 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
+  TestTube2,
   UserRound,
   X,
 } from 'lucide-react';
@@ -29,6 +30,7 @@ import {
 import { PERSONAS } from '@/src/modules/canonical/ids';
 import type { AnswerResponse } from '@/src/modules/ai/types';
 import type { ContextResponse } from '@/src/modules/context/types';
+import type { MemoryState } from '@/src/modules/memory/types';
 import {
   DEMO_RANKING_V3,
   type RankingFactor,
@@ -63,7 +65,10 @@ function safeToken(value: string) {
     .replaceAll(/^_|_$/g, '');
 }
 
-function stagesFor(result: ContextResponse): StoryStage[] {
+function stagesFor(
+  result: ContextResponse,
+  memory: MemoryState | null,
+): StoryStage[] {
   const entities = result.interpretedQuery.entities
     .map((entity) => entity.name)
     .join(', ');
@@ -163,23 +168,29 @@ function stagesFor(result: ContextResponse): StoryStage[] {
     {
       id: 'monitor',
       step: null,
-      operation: 'Monitor hypothesis',
-      layer: 'Background agent',
-      status: 'planned',
-      runtime: ['status=not_built', 'execution=background'],
-      summary:
-        'A future agent would watch the durable hypothesis behind this question. When permitted source versions change, it would rerun the same four operations and propose an attributable update.',
-      why: 'Context can improve between human questions, but a continuous agent needs explicit scope, cadence, ownership, materiality thresholds and stop conditions.',
+      operation: 'Continual memory loop',
+      layer: 'Permission-scoped background monitor',
+      status: memory?.configured ? 'working' : 'planned',
+      runtime: memory?.configured
+        ? [
+            `status=${memory.policy?.status ?? 'active'}`,
+            `proposals=${memory.candidates.filter((candidate) => candidate.status === 'proposed').length}`,
+          ]
+        : ['status=not_configured', 'execution=background'],
+      summary: memory?.latestRun
+        ? `A source change triggered the same permission-scoped context pipeline. It found ${memory.latestRun.deltas.length} evidence change${memory.latestRun.deltas.length === 1 ? '' : 's'} and formed ${memory.candidates.length} attributable memory proposal${memory.candidates.length === 1 ? '' : 's'} for review.`
+        : 'The active monitor has checkpointed this hypothesis and will rerun the permission-scoped context pipeline when a relevant source version changes.',
+      why: 'Context should improve between human questions. Durable checkpoints and reviewed memory proposals let the system learn continually without silently turning an inference into organisational truth.',
       input:
-        'MonitorPolicy { hypothesis_id, service_actor_id, cadence, scope, materiality_threshold }',
+        'MonitorPolicy { hypothesis_id, service_actor_id, source_change_trigger, permitted_scope }',
       output:
-        'ChangeProposal { evidence_delta, hypothesis_delta, rationale, notification_targets }',
+        'MemoryCandidate { evidence_delta, proposed_hypothesis, confidence, provenance, review_state }',
       requirement:
-        'Every monitor shall declare an owner, cadence, permitted scope, materiality threshold, notification policy and stop conditions.',
+        'Every monitor shall retain permission-scoped before/after checkpoints and require review before a proposed latent learning is promoted to trusted organisational memory.',
       examples: [
         'trigger=source_version_changed',
         'review=required',
-        'notifications=not_connected',
+        `checkpoint=${memory?.checkpoint?.id.slice(0, 8) ?? 'pending'}`,
       ],
     },
   ];
@@ -279,6 +290,245 @@ function StageDrawer({
               </button>
             </header>
             <p>{stage.requirement}</p>
+          </section>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function MemoryDrawer({
+  memory,
+  canReview,
+  reviewLoading,
+  onReview,
+  onClose,
+}: {
+  memory: MemoryState | null;
+  canReview: boolean;
+  reviewLoading: string | null;
+  onReview: (candidateId: string, decision: 'accept' | 'dismiss') => void;
+  onClose: () => void;
+}) {
+  const run = memory?.latestRun;
+  const proposals = memory?.candidates ?? [];
+  const loop = [
+    { label: 'Form', detail: 'Create a testable candidate', icon: Sparkles },
+    { label: 'Test', detail: 'Assemble permitted evidence', icon: TestTube2 },
+    { label: 'Monitor', detail: 'React to source changes', icon: RefreshCw },
+    {
+      label: 'Propose',
+      detail: 'Retain an attributable learning',
+      icon: GitBranch,
+    },
+    { label: 'Review', detail: 'Promote or dismiss', icon: ShieldCheck },
+  ];
+  return (
+    <div className={styles.overlay} onMouseDown={onClose}>
+      <section
+        className={styles.memoryDrawer}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Continual hypothesis and memory loop"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <header>
+          <div>
+            <span className={styles.uiLabel}>
+              Working background capability
+            </span>
+            <h2>Continual hypothesis + memory loop</h2>
+            <p>
+              Evidence can change the brain even when nobody asks a question.
+            </p>
+          </div>
+          <b className={memory?.configured ? styles.working : styles.notBuilt}>
+            {memory?.configured ? 'Active' : 'Not configured'}
+          </b>
+          <button
+            type="button"
+            aria-label="Close memory loop"
+            onClick={onClose}
+          >
+            <X />
+          </button>
+        </header>
+        <div className={styles.memoryDrawerBody}>
+          <section className={styles.monitorContract}>
+            <div>
+              <span className={styles.dataLabel}>MONITORED HYPOTHESIS</span>
+              <strong>
+                {memory?.policy?.hypothesis ?? 'No monitor configured'}
+              </strong>
+              <code>hypothesis_id={memory?.policy?.hypothesisId ?? '—'}</code>
+            </div>
+            <div>
+              <span className={styles.dataLabel}>EXECUTION CONTRACT</span>
+              <code>
+                trigger={memory?.policy?.trigger ?? 'source-version-changed'}
+              </code>
+              <code>
+                service_actor=
+                {memory?.policy?.serviceActorId.slice(0, 8) ?? '—'}
+              </code>
+              <code>
+                review_required={String(memory?.policy?.reviewRequired ?? true)}
+              </code>
+            </div>
+          </section>
+          <section
+            className={styles.learningLoop}
+            aria-label="Continual learning flow"
+          >
+            {loop.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <div key={step.label} className={styles.loopStep}>
+                  <article>
+                    <Icon />
+                    <span>
+                      <small className={styles.uiLabel}>STEP {index + 1}</small>
+                      <strong>{step.label}</strong>
+                      <p>{step.detail}</p>
+                    </span>
+                  </article>
+                  {index < loop.length - 1 ? <ArrowRight /> : null}
+                </div>
+              );
+            })}
+          </section>
+          <section className={styles.monitorRun}>
+            <header>
+              <div>
+                <span className={styles.dataLabel}>LATEST MONITOR RUN</span>
+                <strong>
+                  {run ? run.rationale : 'Waiting for a relevant source change'}
+                </strong>
+              </div>
+              <code>status={run?.status ?? 'checkpointed'}</code>
+            </header>
+            {run?.before && run.after ? (
+              <div className={styles.snapshotDelta}>
+                <article>
+                  <span className={styles.dataLabel}>
+                    BEFORE · CONTEXT_SNAPSHOT
+                  </span>
+                  <strong>{run.before.epistemicStatus}</strong>
+                  <code>
+                    supports={run.before.supportingEvidence} · challenges=
+                    {run.before.contradictingEvidence}
+                  </code>
+                </article>
+                <ArrowRight />
+                <article
+                  className={run.material ? styles.materialSnapshot : ''}
+                >
+                  <span className={styles.dataLabel}>
+                    AFTER · CONTEXT_SNAPSHOT
+                  </span>
+                  <strong>{run.after.epistemicStatus}</strong>
+                  <code>
+                    supports={run.after.supportingEvidence} · challenges=
+                    {run.after.contradictingEvidence}
+                  </code>
+                </article>
+              </div>
+            ) : (
+              <p className={styles.emptyMonitor}>
+                The checkpoint contains {memory?.checkpoint?.evidenceCount ?? 0}{' '}
+                permitted evidence items. No material delta has been observed
+                yet.
+              </p>
+            )}
+            {run?.deltas.map((delta) => (
+              <div className={styles.deltaFile} key={delta.id}>
+                <FileSearch />
+                <span>
+                  <small className={styles.dataLabel}>
+                    EVIDENCE DELTA · {delta.type}
+                  </small>
+                  <strong>{delta.title}</strong>
+                  <code>{delta.sourceUri}</code>
+                </span>
+                <b>{delta.stance?.toLowerCase() ?? 'removed'}</b>
+              </div>
+            ))}
+          </section>
+          <section className={styles.memoryProposals}>
+            <header>
+              <div>
+                <span className={styles.dataLabel}>
+                  OUTPUT · MEMORY_CANDIDATES
+                </span>
+                <strong>Proposed learnings are not trusted memory yet</strong>
+              </div>
+              <code>count={proposals.length}</code>
+            </header>
+            {proposals.length ? (
+              proposals.map((candidate) => (
+                <article key={candidate.id}>
+                  <div className={styles.proposalCopy}>
+                    <span className={styles.dataLabel}>
+                      PROPOSED {candidate.kind.replaceAll('-', ' ')}
+                    </span>
+                    <h3>{candidate.statement}</h3>
+                    <p className={styles.storyCopy}>{candidate.rationale}</p>
+                    <div>
+                      <code>confidence={candidate.confidence.toFixed(2)}</code>
+                      <code>process={candidate.process}</code>
+                      <code>source={candidate.sourceUri}</code>
+                    </div>
+                  </div>
+                  <aside>
+                    <b
+                      className={
+                        candidate.status === 'accepted'
+                          ? styles.acceptedMemory
+                          : ''
+                      }
+                    >
+                      {candidate.status}
+                    </b>
+                    {candidate.status === 'proposed' ? (
+                      <div>
+                        <Button
+                          variant="outline"
+                          disabled={
+                            !canReview || reviewLoading === candidate.id
+                          }
+                          onClick={() => onReview(candidate.id, 'dismiss')}
+                        >
+                          Dismiss
+                        </Button>
+                        <Button
+                          disabled={
+                            !canReview || reviewLoading === candidate.id
+                          }
+                          onClick={() => onReview(candidate.id, 'accept')}
+                        >
+                          {reviewLoading === candidate.id
+                            ? 'Saving…'
+                            : 'Accept as memory'}
+                        </Button>
+                      </div>
+                    ) : null}
+                    {!canReview && candidate.status === 'proposed' ? (
+                      <small>Project Lead review required</small>
+                    ) : null}
+                    {candidate.promotedResourceId ? (
+                      <code>
+                        resource={candidate.promotedResourceId.slice(0, 8)}
+                      </code>
+                    ) : null}
+                  </aside>
+                </article>
+              ))
+            ) : (
+              <p className={styles.emptyMonitor}>
+                No proposal exists. A relevant evidence change must pass the
+                materiality check first.
+              </p>
+            )}
           </section>
         </div>
       </section>
@@ -487,18 +737,20 @@ function OutputCard({
 
 function TraceCard({
   result,
+  memory,
   onStage,
   mutationLoading,
   mutationMessage,
   learn,
 }: {
   result: ContextResponse;
+  memory: MemoryState | null;
   onStage: (stage: StageId) => void;
   mutationLoading: boolean;
   mutationMessage: string | null;
   learn: () => void;
 }) {
-  const stages = useMemo(() => stagesFor(result), [result]);
+  const stages = useMemo(() => stagesFor(result, memory), [result, memory]);
   const operations = stages.filter((stage) => stage.step !== null);
   const cautious = result.epistemicState.status === 'contested';
   return (
@@ -583,16 +835,23 @@ function TraceCard({
           </header>
           <div>
             <code>hypothesis=identity_verification_driver</code>
-            <code>evidence_history={result.evidence.length}</code>
-            <code>trace={result.traceId.slice(0, 8)}</code>
+            <code>
+              checkpoint_evidence=
+              {memory?.checkpoint?.evidenceCount ?? result.evidence.length}
+            </code>
+            <code>memory_proposals={memory?.candidates.length ?? 0}</code>
           </div>
           <button type="button" onClick={() => onStage('monitor')}>
             <Bot />
             <span>
-              <small className={styles.uiLabel}>Planned extension</small>
-              <strong>Monitor this same hypothesis</strong>
+              <small className={styles.uiLabel}>
+                Working background capability
+              </small>
+              <strong>Open continual hypothesis + memory loop</strong>
             </span>
-            <b>Not built</b>
+            <b className={memory?.configured ? styles.liveState : ''}>
+              {memory?.configured ? 'Active' : 'Setup required'}
+            </b>
             <ChevronRight />
           </button>
           {cautious ? (
@@ -629,12 +888,23 @@ export function ContextStory() {
   const [actorId, setActorId] = useState<string>(PERSONAS[0].id);
   const [result, setResult] = useState<ContextResponse | null>(null);
   const [answer, setAnswer] = useState<AnswerResponse['answer'] | null>(null);
+  const [memory, setMemory] = useState<MemoryState | null>(null);
   const [stageId, setStageId] = useState<StageId | null>(null);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mutationLoading, setMutationLoading] = useState(false);
   const [mutationMessage, setMutationMessage] = useState<string | null>(null);
+  const [reviewLoading, setReviewLoading] = useState<string | null>(null);
+
+  const loadMemory = useCallback(async (nextActorId: string) => {
+    const response = await fetch('/api/v1/memory', {
+      headers: { 'x-demo-actor': nextActorId },
+    });
+    if (!response.ok) return;
+    const payload = (await response.json()) as { memory: MemoryState };
+    setMemory(payload.memory);
+  }, []);
 
   const ask = useCallback(
     async (nextActorId = actorId, nextQuery = query) => {
@@ -656,6 +926,7 @@ export function ContextStory() {
         const payload = (await response.json()) as AnswerResponse;
         setResult(payload.context);
         setAnswer(payload.answer);
+        void loadMemory(nextActorId);
         return payload;
       } catch (requestError) {
         setError(
@@ -667,7 +938,7 @@ export function ContextStory() {
         setLoading(false);
       }
     },
-    [actorId, query],
+    [actorId, loadMemory, query],
   );
 
   const initialised = useRef(false);
@@ -724,6 +995,7 @@ export function ContextStory() {
 
   function changeActor(nextActorId: string) {
     setActorId(nextActorId);
+    setMemory(null);
     setMutationMessage(null);
     void ask(nextActorId);
   }
@@ -741,7 +1013,7 @@ export function ContextStory() {
         body: JSON.stringify({ mutation: 'eligibility-guidance-finding' }),
       });
       const payload = (await response.json()) as {
-        mutation?: { applied: boolean; finding: string };
+        mutation?: { applied: boolean; finding: string; memory: MemoryState };
         title?: string;
       };
       if (!response.ok || !payload.mutation)
@@ -749,9 +1021,10 @@ export function ContextStory() {
           payload.title ?? 'The research finding could not be ingested.',
         );
       await ask(actorId, query);
+      setMemory(payload.mutation.memory);
       setMutationMessage(
         payload.mutation.applied
-          ? 'The source version was mapped, connected and reassessed.'
+          ? 'The source changed the checkpoint and formed a reviewable memory proposal.'
           : 'That source version already exists; no duplicate was created.',
       );
     } catch (requestError) {
@@ -765,7 +1038,50 @@ export function ContextStory() {
     }
   }
 
-  const stages = result ? stagesFor(result) : [];
+  async function reviewCandidate(
+    candidateId: string,
+    decision: 'accept' | 'dismiss',
+  ) {
+    setReviewLoading(candidateId);
+    try {
+      const response = await fetch(
+        `/api/v1/memory/candidates/${candidateId}/review`,
+        {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'x-demo-actor': actorId,
+          },
+          body: JSON.stringify({ decision }),
+        },
+      );
+      const payload = (await response.json()) as {
+        memory?: MemoryState;
+        title?: string;
+      };
+      if (!response.ok || !payload.memory) {
+        throw new Error(
+          payload.title ?? 'The memory proposal could not be reviewed.',
+        );
+      }
+      setMemory(payload.memory);
+      setMutationMessage(
+        decision === 'accept'
+          ? 'The proposal is now a canonical, provenance-linked Hypothesis Resource.'
+          : 'The proposal was dismissed; its evidence and audit trail were retained.',
+      );
+    } catch (requestError) {
+      setMutationMessage(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Memory review failed.',
+      );
+    } finally {
+      setReviewLoading(null);
+    }
+  }
+
+  const stages = result ? stagesFor(result, memory) : [];
   const selectedStage = stages.find((stage) => stage.id === stageId) ?? null;
   const healthyCount =
     result?.sourceSystems.filter((source) => source.status === 'healthy')
@@ -835,6 +1151,7 @@ export function ContextStory() {
             />
             <TraceCard
               result={result}
+              memory={memory}
               onStage={setStageId}
               mutationLoading={mutationLoading}
               mutationMessage={mutationMessage}
@@ -843,8 +1160,19 @@ export function ContextStory() {
           </>
         )}
       </div>
-      {selectedStage ? (
+      {selectedStage && selectedStage.id !== 'monitor' ? (
         <StageDrawer stage={selectedStage} onClose={() => setStageId(null)} />
+      ) : null}
+      {stageId === 'monitor' ? (
+        <MemoryDrawer
+          memory={memory}
+          canReview={actorId === PERSONAS[0].id}
+          reviewLoading={reviewLoading}
+          onReview={(candidateId, decision) =>
+            void reviewCandidate(candidateId, decision)
+          }
+          onClose={() => setStageId(null)}
+        />
       ) : null}
       {result && evidenceOpen ? (
         <EvidenceDrawer

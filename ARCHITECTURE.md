@@ -64,6 +64,28 @@ Cursor advancement occurs only after mapping succeeds. Replaying an unchanged cu
 
 The Milestone 5 learning demonstration advances the research connector from its initial cursor to a prepared eligibility-guidance follow-up. It uses the same ingestion transaction and mapping path to persist a new immutable source version, content and evidence Resources, assertion, provenance, search document, signals and `CONTRADICTS` relationship. Subsequent actor-scoped context requests reassess only their selected visible evidence. The mutation route is Project Lead-controlled in the demo and entirely disabled in production until genuine authentication exists.
 
+## Continual hypothesis and memory loop
+
+The first Milestone 8 slice makes learning an explicit product operation rather than a side effect of answering a question:
+
+```text
+SourceObjectVersion changed
+  → durable SourceChangeEvent
+  → restricted monitor service identity
+  → same permission-scoped Context Service
+  → compare before/after ContextSnapshots
+  → durable EvidenceDelta
+  → deterministic MemoryCandidate
+  → human review
+  → accepted canonical Hypothesis Resource or retained dismissal
+```
+
+The initial policy monitors the durable Atlas abandonment hypothesis. A relevant research sync triggers one idempotent monitor run. The run does not use external embeddings, does not see internal or user-private evidence, and retains the materiality rationale plus both context checkpoints. Newly contradicting evidence forms a counter-hypothesis candidate with its evidence Resource, assertion, source URI, process version and confidence.
+
+`memory_candidates.status = proposed` is deliberately not organisational truth. Acceptance creates a canonical `Hypothesis` Resource and a rule-derived, source-version-backed `Evidence SUPPORTS Hypothesis` assertion with a copied provenance span. Dismissal retains the candidate and its audit trail. This is explicit durable memory; it is not model fine-tuning, hidden prompt state or an untraceable model-weight change.
+
+The current executor is synchronously invoked after the prepared connector sync so the vertical slice is deterministic and testable. A queue, scheduler, notification delivery and general-purpose hypothesis extraction are not yet implemented.
+
 CRM account `381`, the `atlas-bank` CRM slug, document folder `fld-atlas-381`, and `/clients/atlas-bank` folder path are stored as traceable identity keys backed by their source-object versions. They resolve to the existing Atlas Bank Resource rather than creating duplicate client or folder entities. The document itself remains a canonical content Resource.
 
 Messaging channel `chn-atlas-onboarding` and its `atlas-onboarding` slug resolve to the existing Atlas Onboarding Project. Thread `thr-2026-08-30-synthesis` resolves to a separate `MessageThread` content Resource, avoiding a channel/thread/project identity collapse. The ontology is persisted as an immutable, checksummed version and returned from the actor-scoped context service.
@@ -106,4 +128,4 @@ Domain work lives under `src/modules`; the application and API may depend on tho
 
 ## Current milestone state
 
-Milestones 0–6 are complete. Milestone 7 now generates and ingests a deterministic 10,000-record corpus into an isolated workspace whose expected identities, versions, contradictions and permission boundaries are known independently from retrieval. Ambiguous source identities remain explicit candidates rather than being silently merged. The current implementation includes long-document chunking, exact offsets, evidence-level deduplication, retirement of superseded search data, replay-safe incremental revisions and tombstones, and a genuine 1,975-vector semantic sample. That sample did not improve the exact-name evaluation over lexical retrieval, so PostgreSQL remains the evidence-backed choice for this slice. Paraphrase-heavy evaluation and full-corpus vector measurements remain before any approximate or specialist datastore is selected.
+Milestones 0–6 are complete. Milestone 7 scale validation and Milestone 8 continual-memory generalisation are in progress. The system now has a measured 10,000-record relational/graph/retrieval baseline and one working, review-gated event-driven hypothesis loop. Independently authored questions, full-corpus vector measurements, general hypothesis formation and asynchronous monitor operations remain before broader infrastructure decisions are justified.
