@@ -19,7 +19,9 @@ test('resolves evidence and changes safely for Morgan', async ({ page }) => {
   ).toHaveCount(0);
   await page.getByRole('button', { name: /Constrain access/ }).click();
   await expect(
-    page.getByText(/Inaccessible objects were excluded before search began/i),
+    page.getByText(
+      /Inaccessible objects were excluded before retrieval began/i,
+    ),
   ).toBeVisible();
   expect(
     await page.evaluate(
