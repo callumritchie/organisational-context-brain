@@ -3,7 +3,7 @@ import type { PoolClient } from 'pg';
 import { z } from 'zod';
 import { withActorTransaction } from '@/src/db/actor-transaction';
 import { getIngestionPool } from '@/src/db/pool';
-import { IDS } from '@/src/modules/canonical/ids';
+import { IDS, PERSONAS } from '@/src/modules/canonical/ids';
 import { stableId } from '@/src/modules/canonical/stable-id';
 import { ontologySchema, type OntologyDocument } from './ontology';
 
@@ -281,13 +281,11 @@ async function readState(client: PoolClient): Promise<SemanticEvolutionState> {
   }>(
     `SELECT proposal.id, proposal.title, proposal.rationale, proposal.status,
        base.version AS base_version, published.version AS published_version,
-       proposer.name AS proposed_by, reviewer.name AS reviewed_by,
+       proposal.proposed_by, proposal.reviewed_by,
        proposal.change_set, proposal.impact_analysis, proposal.evidence_resource_ids,
        proposal.created_at
      FROM ontology_change_proposals proposal
      JOIN ontology_versions base ON base.id = proposal.base_ontology_version_id
-     JOIN users proposer ON proposer.id = proposal.proposed_by
-     LEFT JOIN users reviewer ON reviewer.id = proposal.reviewed_by
      LEFT JOIN ontology_versions published ON published.id = proposal.published_ontology_version_id
      ORDER BY proposal.created_at DESC`,
   );
@@ -318,8 +316,15 @@ async function readState(client: PoolClient): Promise<SemanticEvolutionState> {
       status: proposal.status,
       baseOntologyVersion: proposal.base_version,
       publishedOntologyVersion: proposal.published_version,
-      proposedBy: proposal.proposed_by,
-      reviewedBy: proposal.reviewed_by,
+      proposedBy:
+        proposal.proposed_by === IDS.users.memoryAgent
+          ? 'Hypothesis Monitor'
+          : (PERSONAS.find((persona) => persona.id === proposal.proposed_by)
+              ?.name ?? 'Governed service'),
+      reviewedBy: proposal.reviewed_by
+        ? (PERSONAS.find((persona) => persona.id === proposal.reviewed_by)
+            ?.name ?? 'Authorised steward')
+        : null,
       changeSet: proposal.change_set,
       impact: proposal.impact_analysis,
       evidenceResourceIds: proposal.evidence_resource_ids,

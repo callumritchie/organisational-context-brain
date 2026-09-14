@@ -4,11 +4,22 @@ import { describe, expect, it } from 'vitest';
 import { IDS } from '@/src/modules/canonical/ids';
 import {
   OntologyProposalPermissionError,
+  getSemanticEvolutionState,
   proposeOntologyChange,
   reviewOntologyProposalInTransaction,
 } from '@/src/modules/ontology/semantic-evolution';
 
 describe('semantic evolution governance', () => {
+  it('reads the scoped inbox without granting the app role access to the users table', async () => {
+    const state = await getSemanticEvolutionState({
+      id: IDS.users.alex,
+      workspaceId: IDS.workspace,
+    });
+
+    expect(state.currentOntology.version).toMatch(/^northstar-ontology-v\d+$/);
+    expect(state.proposals[0]?.proposedBy).toBe('Hypothesis Monitor');
+  });
+
   it('publishes an approved additive version with mapping and replay receipts', async () => {
     const pool = new Pool({
       connectionString: process.env.DATABASE_URL_INGEST,
