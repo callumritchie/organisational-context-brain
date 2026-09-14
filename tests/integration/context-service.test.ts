@@ -53,9 +53,13 @@ describe('context service', () => {
     expect(context.ontology.resourceTypes.some((type) => type.name === 'Document')).toBe(true);
     expect(context.ontology.resourceTypes.some((type) => type.name === 'MessageThread')).toBe(true);
     expect(context.accessProfile).toEqual({
-      clients: ['Atlas Bank', 'Cedar Health'],
-      projects: ['Atlas Onboarding', 'Cedar Renewal'],
-      sourceObjects: 9,
+      clients: ['Atlas Bank', 'Cedar Health', 'Verdant Foods'],
+      projects: [
+        'Atlas Onboarding',
+        'Cedar Renewal',
+        'Verdant Supplier Onboarding',
+      ],
+      sourceObjects: 14,
     });
   });
 
