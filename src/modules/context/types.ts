@@ -1,9 +1,11 @@
 import { z } from 'zod';
 
-export const contextRequestSchema = z.object({
-  query: z.string().trim().min(3).max(500),
-  maxEvidence: z.number().int().min(1).max(10).default(6),
-}).strict();
+export const contextRequestSchema = z
+  .object({
+    query: z.string().trim().min(3).max(500),
+    maxEvidence: z.number().int().min(1).max(10).default(6),
+  })
+  .strict();
 
 export type ContextRequest = z.infer<typeof contextRequestSchema>;
 
@@ -70,7 +72,11 @@ export interface ContextResponse {
       type: string;
       matchedAlias?: string;
       aliasType?: string;
-      identityKeys?: Array<{ sourceSystem: string; keyType: string; externalKey: string }>;
+      identityKeys?: Array<{
+        sourceSystem: string;
+        keyType: string;
+        externalKey: string;
+      }>;
     }>;
   };
   summary: string;
@@ -110,8 +116,18 @@ export interface ContextResponse {
     version: string;
     checksum: string;
     status: string;
-    resourceTypes: Array<{ name: string; kind: 'entity' | 'content'; description: string }>;
-    relationships: Array<{ name: string; from: string[]; to: string[]; description: string }>;
+    resourceTypes: Array<{
+      name: string;
+      kind: 'entity' | 'content';
+      description: string;
+    }>;
+    relationships: Array<{
+      name: string;
+      from: string[];
+      to: string[];
+      description: string;
+    }>;
+    aliases: Array<{ alias: string; target: string; description: string }>;
   };
   trace: Array<{ stage: string; detail: string; count?: number }>;
   rankingVersion: string;

@@ -5,13 +5,20 @@ import { CrmFixtureConnector } from '@/src/modules/connectors/crm-fixture-connec
 import { DocumentFixtureConnector } from '@/src/modules/connectors/document-fixture-connector';
 import { MessageFixtureConnector } from '@/src/modules/connectors/message-fixture-connector';
 import { ResearchFixtureConnector } from '@/src/modules/connectors/research-fixture-connector';
-import { runDocumentSync, runMeetingSync, runMessageSync, runResearchSync, seedIdentityAndScopes } from '@/src/modules/sync/research-sync';
+import {
+  runDocumentSync,
+  runMeetingSync,
+  runMessageSync,
+  runResearchSync,
+  seedIdentityAndScopes,
+} from '@/src/modules/sync/research-sync';
 import { IDS } from '@/src/modules/canonical/ids';
 import { storeCurrentOntology } from '@/src/modules/ontology/ontology-repository';
 import { runCrmSync } from '@/src/modules/sync/crm-sync';
 import { seedInitialSignals } from '@/src/modules/signals/signal-service';
 import { initializeDefaultMonitor } from '@/src/modules/memory/hypothesis-monitor';
 import { initializeDiscoveryDemo } from '@/src/modules/discovery/discovery-demo';
+import { initializeSemanticEvolutionDemo } from '@/src/modules/ontology/semantic-evolution';
 
 dotenv.config({ path: '.env.local' });
 
@@ -21,6 +28,7 @@ const ownerClient = await ownerPool.connect();
 try {
   await ownerClient.query('BEGIN');
   await ownerClient.query(`TRUNCATE TABLE
+    ontology_activation_runs, ontology_mapping_rules, ontology_change_proposals,
     hypothesis_discovery_candidate_observations, hypothesis_discovery_schedules,
     hypothesis_discovery_jobs,
     hypothesis_discovery_candidates, hypothesis_discovery_runs, hypothesis_discovery_policies,
@@ -48,20 +56,45 @@ const ingestionPool = getIngestionPool();
 const ingestionClient = await ingestionPool.connect();
 try {
   await ingestionClient.query('BEGIN');
-  await ingestionClient.query("SELECT set_config('app.actor_id', $1, true)", [IDS.users.ingestion]);
-  await ingestionClient.query("SELECT set_config('app.workspace_id', $1, true)", [IDS.workspace]);
-  const research = await runResearchSync(ingestionClient, new ResearchFixtureConnector());
-  const meetings = await runMeetingSync(ingestionClient, new MeetingFixtureConnector());
+  await ingestionClient.query("SELECT set_config('app.actor_id', $1, true)", [
+    IDS.users.ingestion,
+  ]);
+  await ingestionClient.query(
+    "SELECT set_config('app.workspace_id', $1, true)",
+    [IDS.workspace],
+  );
+  const research = await runResearchSync(
+    ingestionClient,
+    new ResearchFixtureConnector(),
+  );
+  const meetings = await runMeetingSync(
+    ingestionClient,
+    new MeetingFixtureConnector(),
+  );
   const crm = await runCrmSync(ingestionClient, new CrmFixtureConnector());
-  const documents = await runDocumentSync(ingestionClient, new DocumentFixtureConnector());
-  const messages = await runMessageSync(ingestionClient, new MessageFixtureConnector());
+  const documents = await runDocumentSync(
+    ingestionClient,
+    new DocumentFixtureConnector(),
+  );
+  const messages = await runMessageSync(
+    ingestionClient,
+    new MessageFixtureConnector(),
+  );
   const signals = await seedInitialSignals(ingestionClient);
   await storeCurrentOntology(ingestionClient);
   await ingestionClient.query('COMMIT');
   await initializeDefaultMonitor();
   const discovery = await initializeDiscoveryDemo();
-  console.log(`Seeded Northstar Labs: ${research.changed} research, ${meetings.changed} meeting, ${crm.changed} CRM, ${documents.changed} document, ${messages.changed} message, and ${signals.observations} signal observations.`);
-  console.log(`Discovery ready: ${discovery.documents} unlabeled inputs produced ${discovery.candidates} review candidate(s).`);
+  await initializeSemanticEvolutionDemo();
+  console.log(
+    `Seeded Northstar Labs: ${research.changed} research, ${meetings.changed} meeting, ${crm.changed} CRM, ${documents.changed} document, ${messages.changed} message, and ${signals.observations} signal observations.`,
+  );
+  console.log(
+    `Discovery ready: ${discovery.documents} unlabeled inputs produced ${discovery.candidates} review candidate(s).`,
+  );
+  console.log(
+    'Semantic evolution ready: one evidence-linked ontology proposal awaits steward review.',
+  );
 } catch (error) {
   await ingestionClient.query('ROLLBACK');
   throw error;

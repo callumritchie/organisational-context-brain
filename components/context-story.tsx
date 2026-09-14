@@ -32,6 +32,7 @@ import type { AnswerResponse } from '@/src/modules/ai/types';
 import type { ContextResponse } from '@/src/modules/context/types';
 import type { DiscoveryState } from '@/src/modules/discovery/types';
 import type { MemoryState } from '@/src/modules/memory/types';
+import type { SemanticEvolutionState } from '@/src/modules/ontology/semantic-evolution';
 import {
   DEMO_RANKING_V3,
   type RankingFactor,
@@ -135,11 +136,12 @@ function stagesFor(
       runtime: [
         `ontology=${result.ontology.version}`,
         `graph_edges=${result.graph.edges.length}`,
+        `semantic_aliases=${result.ontology.aliases.length}`,
       ],
       summary: `The versioned ontology classified the resources, then the graph followed ${result.graph.edges.length} actor-visible connections between projects, evidence, people and hypotheses.`,
       why: 'Similarity finds related words. A semantic model explains what each object is, which relationships are valid, and how context connects across systems.',
       input: `Assertions { resources: ${result.graph.nodes.length}, ontology: "${result.ontology.version}" }`,
-      output: `SemanticGraph { types: ${result.ontology.resourceTypes.length}, relationship_rules: ${result.ontology.relationships.length}, visible_edges: ${result.graph.edges.length} }`,
+      output: `SemanticGraph { types: ${result.ontology.resourceTypes.length}, relationship_rules: ${result.ontology.relationships.length}, aliases: ${result.ontology.aliases.length}, visible_edges: ${result.graph.edges.length} }`,
       requirement:
         'Semantic mappings shall use an immutable ontology version, and a graph edge shall be visible only when an establishing assertion is actor-visible.',
       examples: [
@@ -216,9 +218,20 @@ function responseClaims(
 
 function StageDrawer({
   stage,
+  semanticEvolution,
+  canReviewSemantic,
+  semanticReviewLoading,
+  onSemanticReview,
   onClose,
 }: {
   stage: StoryStage;
+  semanticEvolution: SemanticEvolutionState | null;
+  canReviewSemantic: boolean;
+  semanticReviewLoading: string | null;
+  onSemanticReview: (
+    proposalId: string,
+    decision: 'approve' | 'reject',
+  ) => void;
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
@@ -262,6 +275,14 @@ function StageDrawer({
           </button>
         </header>
         <div className={styles.stageDrawerBody}>
+          {stage.id === 'meaning' && semanticEvolution ? (
+            <SemanticEvolutionPanel
+              evolution={semanticEvolution}
+              canReview={canReviewSemantic}
+              reviewLoading={semanticReviewLoading}
+              onReview={onSemanticReview}
+            />
+          ) : null}
           <section>
             <span className={styles.uiLabel}>What happened in this trace</span>
             <p className={styles.storyCopy}>{stage.summary}</p>
@@ -302,6 +323,151 @@ function StageDrawer({
         </div>
       </section>
     </div>
+  );
+}
+
+function SemanticEvolutionPanel({
+  evolution,
+  canReview,
+  reviewLoading,
+  onReview,
+}: {
+  evolution: SemanticEvolutionState;
+  canReview: boolean;
+  reviewLoading: string | null;
+  onReview: (proposalId: string, decision: 'approve' | 'reject') => void;
+}) {
+  const proposal = evolution.proposals[0];
+  if (!proposal) return null;
+  return (
+    <section className={styles.semanticEvolution}>
+      <header>
+        <div>
+          <span className={styles.dataLabel}>
+            SEMANTIC CHANGE · SEPARATE REVIEW INBOX
+          </span>
+          <strong>
+            The brain noticed missing language; it did not rewrite itself.
+          </strong>
+        </div>
+        <code>current={evolution.currentOntology.version}</code>
+      </header>
+      <div
+        className={styles.semanticFlow}
+        aria-label="Governed semantic evolution flow"
+      >
+        <article>
+          <Sparkles />
+          <span>
+            <small className={styles.dataLabel}>OBSERVED</small>
+            <b>Repeated concept</b>
+          </span>
+        </article>
+        <ArrowRight />
+        <article>
+          <GitBranch />
+          <span>
+            <small className={styles.dataLabel}>UNTRUSTED</small>
+            <b>Change set</b>
+          </span>
+        </article>
+        <ArrowRight />
+        <article>
+          <FileSearch />
+          <span>
+            <small className={styles.dataLabel}>CHECKED</small>
+            <b>Impact</b>
+          </span>
+        </article>
+        <ArrowRight />
+        <article>
+          <ShieldCheck />
+          <span>
+            <small className={styles.dataLabel}>HUMAN GATE</small>
+            <b>Steward</b>
+          </span>
+        </article>
+        <ArrowRight />
+        <article>
+          <RefreshCw />
+          <span>
+            <small className={styles.dataLabel}>IF APPROVED</small>
+            <b>New version</b>
+          </span>
+        </article>
+      </div>
+      <article className={styles.semanticProposal}>
+        <div>
+          <span className={styles.dataLabel}>
+            PROPOSAL · NOT ACTIVE MEANING
+          </span>
+          <h3>{proposal.title}</h3>
+          <p>{proposal.rationale}</p>
+          <div>
+            {proposal.changeSet.map((change) => (
+              <code
+                key={change.kind === 'add-alias' ? change.alias : change.name}
+              >
+                {change.kind === 'add-resource-type'
+                  ? `TYPE ${change.name}`
+                  : change.kind === 'add-relationship'
+                    ? `${change.from.join('|')} --${change.name}→ ${change.to.join('|')}`
+                    : `ALIAS “${change.alias}” → ${change.target}`}
+              </code>
+            ))}
+          </div>
+        </div>
+        <aside>
+          <span className={styles.dataLabel}>PRE-ACTIVATION IMPACT</span>
+          <b>
+            {proposal.impact.affectedResourceIds.length} resources to replay
+          </b>
+          <code>{proposal.impact.assertionCount} assertions checked</code>
+          <code>{proposal.impact.breakingChanges} breaking changes</code>
+          <code>base={proposal.baseOntologyVersion}</code>
+          <strong
+            className={proposal.status === 'approved' ? styles.working : ''}
+          >
+            {proposal.status}
+          </strong>
+          {proposal.status === 'proposed' ? (
+            <div>
+              <Button
+                variant="outline"
+                disabled={!canReview || reviewLoading === proposal.id}
+                onClick={() => onReview(proposal.id, 'reject')}
+              >
+                Reject
+              </Button>
+              <Button
+                disabled={!canReview || reviewLoading === proposal.id}
+                onClick={() => onReview(proposal.id, 'approve')}
+              >
+                {reviewLoading === proposal.id
+                  ? 'Publishing…'
+                  : 'Approve + activate'}
+              </Button>
+            </div>
+          ) : null}
+          {!canReview && proposal.status === 'proposed' ? (
+            <small>Project Lead stewardship required</small>
+          ) : null}
+        </aside>
+      </article>
+      {evolution.latestActivation ? (
+        <div className={styles.activationReceipt}>
+          <Check />
+          <span>
+            <small className={styles.dataLabel}>ACTIVATION RECEIPT</small>
+            <b>
+              {evolution.latestActivation.fromVersion} →{' '}
+              {evolution.latestActivation.toVersion}
+            </b>
+            <code>{evolution.latestActivation.replayContract.result}</code>
+          </span>
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -418,7 +584,9 @@ function MemoryDrawer({
                   disabled={!canReview || discoveryOperationLoading !== null}
                   onClick={() =>
                     onDiscoveryOperate(
-                      discovery?.policy.status === 'active' ? 'pause' : 'resume',
+                      discovery?.policy.status === 'active'
+                        ? 'pause'
+                        : 'resume',
                     )
                   }
                 >
@@ -1252,6 +1420,8 @@ export function ContextStory() {
   const [answer, setAnswer] = useState<AnswerResponse['answer'] | null>(null);
   const [memory, setMemory] = useState<MemoryState | null>(null);
   const [discovery, setDiscovery] = useState<DiscoveryState | null>(null);
+  const [semanticEvolution, setSemanticEvolution] =
+    useState<SemanticEvolutionState | null>(null);
   const [stageId, setStageId] = useState<StageId | null>(null);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -1266,6 +1436,9 @@ export function ContextStory() {
     string | null
   >(null);
   const [operationLoading, setOperationLoading] = useState<string | null>(null);
+  const [semanticReviewLoading, setSemanticReviewLoading] = useState<
+    string | null
+  >(null);
 
   const loadMemory = useCallback(async (nextActorId: string) => {
     const response = await fetch('/api/v1/memory', {
@@ -1285,6 +1458,17 @@ export function ContextStory() {
       discovery: DiscoveryState | null;
     };
     setDiscovery(payload.discovery);
+  }, []);
+
+  const loadSemanticEvolution = useCallback(async (nextActorId: string) => {
+    const response = await fetch('/api/v1/ontology/proposals', {
+      headers: { 'x-demo-actor': nextActorId },
+    });
+    if (!response.ok) return;
+    const payload = (await response.json()) as {
+      evolution: SemanticEvolutionState;
+    };
+    setSemanticEvolution(payload.evolution);
   }, []);
 
   const ask = useCallback(
@@ -1309,6 +1493,7 @@ export function ContextStory() {
         setAnswer(payload.answer);
         void loadMemory(nextActorId);
         void loadDiscovery(nextActorId);
+        void loadSemanticEvolution(nextActorId);
         return payload;
       } catch (requestError) {
         setError(
@@ -1320,7 +1505,7 @@ export function ContextStory() {
         setLoading(false);
       }
     },
-    [actorId, loadDiscovery, loadMemory, query],
+    [actorId, loadDiscovery, loadMemory, loadSemanticEvolution, query],
   );
 
   const initialised = useRef(false);
@@ -1379,6 +1564,7 @@ export function ContextStory() {
     setActorId(nextActorId);
     setMemory(null);
     setDiscovery(null);
+    setSemanticEvolution(null);
     setMutationMessage(null);
     void ask(nextActorId);
   }
@@ -1418,6 +1604,51 @@ export function ContextStory() {
       );
     } finally {
       setMutationLoading(false);
+    }
+  }
+
+  async function reviewSemanticProposal(
+    proposalId: string,
+    decision: 'approve' | 'reject',
+  ) {
+    setSemanticReviewLoading(proposalId);
+    setMutationMessage(null);
+    try {
+      const response = await fetch(
+        `/api/v1/ontology/proposals/${proposalId}/review`,
+        {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'x-demo-actor': actorId,
+          },
+          body: JSON.stringify({ decision }),
+        },
+      );
+      const payload = (await response.json()) as {
+        evolution?: SemanticEvolutionState;
+        title?: string;
+      };
+      if (!response.ok || !payload.evolution) {
+        throw new Error(
+          payload.title ?? 'The semantic proposal could not be reviewed.',
+        );
+      }
+      setSemanticEvolution(payload.evolution);
+      if (decision === 'approve') await ask(actorId, query);
+      setMutationMessage(
+        decision === 'approve'
+          ? 'The additive semantic change is active in a new immutable ontology version.'
+          : 'The semantic proposal was rejected; its evidence and audit trail were retained.',
+      );
+    } catch (requestError) {
+      setMutationMessage(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Semantic review failed.',
+      );
+    } finally {
+      setSemanticReviewLoading(null);
     }
   }
 
@@ -1548,9 +1779,7 @@ export function ContextStory() {
     }
   }
 
-  async function operateDiscovery(
-    operation: 'pause' | 'resume' | 'run-now',
-  ) {
+  async function operateDiscovery(operation: 'pause' | 'resume' | 'run-now') {
     setDiscoveryOperationLoading(operation);
     setMutationMessage(null);
     try {
@@ -1666,7 +1895,16 @@ export function ContextStory() {
         )}
       </div>
       {selectedStage && selectedStage.id !== 'monitor' ? (
-        <StageDrawer stage={selectedStage} onClose={() => setStageId(null)} />
+        <StageDrawer
+          stage={selectedStage}
+          semanticEvolution={semanticEvolution}
+          canReviewSemantic={actorId === PERSONAS[0].id}
+          semanticReviewLoading={semanticReviewLoading}
+          onSemanticReview={(proposalId, decision) =>
+            void reviewSemanticProposal(proposalId, decision)
+          }
+          onClose={() => setStageId(null)}
+        />
       ) : null}
       {stageId === 'monitor' ? (
         <MemoryDrawer

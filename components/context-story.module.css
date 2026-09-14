@@ -941,7 +941,7 @@
 .stageDrawer {
   display: grid;
   grid-template-rows: 88px minmax(0, 1fr);
-  width: min(660px, 78vw);
+  width: min(900px, 88vw);
 }
 
 .memoryDrawer {
@@ -1786,6 +1786,208 @@
   border-bottom: 1px solid #e8e3da;
 }
 
+.stageDrawerBody > .semanticEvolution {
+  padding: 16px 18px;
+  background: #f7f6fb;
+}
+
+.semanticEvolution > header,
+.semanticProposal,
+.semanticProposal > aside,
+.activationReceipt,
+.activationReceipt > span {
+  display: flex;
+}
+
+.semanticEvolution > header {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.semanticEvolution > header > div {
+  display: grid;
+  gap: 4px;
+}
+
+.semanticEvolution > header strong {
+  color: #31364a;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.semanticEvolution > header code {
+  padding: 5px 7px;
+  border: 1px solid #d8d9e8;
+  border-radius: 5px;
+  color: #4e588e;
+  background: #fff;
+  font-size: 6px;
+}
+
+.semanticFlow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(92px, 1fr) 12px) minmax(92px, 1fr);
+  align-items: center;
+  gap: 4px;
+  margin: 13px 0;
+}
+
+.semanticFlow article {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #dedbe8;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.semanticFlow article > svg {
+  width: 15px;
+  flex: 0 0 auto;
+  color: #5367bd;
+}
+
+.semanticFlow article span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.semanticFlow article b {
+  overflow: hidden;
+  color: #414657;
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.semanticFlow > svg {
+  width: 10px;
+  color: #9a9cab;
+}
+
+.semanticProposal {
+  align-items: stretch;
+  gap: 14px;
+  padding: 13px;
+  border: 1px solid #d8d5e5;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.semanticProposal > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.semanticProposal h3 {
+  margin: 6px 0 5px;
+  color: #292e40;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.semanticProposal p {
+  margin: 0;
+  color: #626778;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.semanticProposal > div > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 9px;
+}
+
+.semanticProposal > div > div code {
+  padding: 5px 7px;
+  border-radius: 5px;
+  color: #4f5680;
+  background: #eeeff8;
+  font-size: 6px;
+}
+
+.semanticProposal > aside {
+  width: 205px;
+  flex: 0 0 205px;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 5px;
+  padding-left: 13px;
+  border-left: 1px solid #e2dfe9;
+}
+
+.semanticProposal > aside > b {
+  color: #343a4e;
+  font-size: 9px;
+}
+
+.semanticProposal > aside > code,
+.semanticProposal > aside > small {
+  color: #74798a;
+  font-size: 6px;
+}
+
+.semanticProposal > aside > strong {
+  margin-top: 3px;
+  padding: 4px 6px;
+  border-radius: 999px;
+  color: #90662e;
+  background: #f5e9d6;
+  font-size: 6px;
+  text-transform: uppercase;
+}
+
+.semanticProposal > aside > div {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.semanticProposal > aside button {
+  height: 27px;
+  padding: 0 9px;
+  font-size: 6px;
+}
+
+.activationReceipt {
+  align-items: center;
+  gap: 9px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid #cfe1d8;
+  border-radius: 8px;
+  background: #edf5f1;
+}
+
+.activationReceipt > svg {
+  width: 15px;
+  color: #387765;
+}
+
+.activationReceipt > span {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.activationReceipt b {
+  color: #315f53;
+  font-size: 8px;
+}
+
+.activationReceipt code {
+  color: #60766e;
+  font-size: 6px;
+}
+
 .stageDrawerBody > section > p {
   margin: 7px 0 0;
   color: #555b6b;
@@ -2357,6 +2559,15 @@
 
   .evidenceLayout {
     grid-template-columns: 245px minmax(0, 1fr);
+  }
+
+  .semanticFlow {
+    grid-template-columns: repeat(5, minmax(105px, 1fr));
+    overflow-x: auto;
+  }
+
+  .semanticFlow > svg {
+    display: none;
   }
 }
 

@@ -30,6 +30,7 @@
     "discovery:run": "tsx scripts/run-discovery.ts",
     "discovery:worker": "tsx scripts/run-discovery-worker.ts",
     "discovery:schedule": "tsx scripts/enqueue-discovery-schedules.ts",
+    "ontology:bootstrap-proposal": "tsx scripts/bootstrap-semantic-evolution.ts",
     "memory:bootstrap": "tsx scripts/bootstrap-monitor.ts",
     "monitor:worker": "tsx scripts/run-monitor-worker.ts",
     "monitor:schedule": "tsx scripts/enqueue-monitor-schedules.ts",

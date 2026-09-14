@@ -17,6 +17,7 @@ This plan supersedes the original horizontal roadmap. Work proceeds as sequentia
 11. A machine-formed learning is a provenance-linked `memory_candidate`, not trusted organisational memory; review is required before promotion to a canonical Resource.
 12. Background evaluation reuses the same actor-scoped Context Service and may not broaden the monitor service identity beyond its declared access scope.
 13. An open-ended discovery is an untrusted candidate until review; it must retain its exact evidence Resources, model route, prediction and falsification condition.
+14. A discovered concept may propose semantic vocabulary, but only an impact-checked steward decision may publish a new immutable ontology version; hypotheses and ontology proposals are separate records.
 
 ## Milestone 0 — Repository foundation
 
@@ -176,7 +177,7 @@ Status: local control-plane implementation complete; production supervision rema
 
 ## Milestone 11 — Independent intelligence evaluation
 
-Status: evaluation harness implemented; independent authoring and scoring pending.
+Status: pinned at the external-quality gate; evaluation harness implemented, independent authoring and scoring pending.
 
 - Implemented: a 100-case zero-egress baseline split into 60 ordinary positives, 20 contradiction-rich positives and 20 negative controls.
 - Implemented: separate confusion-matrix, grounding, expected-concept and contradiction-surfacing measurements so prepared-vocabulary detection cannot masquerade as hypothesis quality.
@@ -188,3 +189,17 @@ Status: evaluation harness implemented; independent authoring and scoring pendin
 - Implemented: the entire harness records zero external tokens and cost.
 - Remaining: collect at least 20 genuinely independently authored cases, obtain two or more blind reviews, adjudicate disagreements, and run the already planned full-vector benchmark.
 - Blocked boundary: the full 10,000-document vector run is not authorised by the earlier 2,000-input synthetic egress approval and remains disabled until separately approved.
+
+## Milestone 12 — Governed semantic evolution
+
+Status: first governed vertical slice implemented and validated locally.
+
+- Implemented: ontology changes and organisational hypotheses have separate durable proposal records, review states and audit trails.
+- Implemented: a generic additive change-set engine supports new Resource types, relationship rules and semantic aliases without changing its application code for each domain.
+- Implemented: the unfamiliar supplier-onboarding discovery produces an explicitly untrusted semantic proposal grounded in its five exact evidence Resources.
+- Implemented: pre-activation impact analysis records affected Resources, hypotheses, assertions, breaking-change count and replay action.
+- Implemented: only the Project Lead steward may approve or reject. Direct API publication is retired, production review writes remain locked, and stale-base proposals become superseded rather than rebased silently.
+- Implemented: approval atomically publishes a checksummed ontology version, writes version-bound mapping rules, advances discovery policies and preserves prior discovery runs against the ontology version that produced them.
+- Implemented: every activation has a replay receipt showing which permission-scoped context was reconsidered and explicitly records that existing canonical Resources were not silently mutated.
+- Implemented: the existing Connect meaning drawer visualises observed pattern → untrusted change set → impact check → human gate → version activation, without adding a page or requiring page scrolling.
+- Remaining: model-assisted free-form semantic induction, steward assignment beyond the demo Project Lead, arbitrary connector mapping administration, rollback-by-new-version, and quality evaluation of proposed ontologies on independent domains.

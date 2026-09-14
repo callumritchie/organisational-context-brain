@@ -49,7 +49,21 @@ test('turns the brain into an inspectable product blueprint without page scrolli
   await expect(
     meaningDialog.getByText('OUTPUT', { exact: true }),
   ).toBeVisible();
-  await expect(meaningDialog.getByText(/northstar-ontology-v1/)).toBeVisible();
+  await expect(
+    meaningDialog.getByText('current=northstar-ontology-v1', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    meaningDialog.getByText(
+      'The brain noticed missing language; it did not rewrite itself.',
+    ),
+  ).toBeVisible();
+  await expect(
+    meaningDialog.getByText('PROPOSAL · NOT ACTIVE MEANING'),
+  ).toBeVisible();
+  await expect(meaningDialog.getByText('5 resources to replay')).toBeVisible();
+  await expect(
+    meaningDialog.getByRole('button', { name: 'Approve + activate' }),
+  ).toBeVisible();
   await expect(
     meaningDialog.getByText('PM-ready requirement seed'),
   ).toBeVisible();

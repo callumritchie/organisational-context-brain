@@ -17,6 +17,7 @@ interface DiscoveryPolicyRow {
   concept_rules: DiscoveryConceptRule[];
   minimum_source_diversity: number;
   model_route_policy_id: string;
+  ontology_version_id: string;
 }
 
 interface PersistedDiscoveryDocument extends DiscoveryDocument {
@@ -101,14 +102,15 @@ export async function executeDiscoveryPolicy(
   const policyResult = await client.query<DiscoveryPolicyRow>(
     `SELECT id, workspace_id, access_scope_id, owner_actor_id, subject,
        project_resource_id, source_ids, concept_rules, minimum_source_diversity,
-       model_route_policy_id
+       model_route_policy_id, ontology_version_id
      FROM hypothesis_discovery_policies
      WHERE id = $1 AND status = 'active'
      FOR UPDATE`,
     [input.policyId],
   );
   const policy = policyResult.rows[0];
-  if (!policy) throw new Error('The discovery policy is not active or could not be read');
+  if (!policy)
+    throw new Error('The discovery policy is not active or could not be read');
 
   const runId = stableId(
     'hypothesis-discovery-run',
@@ -141,9 +143,16 @@ export async function executeDiscoveryPolicy(
   await client.query(
     `INSERT INTO hypothesis_discovery_runs
       (id, workspace_id, access_scope_id, discovery_policy_id, trigger_ref, status,
-       selected_route)
-     VALUES ($1, $2, $3, $4, $5, 'running', 'no-model')`,
-    [runId, policy.workspace_id, policy.access_scope_id, policy.id, input.triggerRef],
+       selected_route, ontology_version_id)
+     VALUES ($1, $2, $3, $4, $5, 'running', 'no-model', $6)`,
+    [
+      runId,
+      policy.workspace_id,
+      policy.access_scope_id,
+      policy.id,
+      input.triggerRef,
+      policy.ontology_version_id,
+    ],
   );
 
   const documents = await loadPolicyDocuments(client, policy);
@@ -157,12 +166,17 @@ export async function executeDiscoveryPolicy(
     subject: policy.subject,
     minimumSourceDiversity: policy.minimum_source_diversity,
     conceptRules: policy.concept_rules,
-    existingHypotheses: existingHypotheses.rows.map((item) => item.canonical_name),
+    existingHypotheses: existingHypotheses.rows.map(
+      (item) => item.canonical_name,
+    ),
   });
   const inputHash = createHash('sha256')
     .update(
       JSON.stringify(
-        documents.map((document) => [document.resourceId, document.contentHash]),
+        documents.map((document) => [
+          document.resourceId,
+          document.contentHash,
+        ]),
       ),
     )
     .digest('hex');
@@ -196,8 +210,13 @@ export async function executeDiscoveryPolicy(
     const previous = prior.rows[0];
     const candidateId =
       previous?.id ??
-      stableId('hypothesis-discovery-candidate', `${policy.id}:${statementHash}`);
-    const evidenceResourceIds = candidate.evidence.map((item) => item.resourceId);
+      stableId(
+        'hypothesis-discovery-candidate',
+        `${policy.id}:${statementHash}`,
+      );
+    const evidenceResourceIds = candidate.evidence.map(
+      (item) => item.resourceId,
+    );
     const sourceSystems = [
       ...new Set(candidate.evidence.map((item) => item.sourceSystem)),
     ];

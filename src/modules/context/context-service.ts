@@ -4,7 +4,10 @@ import { withActorTransaction } from '@/src/db/actor-transaction';
 import { IDS } from '@/src/modules/canonical/ids';
 import { understandQuery } from '@/src/modules/search/query-understanding';
 import { getConfiguredEmbeddingProvider } from '@/src/modules/embeddings/embedding-provider';
-import { DEMO_RANKING_V3, scoreCandidate } from '@/src/modules/ranking/demo-ranking-v3';
+import {
+  DEMO_RANKING_V3,
+  scoreCandidate,
+} from '@/src/modules/ranking/demo-ranking-v3';
 import { reciprocalRankFusion } from '@/src/modules/search/reciprocal-rank-fusion';
 import { assessEpistemicState } from './epistemic-state';
 import type { ContextEvidence, ContextRequest, ContextResponse } from './types';
@@ -131,7 +134,11 @@ interface AliasRow {
   type: string;
   alias: string;
   alias_type: string;
-  identity_keys: Array<{ sourceSystem: string; keyType: string; externalKey: string }>;
+  identity_keys: Array<{
+    sourceSystem: string;
+    keyType: string;
+    externalKey: string;
+  }>;
 }
 
 async function resolveAliases(client: PoolClient, query: string) {
@@ -154,24 +161,34 @@ async function resolveAliases(client: PoolClient, query: string) {
   const lowerQuery = query.toLowerCase();
   const normalisedQuery = lowerQuery.replace(/[^a-z0-9]+/g, ' ').trim();
   const candidates = rows.rows
-    .filter((row) => normalisedQuery.includes(row.alias.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()))
+    .filter((row) =>
+      normalisedQuery.includes(
+        row.alias
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, ' ')
+          .trim(),
+      ),
+    )
     .sort((left, right) => {
-      const exactDifference = Number(lowerQuery.includes(right.alias.toLowerCase()))
-        - Number(lowerQuery.includes(left.alias.toLowerCase()));
+      const exactDifference =
+        Number(lowerQuery.includes(right.alias.toLowerCase())) -
+        Number(lowerQuery.includes(left.alias.toLowerCase()));
       return exactDifference || right.alias.length - left.alias.length;
     });
   const matched = new Set<string>();
   return candidates.flatMap((row) => {
     if (matched.has(row.id)) return [];
     matched.add(row.id);
-    return [{
-      id: row.id,
-      name: row.name,
-      type: row.type,
-      matchedAlias: row.alias,
-      aliasType: row.alias_type,
-      identityKeys: row.identity_keys,
-    }];
+    return [
+      {
+        id: row.id,
+        name: row.name,
+        type: row.type,
+        matchedAlias: row.alias,
+        aliasType: row.alias_type,
+        identityKeys: row.identity_keys,
+      },
+    ];
   });
 }
 
@@ -180,8 +197,15 @@ interface OntologyRow {
   status: string;
   checksum: string;
   schema_document: {
-    resourceTypes: Record<string, { kind: 'entity' | 'content'; description: string }>;
-    relationships: Record<string, { from: string[]; to: string[]; description: string }>;
+    resourceTypes: Record<
+      string,
+      { kind: 'entity' | 'content'; description: string }
+    >;
+    relationships: Record<
+      string,
+      { from: string[]; to: string[]; description: string }
+    >;
+    aliases?: Record<string, { target: string; description: string }>;
   };
 }
 
@@ -199,14 +223,24 @@ async function readOntology(client: PoolClient) {
     version: row.version,
     status: row.status,
     checksum: row.checksum,
-    resourceTypes: Object.entries(row.schema_document.resourceTypes).map(([name, definition]) => ({
-      name,
-      ...definition,
-    })),
-    relationships: Object.entries(row.schema_document.relationships).map(([name, definition]) => ({
-      name,
-      ...definition,
-    })),
+    resourceTypes: Object.entries(row.schema_document.resourceTypes).map(
+      ([name, definition]) => ({
+        name,
+        ...definition,
+      }),
+    ),
+    relationships: Object.entries(row.schema_document.relationships).map(
+      ([name, definition]) => ({
+        name,
+        ...definition,
+      }),
+    ),
+    aliases: Object.entries(row.schema_document.aliases ?? {}).map(
+      ([alias, definition]) => ({
+        alias,
+        ...definition,
+      }),
+    ),
   };
 }
 
@@ -267,9 +301,13 @@ async function readAccessProfile(client: PoolClient) {
        WHERE semantic_type IN ('Client', 'Project')
        GROUP BY semantic_type`,
     ),
-    client.query<{ count: string }>('SELECT count(*)::text AS count FROM source_objects WHERE NOT deleted'),
+    client.query<{ count: string }>(
+      'SELECT count(*)::text AS count FROM source_objects WHERE NOT deleted',
+    ),
   ]);
-  const names = new Map(resources.rows.map((row) => [row.semantic_type, row.names]));
+  const names = new Map(
+    resources.rows.map((row) => [row.semantic_type, row.names]),
+  );
   return {
     clients: names.get('Client') ?? [],
     projects: names.get('Project') ?? [],
@@ -319,12 +357,23 @@ async function buildGraph(client: PoolClient, evidenceIds: string[]) {
      WHERE relationship.from_resource_id IN (SELECT id FROM focus)
         OR relationship.to_resource_id IN (SELECT id FROM focus)
      ORDER BY relationship.relationship_type, source_resource.canonical_name`,
-    [evidenceIds, [IDS.resources.project, IDS.resources.atlas, IDS.resources.hypothesis]],
+    [
+      evidenceIds,
+      [IDS.resources.project, IDS.resources.atlas, IDS.resources.hypothesis],
+    ],
   );
   const nodes = new Map<string, { id: string; label: string; type: string }>();
   for (const row of result.rows) {
-    nodes.set(row.source, { id: row.source, label: row.source_label, type: row.source_type });
-    nodes.set(row.target, { id: row.target, label: row.target_label, type: row.target_type });
+    nodes.set(row.source, {
+      id: row.source,
+      label: row.source_label,
+      type: row.source_type,
+    });
+    nodes.set(row.target, {
+      id: row.target,
+      label: row.target_label,
+      type: row.target_type,
+    });
   }
   return {
     nodes: [...nodes.values()],
@@ -341,7 +390,9 @@ async function buildGraph(client: PoolClient, evidenceIds: string[]) {
 
 function deterministicSummary(evidence: ContextEvidence[]) {
   const supporting = evidence.filter((item) => item.stance === 'SUPPORTS');
-  const contradicting = evidence.filter((item) => item.stance === 'CONTRADICTS');
+  const contradicting = evidence.filter(
+    (item) => item.stance === 'CONTRADICTS',
+  );
   const lead = supporting.length
     ? `Current evidence points most strongly to friction in identity verification: ${supporting[0].summary.toLowerCase()} [1]`
     : 'The accessible corpus does not yet contain direct supporting evidence for the current hypothesis.';
@@ -357,11 +408,17 @@ export async function assembleContext(
   options: { allowExternalEmbeddings?: boolean } = {},
 ): Promise<ContextResponse> {
   const parsedQuery = understandQuery(request.query);
-  const embeddingProvider = options.allowExternalEmbeddings === false
-    ? null
-    : getConfiguredEmbeddingProvider();
-  let semanticQuery: { vector: string; provider: string; model: string } | null = null;
-  let embeddingStatus: ContextResponse['retrieval']['embeddingStatus'] = embeddingProvider ? 'provider-error' : 'disabled';
+  const embeddingProvider =
+    options.allowExternalEmbeddings === false
+      ? null
+      : getConfiguredEmbeddingProvider();
+  let semanticQuery: {
+    vector: string;
+    provider: string;
+    model: string;
+  } | null = null;
+  let embeddingStatus: ContextResponse['retrieval']['embeddingStatus'] =
+    embeddingProvider ? 'provider-error' : 'disabled';
   if (embeddingProvider) {
     try {
       const [embedding] = await embeddingProvider.embed([request.query]);
@@ -375,136 +432,202 @@ export async function assembleContext(
       semanticQuery = null;
     }
   }
-  return withActorTransaction({ actorId: actor.id, workspaceId: actor.workspaceId }, async (client) => {
-    const aliases = await resolveAliases(client, request.query);
-    const interpreted = understandQuery(request.query, aliases);
-    const traceId = randomUUID();
-    await client.query(
-      `INSERT INTO query_traces (id, workspace_id, actor_id, query_text, ranking_version)
+  return withActorTransaction(
+    { actorId: actor.id, workspaceId: actor.workspaceId },
+    async (client) => {
+      const aliases = await resolveAliases(client, request.query);
+      const interpreted = understandQuery(request.query, aliases);
+      const traceId = randomUUID();
+      await client.query(
+        `INSERT INTO query_traces (id, workspace_id, actor_id, query_text, ranking_version)
        VALUES ($1, $2, $3, $4, $5)`,
-      [traceId, actor.workspaceId, actor.id, request.query, DEMO_RANKING_V3.id],
-    );
-    const eligible = await client.query<{ count: string }>(
-      `SELECT count(*)::text AS count FROM resources WHERE workspace_id = $1`,
-      [actor.workspaceId],
-    );
-    const rows = await retrieve(client, parsedQuery.tsQuery, Math.min(request.maxEvidence * 4, 40), semanticQuery);
-    const semanticAvailable = rows.some((row) => row.semantic_rank !== null);
-    if (embeddingStatus === 'ready' && !semanticAvailable) embeddingStatus = 'index-empty';
-    const evidence = rows
-      .map((row): ContextEvidence => {
-        const fusion = reciprocalRankFusion({
-          lexical: row.lexical_rank ? Number(row.lexical_rank) : null,
-          semantic: row.semantic_rank ? Number(row.semantic_rank) : null,
-        }, semanticAvailable);
-        const ranking = scoreCandidate({
-          retrievalFusion: fusion.score,
-          authority: row.authority,
-          confidence: row.confidence,
-          freshness: Number(row.freshness),
-          engagement: row.engagement,
-          affinity: row.affinity,
-          epistemicConfidence: row.epistemic_confidence,
-          graphConnectivity: row.graph_connectivity,
-        });
-        return {
-          id: row.evidence_id,
-          title: row.evidence_title,
-          summary: row.evidence_summary,
-          stance: row.stance,
-          confidence: row.confidence,
-          source: {
-            title: row.source_title,
-            uri: row.source_uri,
-            type: row.source_type,
-            updatedAt: row.source_updated_at.toISOString(),
-            excerpt: row.excerpt,
-          },
-          provenance: {
-            assertionId: row.assertion_id,
-            assertionKind: row.assertion_kind,
-            process: row.process_name,
-            processVersion: row.process_version,
-          },
-          signals: {
+        [
+          traceId,
+          actor.workspaceId,
+          actor.id,
+          request.query,
+          DEMO_RANKING_V3.id,
+        ],
+      );
+      const eligible = await client.query<{ count: string }>(
+        `SELECT count(*)::text AS count FROM resources WHERE workspace_id = $1`,
+        [actor.workspaceId],
+      );
+      const rows = await retrieve(
+        client,
+        parsedQuery.tsQuery,
+        Math.min(request.maxEvidence * 4, 40),
+        semanticQuery,
+      );
+      const semanticAvailable = rows.some((row) => row.semantic_rank !== null);
+      if (embeddingStatus === 'ready' && !semanticAvailable)
+        embeddingStatus = 'index-empty';
+      const evidence = rows
+        .map((row): ContextEvidence => {
+          const fusion = reciprocalRankFusion(
+            {
+              lexical: row.lexical_rank ? Number(row.lexical_rank) : null,
+              semantic: row.semantic_rank ? Number(row.semantic_rank) : null,
+            },
+            semanticAvailable,
+          );
+          const ranking = scoreCandidate({
+            retrievalFusion: fusion.score,
             authority: row.authority,
+            confidence: row.confidence,
             freshness: Number(row.freshness),
             engagement: row.engagement,
             affinity: row.affinity,
             epistemicConfidence: row.epistemic_confidence,
             graphConnectivity: row.graph_connectivity,
-            snapshotVersion: row.signal_snapshot_version,
-          },
-          retrieval: {
-            lexicalRank: row.lexical_rank ? Number(row.lexical_rank) : null,
-            semanticRank: row.semantic_rank ? Number(row.semantic_rank) : null,
-            lexicalReciprocalRank: fusion.lexical,
-            semanticReciprocalRank: fusion.semantic,
-            fusedScore: fusion.score,
-          },
-          ranking: { ...ranking.contributions, total: ranking.total },
-        };
-      })
-      .sort((a, b) => b.ranking.total - a.ranking.total)
-      .slice(0, request.maxEvidence);
-    const epistemicState = assessEpistemicState(evidence);
-    const graph = await buildGraph(client, evidence.map((item) => item.id));
-    const [ontology, sourceSystems, accessProfile] = await Promise.all([
-      readOntology(client),
-      readSourceSystems(
+          });
+          return {
+            id: row.evidence_id,
+            title: row.evidence_title,
+            summary: row.evidence_summary,
+            stance: row.stance,
+            confidence: row.confidence,
+            source: {
+              title: row.source_title,
+              uri: row.source_uri,
+              type: row.source_type,
+              updatedAt: row.source_updated_at.toISOString(),
+              excerpt: row.excerpt,
+            },
+            provenance: {
+              assertionId: row.assertion_id,
+              assertionKind: row.assertion_kind,
+              process: row.process_name,
+              processVersion: row.process_version,
+            },
+            signals: {
+              authority: row.authority,
+              freshness: Number(row.freshness),
+              engagement: row.engagement,
+              affinity: row.affinity,
+              epistemicConfidence: row.epistemic_confidence,
+              graphConnectivity: row.graph_connectivity,
+              snapshotVersion: row.signal_snapshot_version,
+            },
+            retrieval: {
+              lexicalRank: row.lexical_rank ? Number(row.lexical_rank) : null,
+              semanticRank: row.semantic_rank
+                ? Number(row.semantic_rank)
+                : null,
+              lexicalReciprocalRank: fusion.lexical,
+              semanticReciprocalRank: fusion.semantic,
+              fusedScore: fusion.score,
+            },
+            ranking: { ...ranking.contributions, total: ranking.total },
+          };
+        })
+        .sort((a, b) => b.ranking.total - a.ranking.total)
+        .slice(0, request.maxEvidence);
+      const epistemicState = assessEpistemicState(evidence);
+      const graph = await buildGraph(
         client,
-        interpreted.entities
-          .filter((entity) => entity.type === 'Project')
-          .map((entity) => entity.id),
-      ),
-      readAccessProfile(client),
-    ]);
-    const trace = [
-      { stage: 'Query', detail: aliases.length
-        ? `Resolved “${aliases[0].matchedAlias}” to ${aliases[0].name}, plus the active project and hypothesis context.`
-        : 'Detected Atlas Bank, Atlas Onboarding and the active abandonment hypothesis.', count: interpreted.entities.length },
-      { stage: 'Actor & security scope', detail: `Workspace verified; user and group ACLs applied. ${eligible.rows[0]?.count ?? 0} resources eligible.`, count: Number(eligible.rows[0]?.count ?? 0) },
-      { stage: 'Retrieval', detail: semanticAvailable
-        ? `${rows.length} permitted candidates fused from lexical and genuine ${embeddingProvider!.model} vector ranks. Inaccessible candidates never entered the pipeline.`
-        : `${rows.length} permitted lexical candidates. Semantic retrieval is ${embeddingStatus}; inaccessible candidates never entered the pipeline.`, count: rows.length },
-      { stage: 'Ranking', detail: `${DEMO_RANKING_V3.id} exposed reciprocal-rank fusion, five snapshot signals and permission-filtered graph connectivity.`, count: evidence.length },
-      { stage: 'Epistemic assessment', detail: `${epistemicState.supportingEvidence} supporting and ${epistemicState.contradictingEvidence} contradicting actor-visible evidence items make this view ${epistemicState.status}.`, count: evidence.length },
-      { stage: 'Graph expansion', detail: `${graph.edges.length} actor-visible edges connect selected evidence across sources.`, count: graph.edges.length },
-      { stage: 'Context selection', detail: `${evidence.length} evidence items selected within the requested budget.`, count: evidence.length },
-    ];
-    for (const [index, stage] of trace.entries()) {
-      await client.query(
-        `INSERT INTO trace_stages (id, trace_id, workspace_id, actor_id, stage, ordinal, payload)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [randomUUID(), traceId, actor.workspaceId, actor.id, stage.stage, index, stage],
+        evidence.map((item) => item.id),
       );
-    }
-    return {
-      traceId,
-      actor: { id: actor.id, name: actor.name, role: actor.role },
-      interpretedQuery: { intent: interpreted.intent, entities: interpreted.entities },
-      summary: deterministicSummary(evidence),
-      epistemicState,
-      evidence,
-      relationships: evidence.map((item) => ({
-        from: item.title,
-        type: item.stance,
-        to: 'Identity verification drives abandonment',
-      })),
-      graph,
-      sources: evidence.map((item) => ({ title: item.source.title, uri: item.source.uri, updatedAt: item.source.updatedAt })),
-      accessProfile,
-      sourceSystems,
-      ontology,
-      trace,
-      rankingVersion: DEMO_RANKING_V3.id,
-      retrieval: {
-        mode: semanticAvailable ? 'hybrid' : 'lexical-only',
-        embeddingStatus,
-        provider: embeddingProvider?.id ?? null,
-        model: embeddingProvider?.model ?? null,
-      },
-      generatedBy: 'deterministic-extractive',
-    };
-  });
+      const [ontology, sourceSystems, accessProfile] = await Promise.all([
+        readOntology(client),
+        readSourceSystems(
+          client,
+          interpreted.entities
+            .filter((entity) => entity.type === 'Project')
+            .map((entity) => entity.id),
+        ),
+        readAccessProfile(client),
+      ]);
+      const trace = [
+        {
+          stage: 'Query',
+          detail: aliases.length
+            ? `Resolved “${aliases[0].matchedAlias}” to ${aliases[0].name}, plus the active project and hypothesis context.`
+            : 'Detected Atlas Bank, Atlas Onboarding and the active abandonment hypothesis.',
+          count: interpreted.entities.length,
+        },
+        {
+          stage: 'Actor & security scope',
+          detail: `Workspace verified; user and group ACLs applied. ${eligible.rows[0]?.count ?? 0} resources eligible.`,
+          count: Number(eligible.rows[0]?.count ?? 0),
+        },
+        {
+          stage: 'Retrieval',
+          detail: semanticAvailable
+            ? `${rows.length} permitted candidates fused from lexical and genuine ${embeddingProvider!.model} vector ranks. Inaccessible candidates never entered the pipeline.`
+            : `${rows.length} permitted lexical candidates. Semantic retrieval is ${embeddingStatus}; inaccessible candidates never entered the pipeline.`,
+          count: rows.length,
+        },
+        {
+          stage: 'Ranking',
+          detail: `${DEMO_RANKING_V3.id} exposed reciprocal-rank fusion, five snapshot signals and permission-filtered graph connectivity.`,
+          count: evidence.length,
+        },
+        {
+          stage: 'Epistemic assessment',
+          detail: `${epistemicState.supportingEvidence} supporting and ${epistemicState.contradictingEvidence} contradicting actor-visible evidence items make this view ${epistemicState.status}.`,
+          count: evidence.length,
+        },
+        {
+          stage: 'Graph expansion',
+          detail: `${graph.edges.length} actor-visible edges connect selected evidence across sources.`,
+          count: graph.edges.length,
+        },
+        {
+          stage: 'Context selection',
+          detail: `${evidence.length} evidence items selected within the requested budget.`,
+          count: evidence.length,
+        },
+      ];
+      for (const [index, stage] of trace.entries()) {
+        await client.query(
+          `INSERT INTO trace_stages (id, trace_id, workspace_id, actor_id, stage, ordinal, payload)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            randomUUID(),
+            traceId,
+            actor.workspaceId,
+            actor.id,
+            stage.stage,
+            index,
+            stage,
+          ],
+        );
+      }
+      return {
+        traceId,
+        actor: { id: actor.id, name: actor.name, role: actor.role },
+        interpretedQuery: {
+          intent: interpreted.intent,
+          entities: interpreted.entities,
+        },
+        summary: deterministicSummary(evidence),
+        epistemicState,
+        evidence,
+        relationships: evidence.map((item) => ({
+          from: item.title,
+          type: item.stance,
+          to: 'Identity verification drives abandonment',
+        })),
+        graph,
+        sources: evidence.map((item) => ({
+          title: item.source.title,
+          uri: item.source.uri,
+          updatedAt: item.source.updatedAt,
+        })),
+        accessProfile,
+        sourceSystems,
+        ontology,
+        trace,
+        rankingVersion: DEMO_RANKING_V3.id,
+        retrieval: {
+          mode: semanticAvailable ? 'hybrid' : 'lexical-only',
+          embeddingStatus,
+          provider: embeddingProvider?.id ?? null,
+          model: embeddingProvider?.model ?? null,
+        },
+        generatedBy: 'deterministic-extractive',
+      };
+    },
+  );
 }

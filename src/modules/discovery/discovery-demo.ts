@@ -106,7 +106,9 @@ async function materializeAcceptedEvidence(
     [input.contentResourceIds],
   );
   if (documents.rows.length !== input.contentResourceIds.length) {
-    throw new Error('One or more discovery evidence records could not be resolved');
+    throw new Error(
+      'One or more discovery evidence records could not be resolved',
+    );
   }
   for (const document of documents.rows) {
     const evidenceId = stableId(
@@ -559,8 +561,10 @@ export async function initializeDiscoveryDemo() {
     await client.query(
       `INSERT INTO hypothesis_discovery_runs
         (id, workspace_id, access_scope_id, discovery_policy_id, trigger_ref, status,
-         documents_scanned, source_systems_scanned, candidates_formed, selected_route, rationale)
-       VALUES ($1, $2, $3, $4, $5, 'running', $6, $7, $8, 'no-model', $9)
+         documents_scanned, source_systems_scanned, candidates_formed, selected_route,
+         rationale, ontology_version_id)
+       VALUES ($1, $2, $3, $4, $5, 'running', $6, $7, $8, 'no-model', $9,
+         (SELECT ontology_version_id FROM hypothesis_discovery_policies WHERE id = $4))
        ON CONFLICT (workspace_id, discovery_policy_id, trigger_ref) DO NOTHING`,
       [
         runId,

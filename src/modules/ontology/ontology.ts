@@ -1,35 +1,101 @@
 import { z } from 'zod';
 
 export const ontologySchema = z.object({
-  resourceTypes: z.record(z.string(), z.object({ kind: z.enum(['entity', 'content']), description: z.string() })),
+  resourceTypes: z.record(
+    z.string(),
+    z.object({ kind: z.enum(['entity', 'content']), description: z.string() }),
+  ),
   relationships: z.record(
     z.string(),
-    z.object({ from: z.array(z.string()), to: z.array(z.string()), description: z.string() }),
+    z.object({
+      from: z.array(z.string()),
+      to: z.array(z.string()),
+      description: z.string(),
+    }),
   ),
+  aliases: z
+    .record(
+      z.string(),
+      z.object({ target: z.string(), description: z.string() }),
+    )
+    .default({}),
 });
 
 export type OntologyDocument = z.infer<typeof ontologySchema>;
 
 export const ONTOLOGY = ontologySchema.parse({
   resourceTypes: {
-    Organisation: { kind: 'entity', description: 'A company or other organised body.' },
-    Person: { kind: 'entity', description: 'A person known to the organisation.' },
+    Organisation: {
+      kind: 'entity',
+      description: 'A company or other organised body.',
+    },
+    Person: {
+      kind: 'entity',
+      description: 'A person known to the organisation.',
+    },
     Client: { kind: 'entity', description: 'An organisation receiving work.' },
     Project: { kind: 'entity', description: 'A bounded programme of work.' },
     Hypothesis: { kind: 'entity', description: 'A testable explanation.' },
     Evidence: { kind: 'entity', description: 'A source-grounded observation.' },
-    ResearchNote: { kind: 'content', description: 'A research repository artefact.' },
-    MeetingNote: { kind: 'content', description: 'A meeting record captured through the connector lifecycle.' },
-    Document: { kind: 'content', description: 'A file captured from a document repository.' },
-    MessageThread: { kind: 'content', description: 'A conversation thread captured from a messaging system.' },
+    ResearchNote: {
+      kind: 'content',
+      description: 'A research repository artefact.',
+    },
+    MeetingNote: {
+      kind: 'content',
+      description: 'A meeting record captured through the connector lifecycle.',
+    },
+    Document: {
+      kind: 'content',
+      description: 'A file captured from a document repository.',
+    },
+    MessageThread: {
+      kind: 'content',
+      description: 'A conversation thread captured from a messaging system.',
+    },
   },
   relationships: {
-    WORKS_ON: { from: ['Person'], to: ['Project'], description: 'A person contributes to a project.' },
-    IS_FOR: { from: ['Project'], to: ['Client'], description: 'A project serves a client.' },
-    BELONGS_TO: { from: ['ResearchNote', 'MeetingNote', 'Document', 'MessageThread', 'Evidence'], to: ['Project'], description: 'Knowledge is scoped to a project.' },
-    AUTHORED: { from: ['Person'], to: ['ResearchNote', 'MeetingNote', 'Document', 'MessageThread'], description: 'A person authored content.' },
-    DERIVED_FROM: { from: ['Evidence'], to: ['ResearchNote', 'MeetingNote', 'Document', 'MessageThread'], description: 'Evidence is grounded in content.' },
-    SUPPORTS: { from: ['Evidence'], to: ['Hypothesis'], description: 'Evidence supports a hypothesis.' },
-    CONTRADICTS: { from: ['Evidence'], to: ['Hypothesis'], description: 'Evidence contradicts a hypothesis.' },
+    WORKS_ON: {
+      from: ['Person'],
+      to: ['Project'],
+      description: 'A person contributes to a project.',
+    },
+    IS_FOR: {
+      from: ['Project'],
+      to: ['Client'],
+      description: 'A project serves a client.',
+    },
+    BELONGS_TO: {
+      from: [
+        'ResearchNote',
+        'MeetingNote',
+        'Document',
+        'MessageThread',
+        'Evidence',
+      ],
+      to: ['Project'],
+      description: 'Knowledge is scoped to a project.',
+    },
+    AUTHORED: {
+      from: ['Person'],
+      to: ['ResearchNote', 'MeetingNote', 'Document', 'MessageThread'],
+      description: 'A person authored content.',
+    },
+    DERIVED_FROM: {
+      from: ['Evidence'],
+      to: ['ResearchNote', 'MeetingNote', 'Document', 'MessageThread'],
+      description: 'Evidence is grounded in content.',
+    },
+    SUPPORTS: {
+      from: ['Evidence'],
+      to: ['Hypothesis'],
+      description: 'Evidence supports a hypothesis.',
+    },
+    CONTRADICTS: {
+      from: ['Evidence'],
+      to: ['Hypothesis'],
+      description: 'Evidence contradicts a hypothesis.',
+    },
   },
+  aliases: {},
 });
