@@ -60,19 +60,41 @@ test('turns the brain into an inspectable product blueprint without page scrolli
   const monitorDialog = page.getByRole('dialog', {
     name: 'Continual hypothesis and memory loop',
   });
-  await expect(monitorDialog.getByText('Active', { exact: true })).toBeVisible();
+  await expect(
+    monitorDialog.getByText('Active', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    monitorDialog.getByText('Patterns noticed before anyone asks a question'),
+  ).toBeVisible();
+  await expect(
+    monitorDialog.getByText('Unlabeled source records', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    monitorDialog.getByText('Ontology-guided pattern scan', { exact: true }),
+  ).toBeVisible();
+  await expect(monitorDialog.getByText('northstar-ontology-v1')).toBeVisible();
+  await expect(
+    monitorDialog.getByText('Hypothesis candidate', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    monitorDialog.getByText('Accept or dismiss', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    monitorDialog.getByText('PROPOSED HYPOTHESIS · NOT A FACT'),
+  ).toBeVisible();
   await expect(monitorDialog.getByText('Form', { exact: true })).toBeVisible();
   await expect(
     monitorDialog.getByRole('button', { name: 'Run now' }),
   ).toBeVisible();
   await expect(
-    monitorDialog.getByText(
-      'Proposed learnings are not trusted memory yet',
-      { exact: true },
-    ),
+    monitorDialog.getByText('Proposed learnings are not trusted memory yet', {
+      exact: true,
+    }),
   ).toBeVisible();
   await monitorDialog.getByRole('button', { name: 'Run now' }).click();
-  await expect(monitorDialog.getByText('no-model', { exact: true })).toBeVisible();
+  await expect(
+    monitorDialog.getByText('no-model', { exact: true }),
+  ).toBeVisible();
   await expect(
     monitorDialog.getByText(
       'Deterministic evidence-delta rules were sufficient.',

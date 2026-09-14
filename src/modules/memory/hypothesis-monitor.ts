@@ -250,7 +250,13 @@ async function ensurePolicy(client: PoolClient) {
       DEFAULT_MONITOR_QUERY,
       {
         event: 'source-version-changed',
-        sources: Object.values(IDS.sources),
+        sources: [
+          IDS.sources.research,
+          IDS.sources.meetings,
+          IDS.sources.crm,
+          IDS.sources.documents,
+          IDS.sources.messages,
+        ],
       },
       { evidenceDelta: 1, epistemicStateChange: true },
       { required: true, reviewer: IDS.users.alex, autoPromote: false },

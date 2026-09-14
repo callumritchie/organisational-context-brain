@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import { getAppPool, getIngestionPool, getOwnerPool } from '@/src/db/pool';
 import { IDS } from '@/src/modules/canonical/ids';
 import { initializeDefaultMonitor } from '@/src/modules/memory/hypothesis-monitor';
+import { initializeDiscoveryDemo } from '@/src/modules/discovery/discovery-demo';
 
 dotenv.config({ path: '.env.local' });
 
@@ -39,6 +40,10 @@ try {
   });
   console.log(
     `Monitor ready: ${memory.checkpoint?.epistemicStatus ?? 'no checkpoint'}, ${memory.candidates.length} memory proposal(s).`,
+  );
+  const discovery = await initializeDiscoveryDemo();
+  console.log(
+    `Discovery ready: ${discovery.documents} unlabeled inputs, ${discovery.candidates} candidate(s).`,
   );
 } finally {
   await getAppPool().end();

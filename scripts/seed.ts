@@ -11,6 +11,7 @@ import { storeCurrentOntology } from '@/src/modules/ontology/ontology-repository
 import { runCrmSync } from '@/src/modules/sync/crm-sync';
 import { seedInitialSignals } from '@/src/modules/signals/signal-service';
 import { initializeDefaultMonitor } from '@/src/modules/memory/hypothesis-monitor';
+import { initializeDiscoveryDemo } from '@/src/modules/discovery/discovery-demo';
 
 dotenv.config({ path: '.env.local' });
 
@@ -20,6 +21,7 @@ const ownerClient = await ownerPool.connect();
 try {
   await ownerClient.query('BEGIN');
   await ownerClient.query(`TRUNCATE TABLE
+    hypothesis_discovery_candidates, hypothesis_discovery_runs, hypothesis_discovery_policies,
     notification_outbox, model_usage_ledger, model_invocations, monitor_schedules, monitor_jobs,
     hypothesis_transitions, hypothesis_evaluations, hypothesis_revisions, hypothesis_records,
     memory_candidates, evidence_deltas, context_snapshots, monitor_runs, source_change_events, monitor_policies,
@@ -55,7 +57,9 @@ try {
   await storeCurrentOntology(ingestionClient);
   await ingestionClient.query('COMMIT');
   await initializeDefaultMonitor();
+  const discovery = await initializeDiscoveryDemo();
   console.log(`Seeded Northstar Labs: ${research.changed} research, ${meetings.changed} meeting, ${crm.changed} CRM, ${documents.changed} document, ${messages.changed} message, and ${signals.observations} signal observations.`);
+  console.log(`Discovery ready: ${discovery.documents} unlabeled inputs produced ${discovery.candidates} review candidate(s).`);
 } catch (error) {
   await ingestionClient.query('ROLLBACK');
   throw error;

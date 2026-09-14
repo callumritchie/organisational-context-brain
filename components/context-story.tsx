@@ -30,6 +30,7 @@ import {
 import { PERSONAS } from '@/src/modules/canonical/ids';
 import type { AnswerResponse } from '@/src/modules/ai/types';
 import type { ContextResponse } from '@/src/modules/context/types';
+import type { DiscoveryState } from '@/src/modules/discovery/types';
 import type { MemoryState } from '@/src/modules/memory/types';
 import {
   DEMO_RANKING_V3,
@@ -306,23 +307,35 @@ function StageDrawer({
 
 function MemoryDrawer({
   memory,
+  discovery,
   canReview,
   reviewLoading,
+  discoveryReviewLoading,
   operationLoading,
   onReview,
+  onDiscoveryReview,
   onOperate,
   onClose,
 }: {
   memory: MemoryState | null;
+  discovery: DiscoveryState | null;
   canReview: boolean;
   reviewLoading: string | null;
+  discoveryReviewLoading: string | null;
   operationLoading: string | null;
   onReview: (candidateId: string, decision: 'accept' | 'dismiss') => void;
-  onOperate: (operation: 'pause' | 'resume' | 'run-now' | 'mark-notifications-read') => void;
+  onDiscoveryReview: (
+    candidateId: string,
+    decision: 'accept' | 'dismiss',
+  ) => void;
+  onOperate: (
+    operation: 'pause' | 'resume' | 'run-now' | 'mark-notifications-read',
+  ) => void;
   onClose: () => void;
 }) {
   const run = memory?.latestRun;
   const proposals = memory?.candidates ?? [];
+  const discovered = discovery?.candidates ?? [];
   const loop = [
     { label: 'Form', detail: 'Create a testable candidate', icon: Sparkles },
     { label: 'Test', detail: 'Assemble permitted evidence', icon: TestTube2 },
@@ -367,6 +380,166 @@ function MemoryDrawer({
           </button>
         </header>
         <div className={styles.memoryDrawerBody}>
+          <section className={styles.discoveryInbox}>
+            <header>
+              <div>
+                <span className={styles.dataLabel}>
+                  UNPROMPTED DISCOVERY · REVIEW INBOX
+                </span>
+                <strong>Patterns noticed before anyone asks a question</strong>
+                <p>
+                  Raw, unlabeled records can propose a testable explanation. It
+                  remains outside trusted memory until a person accepts it.
+                </p>
+              </div>
+              <code>
+                {discovery?.latestRun
+                  ? `${discovery.latestRun.documentsScanned} inputs · ${discovery.latestRun.sourceSystemsScanned} systems · ${discovery.latestRun.selectedRoute}`
+                  : 'discovery not initialised'}
+              </code>
+            </header>
+            <div
+              className={styles.discoveryFlow}
+              aria-label="Discovery data flow"
+            >
+              <article>
+                <Database />
+                <span>
+                  <small className={styles.dataLabel}>INPUT</small>
+                  <strong>Unlabeled source records</strong>
+                </span>
+                <b>{discovery?.latestRun?.documentsScanned ?? 0}</b>
+              </article>
+              <ArrowRight />
+              <article>
+                <BrainCircuit />
+                <span>
+                  <small className={styles.dataLabel}>SYSTEM</small>
+                  <strong>Ontology-guided pattern scan</strong>
+                </span>
+                <b>{discovery?.policy.ontologyVersion ?? 'not loaded'}</b>
+              </article>
+              <ArrowRight />
+              <article>
+                <Sparkles />
+                <span>
+                  <small className={styles.dataLabel}>UNTRUSTED OUTPUT</small>
+                  <strong>Hypothesis candidate</strong>
+                </span>
+                <b>
+                  {
+                    discovered.filter((item) => item.status === 'proposed')
+                      .length
+                  }{' '}
+                  ready
+                </b>
+              </article>
+              <ArrowRight />
+              <article>
+                <ShieldCheck />
+                <span>
+                  <small className={styles.dataLabel}>HUMAN GATE</small>
+                  <strong>Accept or dismiss</strong>
+                </span>
+                <b>required</b>
+              </article>
+              <ArrowRight />
+              <article>
+                <RefreshCw />
+                <span>
+                  <small className={styles.dataLabel}>IF ACCEPTED</small>
+                  <strong>Continual monitor</strong>
+                </span>
+                <b>compounds</b>
+              </article>
+            </div>
+            {discovered.length ? (
+              discovered.map((candidate) => (
+                <article
+                  className={styles.discoveryCandidate}
+                  key={candidate.id}
+                >
+                  <div>
+                    <span className={styles.dataLabel}>
+                      PROPOSED HYPOTHESIS · NOT A FACT
+                    </span>
+                    <h3>{candidate.statement}</h3>
+                    <p className={styles.storyCopy}>{candidate.rationale}</p>
+                    <div className={styles.discoveryConcepts}>
+                      {candidate.concepts.map((concept) => (
+                        <code key={concept.id}>
+                          {concept.label} · {concept.evidenceCount} records
+                        </code>
+                      ))}
+                    </div>
+                  </div>
+                  <section>
+                    <div>
+                      <span className={styles.dataLabel}>PREDICTS</span>
+                      <p>{candidate.predictions[0]}</p>
+                    </div>
+                    <div>
+                      <span className={styles.dataLabel}>WOULD REFUTE IT</span>
+                      <p>{candidate.falsificationConditions[0]}</p>
+                    </div>
+                    <code>
+                      {candidate.sourceDiversity} sources · novelty=
+                      {candidate.noveltyScore.toFixed(2)} · confidence=
+                      {candidate.confidence.toFixed(2)}
+                    </code>
+                  </section>
+                  <aside>
+                    <b
+                      className={
+                        candidate.status === 'accepted'
+                          ? styles.acceptedMemory
+                          : ''
+                      }
+                    >
+                      {candidate.status}
+                    </b>
+                    {candidate.status === 'proposed' ? (
+                      <div>
+                        <Button
+                          variant="outline"
+                          disabled={
+                            !canReview ||
+                            discoveryReviewLoading === candidate.id
+                          }
+                          onClick={() =>
+                            onDiscoveryReview(candidate.id, 'dismiss')
+                          }
+                        >
+                          Dismiss
+                        </Button>
+                        <Button
+                          disabled={
+                            !canReview ||
+                            discoveryReviewLoading === candidate.id
+                          }
+                          onClick={() =>
+                            onDiscoveryReview(candidate.id, 'accept')
+                          }
+                        >
+                          {discoveryReviewLoading === candidate.id
+                            ? 'Saving…'
+                            : 'Accept + monitor'}
+                        </Button>
+                      </div>
+                    ) : null}
+                    {!canReview && candidate.status === 'proposed' ? (
+                      <small>Project Lead review required</small>
+                    ) : null}
+                  </aside>
+                </article>
+              ))
+            ) : (
+              <p className={styles.emptyMonitor}>
+                No cross-source pattern currently exceeds the discovery policy
+                threshold.
+              </p>
+            )}
+          </section>
           <section className={styles.monitorContract}>
             <div>
               <span className={styles.dataLabel}>MONITORED HYPOTHESIS</span>
@@ -409,7 +582,9 @@ function MemoryDrawer({
                     )
                   }
                 >
-                  {memory?.policy?.status === 'active' ? 'Pause monitor' : 'Resume monitor'}
+                  {memory?.policy?.status === 'active'
+                    ? 'Pause monitor'
+                    : 'Resume monitor'}
                 </Button>
                 <Button
                   disabled={
@@ -427,36 +602,85 @@ function MemoryDrawer({
             <div>
               <article>
                 <span className={styles.dataLabel}>HYPOTHESIS_RECORD</span>
-                <strong>{memory?.hypothesis?.statement ?? 'Not initialised'}</strong>
+                <strong>
+                  {memory?.hypothesis?.statement ?? 'Not initialised'}
+                </strong>
                 <dl>
-                  <div><dt>Lifecycle</dt><dd>{memory?.hypothesis?.lifecycleStatus ?? '—'}</dd></div>
-                  <div><dt>Evidence state</dt><dd>{memory?.hypothesis?.epistemicStatus ?? '—'}</dd></div>
-                  <div><dt>Revision</dt><dd>v{memory?.hypothesis?.revision ?? 0}</dd></div>
+                  <div>
+                    <dt>Lifecycle</dt>
+                    <dd>{memory?.hypothesis?.lifecycleStatus ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Evidence state</dt>
+                    <dd>{memory?.hypothesis?.epistemicStatus ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Revision</dt>
+                    <dd>v{memory?.hypothesis?.revision ?? 0}</dd>
+                  </div>
                 </dl>
               </article>
               <article>
                 <span className={styles.dataLabel}>WORKER_QUEUE</span>
                 <strong>{memory?.operations?.pendingJobs ?? 0} ready</strong>
                 <dl>
-                  <div><dt>Completed</dt><dd>{memory?.operations?.completedJobs ?? 0}</dd></div>
-                  <div><dt>Retrying</dt><dd>{memory?.operations?.retryingJobs ?? 0}</dd></div>
-                  <div><dt>Dead letter</dt><dd>{memory?.operations?.deadLetterJobs ?? 0}</dd></div>
+                  <div>
+                    <dt>Completed</dt>
+                    <dd>{memory?.operations?.completedJobs ?? 0}</dd>
+                  </div>
+                  <div>
+                    <dt>Retrying</dt>
+                    <dd>{memory?.operations?.retryingJobs ?? 0}</dd>
+                  </div>
+                  <div>
+                    <dt>Dead letter</dt>
+                    <dd>{memory?.operations?.deadLetterJobs ?? 0}</dd>
+                  </div>
                 </dl>
               </article>
               <article>
                 <span className={styles.dataLabel}>MODEL_ROUTE</span>
-                <strong>{memory?.modelRouting?.latestRoute ?? 'not used yet'}</strong>
+                <strong>
+                  {memory?.modelRouting?.latestRoute ?? 'not used yet'}
+                </strong>
                 <dl>
-                  <div><dt>Policy</dt><dd>{memory?.modelRouting?.mode ?? '—'}</dd></div>
-                  <div><dt>Tokens</dt><dd>{(memory?.modelRouting?.totalInputTokens ?? 0) + (memory?.modelRouting?.totalOutputTokens ?? 0)}</dd></div>
-                  <div><dt>Cost</dt><dd>£{((memory?.modelRouting?.totalCostMicros ?? 0) / 1_000_000).toFixed(4)}</dd></div>
+                  <div>
+                    <dt>Policy</dt>
+                    <dd>{memory?.modelRouting?.mode ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Tokens</dt>
+                    <dd>
+                      {(memory?.modelRouting?.totalInputTokens ?? 0) +
+                        (memory?.modelRouting?.totalOutputTokens ?? 0)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Cost</dt>
+                    <dd>
+                      £
+                      {(
+                        (memory?.modelRouting?.totalCostMicros ?? 0) / 1_000_000
+                      ).toFixed(4)}
+                    </dd>
+                  </div>
                 </dl>
               </article>
               <article>
                 <span className={styles.dataLabel}>NOTIFICATION_OUTBOX</span>
-                <strong>{memory?.notifications.filter((item) => item.status !== 'read').length ?? 0} unread</strong>
-                <p>{memory?.notifications[0]?.title ?? 'No action needs attention.'}</p>
-                {memory?.notifications.some((item) => item.status !== 'read') ? (
+                <strong>
+                  {memory?.notifications.filter(
+                    (item) => item.status !== 'read',
+                  ).length ?? 0}{' '}
+                  unread
+                </strong>
+                <p>
+                  {memory?.notifications[0]?.title ??
+                    'No action needs attention.'}
+                </p>
+                {memory?.notifications.some(
+                  (item) => item.status !== 'read',
+                ) ? (
                   <button
                     type="button"
                     disabled={!canReview || operationLoading !== null}
@@ -469,14 +693,19 @@ function MemoryDrawer({
             </div>
             <footer>
               <code>
-                schedule={memory?.operations?.scheduleEnabled ? 'enabled' : 'paused'}
+                schedule=
+                {memory?.operations?.scheduleEnabled ? 'enabled' : 'paused'}
               </code>
               <code>
-                next_due={memory?.operations?.nextDueAt
+                next_due=
+                {memory?.operations?.nextDueAt
                   ? new Date(memory.operations.nextDueAt).toLocaleString()
                   : '—'}
               </code>
-              <span>{memory?.modelRouting?.latestReason ?? 'No routing decision recorded.'}</span>
+              <span>
+                {memory?.modelRouting?.latestReason ??
+                  'No routing decision recorded.'}
+              </span>
             </footer>
           </section>
           <section
@@ -994,6 +1223,7 @@ export function ContextStory() {
   const [result, setResult] = useState<ContextResponse | null>(null);
   const [answer, setAnswer] = useState<AnswerResponse['answer'] | null>(null);
   const [memory, setMemory] = useState<MemoryState | null>(null);
+  const [discovery, setDiscovery] = useState<DiscoveryState | null>(null);
   const [stageId, setStageId] = useState<StageId | null>(null);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -1001,6 +1231,9 @@ export function ContextStory() {
   const [mutationLoading, setMutationLoading] = useState(false);
   const [mutationMessage, setMutationMessage] = useState<string | null>(null);
   const [reviewLoading, setReviewLoading] = useState<string | null>(null);
+  const [discoveryReviewLoading, setDiscoveryReviewLoading] = useState<
+    string | null
+  >(null);
   const [operationLoading, setOperationLoading] = useState<string | null>(null);
 
   const loadMemory = useCallback(async (nextActorId: string) => {
@@ -1010,6 +1243,17 @@ export function ContextStory() {
     if (!response.ok) return;
     const payload = (await response.json()) as { memory: MemoryState };
     setMemory(payload.memory);
+  }, []);
+
+  const loadDiscovery = useCallback(async (nextActorId: string) => {
+    const response = await fetch('/api/v1/discovery', {
+      headers: { 'x-demo-actor': nextActorId },
+    });
+    if (!response.ok) return;
+    const payload = (await response.json()) as {
+      discovery: DiscoveryState | null;
+    };
+    setDiscovery(payload.discovery);
   }, []);
 
   const ask = useCallback(
@@ -1033,6 +1277,7 @@ export function ContextStory() {
         setResult(payload.context);
         setAnswer(payload.answer);
         void loadMemory(nextActorId);
+        void loadDiscovery(nextActorId);
         return payload;
       } catch (requestError) {
         setError(
@@ -1044,7 +1289,7 @@ export function ContextStory() {
         setLoading(false);
       }
     },
-    [actorId, loadMemory, query],
+    [actorId, loadDiscovery, loadMemory, query],
   );
 
   const initialised = useRef(false);
@@ -1102,6 +1347,7 @@ export function ContextStory() {
   function changeActor(nextActorId: string) {
     setActorId(nextActorId);
     setMemory(null);
+    setDiscovery(null);
     setMutationMessage(null);
     void ask(nextActorId);
   }
@@ -1184,6 +1430,50 @@ export function ContextStory() {
       );
     } finally {
       setReviewLoading(null);
+    }
+  }
+
+  async function reviewDiscoveredHypothesis(
+    candidateId: string,
+    decision: 'accept' | 'dismiss',
+  ) {
+    setDiscoveryReviewLoading(candidateId);
+    setMutationMessage(null);
+    try {
+      const response = await fetch(
+        `/api/v1/discovery/candidates/${candidateId}/review`,
+        {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'x-demo-actor': actorId,
+          },
+          body: JSON.stringify({ decision }),
+        },
+      );
+      const payload = (await response.json()) as {
+        discovery?: DiscoveryState;
+        title?: string;
+      };
+      if (!response.ok || !payload.discovery) {
+        throw new Error(
+          payload.title ?? 'The discovered hypothesis could not be reviewed.',
+        );
+      }
+      setDiscovery(payload.discovery);
+      setMutationMessage(
+        decision === 'accept'
+          ? 'The discovery is now a governed Hypothesis Resource with its own continual monitor.'
+          : 'The discovery was dismissed; its evidence and audit trail were retained.',
+      );
+    } catch (requestError) {
+      setMutationMessage(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Discovery review failed.',
+      );
+    } finally {
+      setDiscoveryReviewLoading(null);
     }
   }
 
@@ -1312,11 +1602,16 @@ export function ContextStory() {
       {stageId === 'monitor' ? (
         <MemoryDrawer
           memory={memory}
+          discovery={discovery}
           canReview={actorId === PERSONAS[0].id}
           reviewLoading={reviewLoading}
+          discoveryReviewLoading={discoveryReviewLoading}
           operationLoading={operationLoading}
           onReview={(candidateId, decision) =>
             void reviewCandidate(candidateId, decision)
+          }
+          onDiscoveryReview={(candidateId, decision) =>
+            void reviewDiscoveredHypothesis(candidateId, decision)
           }
           onOperate={(operation) => void operateMonitor(operation)}
           onClose={() => setStageId(null)}

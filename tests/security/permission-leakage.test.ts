@@ -79,7 +79,7 @@ describe('permission leakage', () => {
     }
   });
 
-  it('forces row-level security on monitor, lifecycle, routing and notification records', async () => {
+  it('forces row-level security on monitor, discovery, lifecycle, routing and notification records', async () => {
     const owner = new Pool({ connectionString: process.env.DATABASE_URL_OWNER });
     const protectedTables = [
       'hypothesis_records',
@@ -92,6 +92,9 @@ describe('permission leakage', () => {
       'model_invocations',
       'model_usage_ledger',
       'notification_outbox',
+      'hypothesis_discovery_policies',
+      'hypothesis_discovery_runs',
+      'hypothesis_discovery_candidates',
     ];
     try {
       const result = await owner.query<{

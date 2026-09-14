@@ -25,6 +25,8 @@
     "benchmark:semantic": "tsx scripts/run-semantic-benchmark.ts",
     "benchmark:questions": "tsx scripts/human-benchmark-questions.ts",
     "benchmark:hypotheses": "tsx scripts/run-hypothesis-monitor-benchmark.ts",
+    "benchmark:discovery": "tsx scripts/run-hypothesis-discovery-benchmark.ts",
+    "discovery:run": "tsx scripts/run-discovery.ts",
     "memory:bootstrap": "tsx scripts/bootstrap-monitor.ts",
     "monitor:worker": "tsx scripts/run-monitor-worker.ts",
     "monitor:schedule": "tsx scripts/enqueue-monitor-schedules.ts",

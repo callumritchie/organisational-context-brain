@@ -16,6 +16,7 @@ This plan supersedes the original horizontal roadmap. Work proceeds as sequentia
 10. Ranking models are transparent and illustrative, with evaluation-based ordering checks; `demo-ranking-v3` adds reciprocal-rank fusion to first-class signals and actor-visible graph connectivity.
 11. A machine-formed learning is a provenance-linked `memory_candidate`, not trusted organisational memory; review is required before promotion to a canonical Resource.
 12. Background evaluation reuses the same actor-scoped Context Service and may not broaden the monitor service identity beyond its declared access scope.
+13. An open-ended discovery is an untrusted candidate until review; it must retain its exact evidence Resources, model route, prediction and falsification condition.
 
 ## Milestone 0 — Repository foundation
 
@@ -142,3 +143,17 @@ Status: control-plane implementation complete; semantic-quality validation remai
 - Implemented: provider-neutral model routing with deterministic-only, economy, balanced and high-assurance policies; approved-provider and budget checks; durable invocation and token/cost ledgers. Background monitoring defaults to deterministic-only and zero external tokens.
 - Implemented: a deterministic 10,000-record hypothesis-monitor contract benchmark covering every source type, 200 projects, versioned stance changes, duplicates, permission leakage and routing spend.
 - Remaining: independently authored evaluation for open-ended hypothesis quality, an explicitly approved/configured provider for raw-content hypothesis discovery, external notification delivery, production job supervision and production authentication.
+
+## Milestone 9 — Open-ended hypothesis discovery
+
+Status: first deterministic vertical slice implemented; human-quality validation remains.
+
+- Implemented: a deliberately unfamiliar Verdant supplier-onboarding scenario with five unlabeled records across research, meetings, CRM, documents and messages.
+- Implemented: normal Source, SyncRun, immutable SourceObjectVersion, canonical Content Resource, relationship, assertion and provenance records for every discovery input.
+- Implemented: governed concept rules and a minimum three-source diversity threshold that form a candidate without prepared hypotheses or stance labels.
+- Implemented: durable discovery policies, runs and candidates protected by forced row-level security.
+- Implemented: every candidate retains its concepts, exact evidence Resource IDs, source URIs, prediction, falsification condition, confidence, novelty and deterministic model-route record.
+- Implemented: a single-view unprompted hypothesis inbox that visually separates raw inputs, system processing, untrusted output, human review and continual monitoring.
+- Implemented: Project Lead acceptance creates a canonical Hypothesis Resource and standard continual monitor; dismissal preserves the audit trail. Production writes remain disabled without genuine authentication.
+- Implemented: a 50-case generated contract benchmark for candidate formation, primary concept selection, evidence grounding, source diversity, falsifiability and zero external spend, plus an ignored human-scoring packet.
+- Remaining: blind independent human scoring, model-assisted concept induction if justified, scheduled/retryable discovery sweeps over arbitrary projects, contradiction-rich held-out inputs and production operations.

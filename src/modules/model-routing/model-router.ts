@@ -142,12 +142,14 @@ export async function ensureBackgroundRoutePolicy(client: PoolClient) {
 export async function recordDeterministicRouteDecision(
   client: PoolClient,
   input: {
-    monitorRunId: string;
+    monitorRunId?: string | null;
+    discoveryRunId?: string | null;
     monitorJobId?: string | null;
     taskFingerprint: string;
     inputCharacters: number;
     routePolicyId?: string;
     accessScopeId?: string;
+    purpose?: string;
   },
 ) {
   const policy: ModelRoutePolicyContract = {
@@ -164,28 +166,35 @@ export async function recordDeterministicRouteDecision(
     ambiguity: 0,
     materiality: 0,
   });
-  const invocationId = stableId(
+  const proposedInvocationId = stableId(
     'model-invocation',
-    `${input.taskFingerprint}:${BACKGROUND_ROUTE_PROCESS.promptVersion}`,
+    input.purpose
+      ? `${input.purpose}:${input.taskFingerprint}:${BACKGROUND_ROUTE_PROCESS.promptVersion}`
+      : `${input.taskFingerprint}:${BACKGROUND_ROUTE_PROCESS.promptVersion}`,
   );
   const routePolicyId = input.routePolicyId ?? IDS.modelPolicies.background;
   const accessScopeId = input.accessScopeId ?? IDS.scopes.everyone;
-  await client.query(
+  const invocation = await client.query<{ id: string }>(
     `INSERT INTO model_invocations
       (id, workspace_id, access_scope_id, route_policy_id, monitor_run_id, monitor_job_id,
+       discovery_run_id,
        purpose, task_fingerprint, selected_route, decision_reason, provider, model,
        prompt_version, estimated_input_tokens, maximum_output_tokens, estimated_cost_micros,
        actual_input_tokens, actual_output_tokens, actual_cost_micros, status, completed_at)
-     VALUES ($1, $2, $3, $4, $5, $6, 'hypothesis-evaluation', $7, $8, $9,
-       $10, $11, $12, $13, $14, $15, 0, 0, 0, $16, now())
-     ON CONFLICT (workspace_id, purpose, task_fingerprint, prompt_version) DO NOTHING`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+       $12, $13, $14, $15, $16, $17, 0, 0, 0, $18, now())
+     ON CONFLICT (workspace_id, purpose, task_fingerprint, prompt_version)
+     DO UPDATE SET id = model_invocations.id
+     RETURNING id`,
     [
-      invocationId,
+      proposedInvocationId,
       IDS.workspace,
       accessScopeId,
       routePolicyId,
       input.monitorRunId,
       input.monitorJobId ?? null,
+      input.discoveryRunId ?? null,
+      input.purpose ?? 'hypothesis-evaluation',
       input.taskFingerprint,
       decision.route,
       decision.reason,
@@ -198,6 +207,7 @@ export async function recordDeterministicRouteDecision(
       decision.status,
     ],
   );
+  const invocationId = invocation.rows[0]?.id ?? proposedInvocationId;
   await client.query(
     `INSERT INTO model_usage_ledger
       (id, workspace_id, access_scope_id, invocation_id, input_tokens, output_tokens,

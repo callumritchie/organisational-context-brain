@@ -91,7 +91,26 @@ Each configurable policy supplies its Hypothesis Resource, query, owner, service
 
 Model routing follows “no model unless needed”. Deterministic evidence deltas use `no-model`; configurable economy, balanced and high-assurance routes enforce approved providers plus daily-token and monthly-cost ceilings before a gateway can run. Every decision—including skipped and budget-blocked work—is durable. No cross-scope model-output cache exists, so cached restricted content cannot be replayed into another permission context.
 
-The implemented formation rule generalises across configured hypotheses and all connector events when evidence already has a governed `SUPPORTS` or `CONTRADICTS` stance. The 10,000-record deterministic contract benchmark validates event uniqueness, connector coverage, versioned stance changes, duplicate suppression, permissions and zero-token routing. It does not establish the quality of open-ended, model-generated hypotheses from raw unstructured content; that requires independently authored evaluation data and an explicitly enabled provider route.
+The monitored-hypothesis formation rule generalises across configured hypotheses and all connector events when evidence already has a governed `SUPPORTS` or `CONTRADICTS` stance. The 10,000-record deterministic contract benchmark validates event uniqueness, connector coverage, versioned stance changes, duplicate suppression, permissions and zero-token routing.
+
+## Open-ended hypothesis discovery
+
+Milestone 9 adds a separate path for raw canonical content that has no prepared stance label:
+
+```text
+Unlabeled canonical content from permitted sources
+  → governed concept matches
+  → cross-source diversity threshold
+  → untrusted HypothesisDiscoveryCandidate
+  → prediction + falsification condition + exact evidence references
+  → Project Lead review
+  → canonical Hypothesis Resource
+  → normal continual MonitorPolicy
+```
+
+Discovery policies bind one project, an access scope, source subscriptions, governed concept rules and a minimum source-diversity threshold. Candidate formation is deterministic in the current slice and records a `no-model` decision in the same usage ledger as monitoring. Candidates are not graph truth and are never silently promoted. Acceptance copies their evidence Resource IDs, predictions and falsification conditions into a governed Hypothesis Resource and creates a standard monitor; dismissal retains the audit record.
+
+The five-source Verdant supplier-onboarding fixture contains no hypothesis or `SUPPORTS`/`CONTRADICTS` label. The 50-case benchmark proves policy conformance, grounding and falsifiability against generated vocabulary. Its human-quality rubric remains unscored, and scheduled discovery over arbitrary workspace content remains deferred. These boundaries prevent a deterministic golden set from being presented as evidence of causal intelligence.
 
 CRM account `381`, the `atlas-bank` CRM slug, document folder `fld-atlas-381`, and `/clients/atlas-bank` folder path are stored as traceable identity keys backed by their source-object versions. They resolve to the existing Atlas Bank Resource rather than creating duplicate client or folder entities. The document itself remains a canonical content Resource.
 
@@ -135,4 +154,4 @@ Domain work lives under `src/modules`; the application and API may depend on tho
 
 ## Current milestone state
 
-Milestones 0–6 are complete. Milestone 7 scale validation and Milestone 8 semantic-quality validation remain in progress. The system has a measured 10,000-record relational/graph/retrieval baseline and a working, configurable, review-gated hypothesis control plane with connector events, workers, schedules, lifecycle, notifications and cost routing. Independently authored questions, full-corpus vector measurements, open-ended hypothesis discovery and production operations remain before broader infrastructure decisions are justified.
+Milestones 0–6 are complete. Milestone 7 scale validation remains in progress; Milestone 8's control plane is implemented; Milestone 9's first deterministic open-ended discovery slice is implemented. The system has a measured 10,000-record relational/graph/retrieval baseline, a working configurable and review-gated hypothesis control plane, and a five-source untrusted hypothesis inbox. Independently authored quality judgements, full-corpus vector measurements, model-assisted concept induction, scheduled general-purpose discovery and production operations remain before broader infrastructure decisions are justified.
