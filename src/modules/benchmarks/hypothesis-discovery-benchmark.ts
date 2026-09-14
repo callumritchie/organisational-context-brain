@@ -5,9 +5,15 @@ import type {
 } from '@/src/modules/discovery/types';
 import { chooseModelRoute } from '@/src/modules/model-routing/model-router';
 
-const SOURCE_SYSTEMS = ['research', 'meetings', 'crm', 'documents', 'messages'];
+export const DISCOVERY_BENCHMARK_SOURCE_SYSTEMS = [
+  'research',
+  'meetings',
+  'crm',
+  'documents',
+  'messages',
+] as const;
 
-const BENCHMARK_RULES: DiscoveryConceptRule[] = [
+export const DISCOVERY_BENCHMARK_RULES: DiscoveryConceptRule[] = [
   {
     id: 'approval-bottleneck',
     label: 'Approval bottleneck',
@@ -75,10 +81,15 @@ export function generateHypothesisDiscoveryCases(
   count = 50,
 ): DiscoveryBenchmarkCase[] {
   return Array.from({ length: count }, (_, index) => {
-    const primary = BENCHMARK_RULES[index % BENCHMARK_RULES.length]!;
-    const secondary = BENCHMARK_RULES[(index + 2) % BENCHMARK_RULES.length]!;
+    const primary =
+      DISCOVERY_BENCHMARK_RULES[index % DISCOVERY_BENCHMARK_RULES.length]!;
+    const secondary =
+      DISCOVERY_BENCHMARK_RULES[
+        (index + 2) % DISCOVERY_BENCHMARK_RULES.length
+      ]!;
     const subject = `Workflow ${String(index + 1).padStart(2, '0')} delay`;
-    const documents = SOURCE_SYSTEMS.map((sourceSystem, sourceIndex) => {
+    const documents = DISCOVERY_BENCHMARK_SOURCE_SYSTEMS.map(
+      (sourceSystem, sourceIndex) => {
       const secondarySignal =
         sourceIndex < 3
           ? ` Teams also noted ${secondary.keywords[sourceIndex % secondary.keywords.length]}.`
@@ -87,14 +98,15 @@ export function generateHypothesisDiscoveryCases(
         sourceIndex % 2 === 0
           ? ' The record contains an old project alias and an unrelated budget comment.'
           : ' A copied status label calls the item complete although the narrative says it is open.';
-      return {
-        resourceId: `benchmark-${index + 1}-${sourceSystem}`,
-        sourceUri: `${sourceSystem}://benchmark/workflow-${index + 1}`,
-        sourceSystem,
-        title: `${subject} ${sourceSystem} record`,
-        body: `The operational narrative repeatedly describes ${primary.keywords[sourceIndex % primary.keywords.length]}.${secondarySignal}${noise}`,
-      };
-    });
+        return {
+          resourceId: `benchmark-${index + 1}-${sourceSystem}`,
+          sourceUri: `${sourceSystem}://benchmark/workflow-${index + 1}`,
+          sourceSystem,
+          title: `${subject} ${sourceSystem} record`,
+          body: `The operational narrative repeatedly describes ${primary.keywords[sourceIndex % primary.keywords.length]}.${secondarySignal}${noise}`,
+        };
+      },
+    );
     return {
       id: `discovery-case-${String(index + 1).padStart(2, '0')}`,
       subject,
@@ -117,7 +129,7 @@ export function evaluateHypothesisDiscoveryBenchmark(
     const candidate = discoverHypotheses(benchmarkCase.documents, {
       subject: benchmarkCase.subject,
       minimumSourceDiversity: 3,
-      conceptRules: BENCHMARK_RULES,
+      conceptRules: DISCOVERY_BENCHMARK_RULES,
     })[0];
     const inputIds = new Set(
       benchmarkCase.documents.map((document) => document.resourceId),

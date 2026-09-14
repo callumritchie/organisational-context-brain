@@ -26,6 +26,7 @@
     "benchmark:questions": "tsx scripts/human-benchmark-questions.ts",
     "benchmark:hypotheses": "tsx scripts/run-hypothesis-monitor-benchmark.ts",
     "benchmark:discovery": "tsx scripts/run-hypothesis-discovery-benchmark.ts",
+    "benchmark:hypothesis-quality": "tsx scripts/run-hypothesis-quality-evaluation.ts",
     "discovery:run": "tsx scripts/run-discovery.ts",
     "discovery:worker": "tsx scripts/run-discovery-worker.ts",
     "discovery:schedule": "tsx scripts/enqueue-discovery-schedules.ts",

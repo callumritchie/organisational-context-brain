@@ -173,3 +173,18 @@ Status: local control-plane implementation complete; production supervision rema
 - Implemented: the existing progressive-disclosure drawer exposes schedule state, manual scanning and pause/resume controls without adding another page.
 - Verified: focused database integration covers event routing replay, run replay, evidence re-observation and candidate deduplication.
 - Remaining: independent process supervision, external notification delivery, arbitrary connector administration UI, blind quality scoring and production authentication.
+
+## Milestone 11 — Independent intelligence evaluation
+
+Status: evaluation harness implemented; independent authoring and scoring pending.
+
+- Implemented: a 100-case zero-egress baseline split into 60 ordinary positives, 20 contradiction-rich positives and 20 negative controls.
+- Implemented: separate confusion-matrix, grounding, expected-concept and contradiction-surfacing measurements so prepared-vocabulary detection cannot masquerade as hypothesis quality.
+- Finding: the deterministic discovery rule detects 80/80 expected candidates, rejects 20/20 negative controls and grounds 80/80 outputs, but surfaces the conflicting evidence in 0/20 contradiction-rich cases.
+- Implemented: a fail-closed independent authoring packet requiring authorship attestation, all five source shapes, unlabeled natural records and hidden expected behaviour.
+- Implemented: a blind review packet that removes expected labels and a reviewer schema for grounding, novelty, usefulness, falsifiability, contradiction handling, actionability, unsupported candidates and missed patterns.
+- Implemented: multi-reviewer aggregation, distinct-reviewer enforcement, within-one-point agreement, confidence calibration error and prospectively defined provisional quality thresholds.
+- Implemented: candidate-quality fields remain null when no candidate exists; those cases measure missed material patterns instead of soliciting meaningless answer scores.
+- Implemented: the entire harness records zero external tokens and cost.
+- Remaining: collect at least 20 genuinely independently authored cases, obtain two or more blind reviews, adjudicate disagreements, and run the already planned full-vector benchmark.
+- Blocked boundary: the full 10,000-document vector run is not authorised by the earlier 2,000-input synthetic egress approval and remains disabled until separately approved.

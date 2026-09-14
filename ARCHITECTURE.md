@@ -114,6 +114,14 @@ Milestone 10 puts this path behind the same kind of durable control plane as mon
 
 The five-source Verdant supplier-onboarding fixture contains no hypothesis or `SUPPORTS`/`CONTRADICTS` label. The 50-case benchmark proves policy conformance, grounding and falsifiability against generated vocabulary. Its human-quality rubric remains unscored. These boundaries prevent a deterministic golden set from being presented as evidence of causal intelligence.
 
+## Intelligence evaluation boundary
+
+Milestone 11 treats evaluation as a separate system boundary. A generated 100-case suite mixes ordinary positives, contradiction-rich positives and negative controls. Machine checks measure candidate detection, false positives, grounding and configured-concept selection, while contradiction surfacing is reported independently. The current deterministic path scores 0/20 on that last measure: it detects the recurring concept but does not preserve evidence that disputes its causal interpretation.
+
+Independent quality uses two separated artifacts. A case-authoring packet contains hidden expected outcomes and requires an attestation that its author did not inspect the implementation. The derived blind-review packet contains source records and system output but no expected labels. Two or more distinct reviewers score grounding, novelty, usefulness, falsifiability, contradiction handling and actionability; absent candidates are assessed only for missed material patterns. Aggregation records reviewer agreement, unsupported and missed-pattern rates, and the difference between system confidence and human grounding.
+
+This harness has no provider dependency and records zero external spend. The full-vector 10,000-document run remains a separate, explicitly authorised egress decision.
+
 CRM account `381`, the `atlas-bank` CRM slug, document folder `fld-atlas-381`, and `/clients/atlas-bank` folder path are stored as traceable identity keys backed by their source-object versions. They resolve to the existing Atlas Bank Resource rather than creating duplicate client or folder entities. The document itself remains a canonical content Resource.
 
 Messaging channel `chn-atlas-onboarding` and its `atlas-onboarding` slug resolve to the existing Atlas Onboarding Project. Thread `thr-2026-08-30-synthesis` resolves to a separate `MessageThread` content Resource, avoiding a channel/thread/project identity collapse. The ontology is persisted as an immutable, checksummed version and returned from the actor-scoped context service.
@@ -156,4 +164,4 @@ Domain work lives under `src/modules`; the application and API may depend on tho
 
 ## Current milestone state
 
-Milestones 0–6 are complete. Milestone 7 scale validation remains in progress; Milestone 8's monitoring control plane, Milestone 9's first deterministic open-ended discovery slice and Milestone 10's local continual-discovery runtime are implemented. The system has a measured 10,000-record relational/graph/retrieval baseline, configurable monitoring and discovery policies, replay-safe background jobs, and a review-gated hypothesis inbox. Independently authored quality judgements, full-corpus vector measurements, model-assisted concept induction and production operations remain before broader infrastructure decisions are justified.
+Milestones 0–6 are complete. Milestone 7 scale validation remains in progress; Milestone 8's monitoring control plane, Milestone 9's first deterministic open-ended discovery slice and Milestone 10's local continual-discovery runtime are implemented. Milestone 11 now has an independent-evaluation harness and a measured contradiction-handling gap, but is not complete until external authors and reviewers supply genuine judgements. The system has a measured 10,000-record relational/graph/retrieval baseline, configurable monitoring and discovery policies, replay-safe background jobs, and a review-gated hypothesis inbox. Independently authored quality judgements, full-corpus vector measurements, model-assisted concept induction and production operations remain before broader infrastructure decisions are justified.

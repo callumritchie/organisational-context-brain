@@ -33,4 +33,4 @@ The command writes `.benchmark/hypothesis-discovery-review.json`. That ignored f
 
 The test proves deterministic policy conformance on generated vocabulary. It does not prove that the candidate is novel, causally correct, useful to a product team or robust to natural organisational language. The human rubric is deliberately unscored. It also does not evaluate model-assisted concept induction, free-form ontology extension or independent expert labels.
 
-The next quality gate is blinded human review of the 50-case packet, followed by a separately approved synthetic model comparison if deterministic coverage is inadequate. No source text should be sent to a provider without explicit approval and a recorded route/budget policy.
+Milestone 11 now provides the stricter independent-authoring and multi-reviewer protocol in [the hypothesis quality evaluation](./hypothesis-quality-evaluation.md). No source text should be sent to a provider without explicit approval and a recorded route/budget policy.
