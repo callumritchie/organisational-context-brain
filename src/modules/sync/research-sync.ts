@@ -12,14 +12,20 @@ import type {
   ResearchSourceRecord,
   SourceVisibility,
 } from '@/src/modules/connectors/types';
-import { recordKnowledgeChangeEvents, type KnowledgeChange } from '@/src/modules/events/knowledge-change';
+import {
+  recordKnowledgeChangeEvents,
+  type KnowledgeChange,
+} from '@/src/modules/events/knowledge-change';
 
 function contentHash(record: KnowledgeSourceRecord) {
   return createHash('sha256').update(JSON.stringify(record)).digest('hex');
 }
 
 function normalizeName(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
 }
 
 function scopeFor(visibility: SourceVisibility) {
@@ -85,8 +91,14 @@ async function ensureRelationshipAssertion(
     processName?: string;
   },
 ) {
-  const relationshipId = stableId('relationship', `${input.from}:${input.type}:${input.to}`);
-  const assertionId = stableId('assertion', `${input.sourceVersionId}:${relationshipId}:${input.assertionKind}`);
+  const relationshipId = stableId(
+    'relationship',
+    `${input.from}:${input.type}:${input.to}`,
+  );
+  const assertionId = stableId(
+    'assertion',
+    `${input.sourceVersionId}:${relationshipId}:${input.assertionKind}`,
+  );
   await client.query(
     `INSERT INTO relationships
       (id, workspace_id, from_resource_id, to_resource_id, relationship_type)
@@ -146,8 +158,14 @@ export async function seedIdentityAndScopes(client: PoolClient) {
       ($4, $6, 'Sync Service', 'System'),
       ($5, $6, 'Hypothesis Monitor', 'System')
      ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, role_label = EXCLUDED.role_label`,
-    [IDS.users.alex, IDS.users.jamie, IDS.users.morgan, IDS.users.ingestion,
-      IDS.users.memoryAgent, IDS.workspace],
+    [
+      IDS.users.alex,
+      IDS.users.jamie,
+      IDS.users.morgan,
+      IDS.users.ingestion,
+      IDS.users.memoryAgent,
+      IDS.workspace,
+    ],
   );
   await client.query(
     `INSERT INTO groups (id, workspace_id, name) VALUES ($1, $2, 'Northstar delivery team')
@@ -166,7 +184,13 @@ export async function seedIdentityAndScopes(client: PoolClient) {
       ($3, $5, 'Alex Chen only'),
       ($4, $5, 'Jamie Patel only')
      ON CONFLICT (id) DO NOTHING`,
-    [IDS.scopes.everyone, IDS.scopes.internal, IDS.scopes.alexOnly, IDS.scopes.jamieOnly, IDS.workspace],
+    [
+      IDS.scopes.everyone,
+      IDS.scopes.internal,
+      IDS.scopes.alexOnly,
+      IDS.scopes.jamieOnly,
+      IDS.workspace,
+    ],
   );
   await client.query(
     `INSERT INTO access_scope_grants (id, access_scope_id, principal_type, principal_id, permission) VALUES
@@ -196,27 +220,111 @@ export async function seedIdentityAndScopes(client: PoolClient) {
       stableId('grant', 'ingestion-jamie'),
     ],
   );
+  for (const capability of [
+    'hypothesis.review',
+    'monitor.operate',
+    'ontology.review',
+  ]) {
+    await client.query(
+      `INSERT INTO user_capabilities
+        (id, workspace_id, user_id, capability)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (user_id, capability) DO NOTHING`,
+      [
+        stableId('user-capability', `${IDS.users.alex}:${capability}`),
+        IDS.workspace,
+        IDS.users.alex,
+        capability,
+      ],
+    );
+  }
 }
 
 async function ensureCoreResources(client: PoolClient) {
   const publicScope = IDS.scopes.everyone;
   const core = [
-    { id: IDS.resources.northstar, type: 'Organisation', name: 'Northstar Labs', summary: 'A fictional research and product consultancy.' },
-    { id: IDS.resources.atlas, type: 'Client', name: 'Atlas Bank', summary: 'A fictional digital banking client.' },
-    { id: IDS.resources.project, type: 'Project', name: 'Atlas Onboarding', summary: 'Research into abandonment in Atlas Bank’s mobile onboarding journey.' },
-    { id: IDS.resources.hypothesis, type: 'Hypothesis', name: 'Identity verification drives abandonment', summary: 'Users abandon onboarding mainly because identity verification takes too long and feels uncertain.' },
-    { id: IDS.resources.alex, type: 'Person', name: 'Alex Chen', summary: 'Project lead for Atlas Onboarding.' },
-    { id: IDS.resources.jamie, type: 'Person', name: 'Jamie Patel', summary: 'Consultant conducting onboarding research.' },
-    { id: IDS.resources.morgan, type: 'Person', name: 'Morgan Reed', summary: 'External contractor supporting the Atlas programme.' },
+    {
+      id: IDS.resources.northstar,
+      type: 'Organisation',
+      name: 'Northstar Labs',
+      summary: 'A fictional research and product consultancy.',
+    },
+    {
+      id: IDS.resources.atlas,
+      type: 'Client',
+      name: 'Atlas Bank',
+      summary: 'A fictional digital banking client.',
+    },
+    {
+      id: IDS.resources.project,
+      type: 'Project',
+      name: 'Atlas Onboarding',
+      summary:
+        'Research into abandonment in Atlas Bank’s mobile onboarding journey.',
+    },
+    {
+      id: IDS.resources.hypothesis,
+      type: 'Hypothesis',
+      name: 'Identity verification drives abandonment',
+      summary:
+        'Users abandon onboarding mainly because identity verification takes too long and feels uncertain.',
+    },
+    {
+      id: IDS.resources.alex,
+      type: 'Person',
+      name: 'Alex Chen',
+      summary: 'Project lead for Atlas Onboarding.',
+    },
+    {
+      id: IDS.resources.jamie,
+      type: 'Person',
+      name: 'Jamie Patel',
+      summary: 'Consultant conducting onboarding research.',
+    },
+    {
+      id: IDS.resources.morgan,
+      type: 'Person',
+      name: 'Morgan Reed',
+      summary: 'External contractor supporting the Atlas programme.',
+    },
   ];
   for (const item of core) {
-    await upsertResource(client, { ...item, scopeId: publicScope, kind: 'entity' });
+    await upsertResource(client, {
+      ...item,
+      scopeId: publicScope,
+      kind: 'entity',
+    });
   }
   const privateContexts = [
-    { id: IDS.resources.cedar, scopeId: IDS.scopes.alexOnly, type: 'Client', name: 'Cedar Health', summary: 'An executive-sponsored client visible only to Alex in this fixture.' },
-    { id: IDS.resources.cedarProject, scopeId: IDS.scopes.alexOnly, type: 'Project', name: 'Cedar Renewal', summary: 'A restricted renewal programme visible only to Alex.' },
-    { id: IDS.resources.harbour, scopeId: IDS.scopes.jamieOnly, type: 'Client', name: 'Harbour Energy', summary: 'A fieldwork client visible only to Jamie in this fixture.' },
-    { id: IDS.resources.harbourProject, scopeId: IDS.scopes.jamieOnly, type: 'Project', name: 'Harbour Discovery', summary: 'A restricted discovery programme visible only to Jamie.' },
+    {
+      id: IDS.resources.cedar,
+      scopeId: IDS.scopes.alexOnly,
+      type: 'Client',
+      name: 'Cedar Health',
+      summary:
+        'An executive-sponsored client visible only to Alex in this fixture.',
+    },
+    {
+      id: IDS.resources.cedarProject,
+      scopeId: IDS.scopes.alexOnly,
+      type: 'Project',
+      name: 'Cedar Renewal',
+      summary: 'A restricted renewal programme visible only to Alex.',
+    },
+    {
+      id: IDS.resources.harbour,
+      scopeId: IDS.scopes.jamieOnly,
+      type: 'Client',
+      name: 'Harbour Energy',
+      summary: 'A fieldwork client visible only to Jamie in this fixture.',
+    },
+    {
+      id: IDS.resources.harbourProject,
+      scopeId: IDS.scopes.jamieOnly,
+      type: 'Project',
+      name: 'Harbour Discovery',
+      summary: 'A restricted discovery programme visible only to Jamie.',
+    },
   ];
   for (const item of privateContexts) {
     await upsertResource(client, { ...item, kind: 'entity' });
@@ -232,8 +340,14 @@ async function ensureCoreResources(client: PoolClient) {
         (id, workspace_id, resource_id, alias, normalized_alias, alias_type, source_system)
        VALUES ($1, $2, $3, $4, $5, $6, 'canonical-seed')
        ON CONFLICT (workspace_id, normalized_alias, alias_type, source_system) DO UPDATE SET alias = EXCLUDED.alias`,
-      [stableId('entity-alias', `${alias.type}:${alias.alias}`), IDS.workspace, IDS.resources.atlas,
-        alias.alias, alias.normalized, alias.type],
+      [
+        stableId('entity-alias', `${alias.type}:${alias.alias}`),
+        IDS.workspace,
+        IDS.resources.atlas,
+        alias.alias,
+        alias.normalized,
+        alias.type,
+      ],
     );
   }
   for (const resource of privateContexts) {
@@ -243,8 +357,13 @@ async function ensureCoreResources(client: PoolClient) {
        VALUES ($1, $2, $3, $4, $5, 'name', 'canonical-seed')
        ON CONFLICT (workspace_id, normalized_alias, alias_type, source_system) DO UPDATE SET
          resource_id = EXCLUDED.resource_id, alias = EXCLUDED.alias`,
-      [stableId('entity-alias', `private:${resource.name}`), IDS.workspace, resource.id,
-        resource.name, normalizeName(resource.name)],
+      [
+        stableId('entity-alias', `private:${resource.name}`),
+        IDS.workspace,
+        resource.id,
+        resource.name,
+        normalizeName(resource.name),
+      ],
     );
   }
 }
@@ -272,11 +391,13 @@ async function mapRecord(
       sourceUri: record.uri,
       author: record.author,
       ...('folder' in record ? { folder: record.folder } : {}),
-      ...('channel' in record ? {
-        channel: record.channel,
-        threadExternalId: record.threadExternalId,
-        participants: record.participants,
-      } : {}),
+      ...('channel' in record
+        ? {
+            channel: record.channel,
+            threadExternalId: record.threadExternalId,
+            participants: record.participants,
+          }
+        : {}),
     },
   });
   await client.query(
@@ -295,11 +416,23 @@ async function mapRecord(
      VALUES ($1, $2, $3, $4, $5, $6, $7,
        COALESCE((SELECT max(version_number) + 1 FROM content_versions WHERE content_resource_id = $3), 1), true)
      ON CONFLICT (id) DO UPDATE SET is_current = true`,
-    [contentVersionId, IDS.workspace, contentResourceId, sourceVersionId, scopeId, record.body, hash],
+    [
+      contentVersionId,
+      IDS.workspace,
+      contentResourceId,
+      sourceVersionId,
+      scopeId,
+      record.body,
+      hash,
+    ],
   );
-  await client.query('UPDATE content_objects SET current_version_id = $2 WHERE resource_id = $1', [contentResourceId, contentVersionId]);
+  await client.query(
+    'UPDATE content_objects SET current_version_id = $2 WHERE resource_id = $1',
+    [contentResourceId, contentVersionId],
+  );
 
-  const authorResourceId = record.author === 'Alex Chen' ? IDS.resources.alex : IDS.resources.jamie;
+  const authorResourceId =
+    record.author === 'Alex Chen' ? IDS.resources.alex : IDS.resources.jamie;
   await ensureRelationshipAssertion(client, {
     from: contentResourceId,
     to: IDS.resources.project,
@@ -326,8 +459,14 @@ async function mapRecord(
            resource_id = EXCLUDED.resource_id,
            confidence = EXCLUDED.confidence,
            source_object_version_id = EXCLUDED.source_object_version_id`,
-        [stableId('identity-key', `documents:${key.type}:${key.value}`), IDS.workspace, IDS.resources.atlas,
-          key.type, key.value, sourceVersionId],
+        [
+          stableId('identity-key', `documents:${key.type}:${key.value}`),
+          IDS.workspace,
+          IDS.resources.atlas,
+          key.type,
+          key.value,
+          sourceVersionId,
+        ],
       );
     }
     await client.query(
@@ -337,8 +476,16 @@ async function mapRecord(
        ON CONFLICT (workspace_id, normalized_alias, alias_type, source_system) DO UPDATE SET
          resource_id = EXCLUDED.resource_id,
          alias = EXCLUDED.alias`,
-      [stableId('entity-alias', `documents:folder:${record.folder.externalId}`), IDS.workspace,
-        IDS.resources.atlas, record.folder.alias, normalizeName(record.folder.alias)],
+      [
+        stableId(
+          'entity-alias',
+          `documents:folder:${record.folder.externalId}`,
+        ),
+        IDS.workspace,
+        IDS.resources.atlas,
+        record.folder.alias,
+        normalizeName(record.folder.alias),
+      ],
     );
   }
 
@@ -356,8 +503,14 @@ async function mapRecord(
            resource_id = EXCLUDED.resource_id,
            confidence = EXCLUDED.confidence,
            source_object_version_id = EXCLUDED.source_object_version_id`,
-        [stableId('identity-key', `messages:${key.type}:${key.value}`), IDS.workspace, IDS.resources.project,
-          key.type, key.value, sourceVersionId],
+        [
+          stableId('identity-key', `messages:${key.type}:${key.value}`),
+          IDS.workspace,
+          IDS.resources.project,
+          key.type,
+          key.value,
+          sourceVersionId,
+        ],
       );
     }
     await client.query(
@@ -368,8 +521,16 @@ async function mapRecord(
          resource_id = EXCLUDED.resource_id,
          confidence = EXCLUDED.confidence,
          source_object_version_id = EXCLUDED.source_object_version_id`,
-      [stableId('identity-key', `messages:thread-id:${record.threadExternalId}`), IDS.workspace,
-        contentResourceId, record.threadExternalId, sourceVersionId],
+      [
+        stableId(
+          'identity-key',
+          `messages:thread-id:${record.threadExternalId}`,
+        ),
+        IDS.workspace,
+        contentResourceId,
+        record.threadExternalId,
+        sourceVersionId,
+      ],
     );
     await client.query(
       `INSERT INTO entity_aliases
@@ -378,8 +539,16 @@ async function mapRecord(
        ON CONFLICT (workspace_id, normalized_alias, alias_type, source_system) DO UPDATE SET
          resource_id = EXCLUDED.resource_id,
          alias = EXCLUDED.alias`,
-      [stableId('entity-alias', `messages:channel:${record.channel.externalId}`), IDS.workspace,
-        IDS.resources.project, record.channel.alias, normalizeName(record.channel.alias)],
+      [
+        stableId(
+          'entity-alias',
+          `messages:channel:${record.channel.externalId}`,
+        ),
+        IDS.workspace,
+        IDS.resources.project,
+        record.channel.alias,
+        normalizeName(record.channel.alias),
+      ],
     );
   }
   await ensureRelationshipAssertion(client, {
@@ -450,7 +619,10 @@ async function mapRecord(
     processName,
   });
   const chunks = chunkText(record.body);
-  await client.query('UPDATE search_documents SET active = false WHERE resource_id = $1 AND active', [evidenceResourceId]);
+  await client.query(
+    'UPDATE search_documents SET active = false WHERE resource_id = $1 AND active',
+    [evidenceResourceId],
+  );
   for (const chunk of chunks) {
     await client.query(
       `INSERT INTO search_documents
@@ -463,7 +635,10 @@ async function mapRecord(
          chunk_end_offset = EXCLUDED.chunk_end_offset, source_updated_at = EXCLUDED.source_updated_at,
          active = true`,
       [
-        stableId('search-document', `${evidenceResourceId}:${contentVersionId}:${chunk.index}`),
+        stableId(
+          'search-document',
+          `${evidenceResourceId}:${contentVersionId}:${chunk.index}`,
+        ),
         IDS.workspace,
         scopeId,
         evidenceResourceId,
@@ -499,7 +674,10 @@ async function runSourceSync<T extends KnowledgeSourceRecord>(
      ON CONFLICT (id) DO NOTHING`,
     [config.sourceId, IDS.workspace, connector.sourceType, config.sourceName],
   );
-  const source = await client.query<{ cursor: string | null }>('SELECT cursor FROM sources WHERE id = $1', [config.sourceId]);
+  const source = await client.query<{ cursor: string | null }>(
+    'SELECT cursor FROM sources WHERE id = $1',
+    [config.sourceId],
+  );
   const cursorBefore = source.rows[0]?.cursor ?? null;
   const runId = randomUUID();
   await client.query(
@@ -513,12 +691,19 @@ async function runSourceSync<T extends KnowledgeSourceRecord>(
     const knowledgeChanges: KnowledgeChange[] = [];
     for (const record of page.records) {
       const hash = contentHash(record);
-      const sourceObjectId = stableId('source-object', `${config.sourceId}:${record.externalId}`);
-      const sourceVersionId = stableId('source-version', `${config.sourceId}:${record.externalId}:${hash}`);
-      const existing = await client.query<{ current_content_hash: string | null }>(
-        'SELECT current_content_hash FROM source_objects WHERE id = $1',
-        [sourceObjectId],
+      const sourceObjectId = stableId(
+        'source-object',
+        `${config.sourceId}:${record.externalId}`,
       );
+      const sourceVersionId = stableId(
+        'source-version',
+        `${config.sourceId}:${record.externalId}:${hash}`,
+      );
+      const existing = await client.query<{
+        current_content_hash: string | null;
+      }>('SELECT current_content_hash FROM source_objects WHERE id = $1', [
+        sourceObjectId,
+      ]);
       await client.query(
         `INSERT INTO source_objects
           (id, workspace_id, source_id, access_scope_id, external_id, source_uri,
@@ -531,8 +716,17 @@ async function runSourceSync<T extends KnowledgeSourceRecord>(
            current_content_hash = EXCLUDED.current_content_hash,
            deleted = false,
            updated_at = now()`,
-        [sourceObjectId, IDS.workspace, config.sourceId, scopeFor(record.visibility), record.externalId,
-          record.uri, record.createdAt, record.updatedAt, hash],
+        [
+          sourceObjectId,
+          IDS.workspace,
+          config.sourceId,
+          scopeFor(record.visibility),
+          record.externalId,
+          record.uri,
+          record.createdAt,
+          record.updatedAt,
+          hash,
+        ],
       );
       if (existing.rows[0]?.current_content_hash === hash) continue;
       changed += 1;
@@ -541,9 +735,23 @@ async function runSourceSync<T extends KnowledgeSourceRecord>(
           (id, workspace_id, source_object_id, access_scope_id, content_hash, raw_payload, source_updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7)
          ON CONFLICT (source_object_id, content_hash) DO NOTHING`,
-        [sourceVersionId, IDS.workspace, sourceObjectId, scopeFor(record.visibility), hash, record, record.updatedAt],
+        [
+          sourceVersionId,
+          IDS.workspace,
+          sourceObjectId,
+          scopeFor(record.visibility),
+          hash,
+          record,
+          record.updatedAt,
+        ],
       );
-      const mapped = await mapRecord(client, record, sourceVersionId, config.contentType, config.processName);
+      const mapped = await mapRecord(
+        client,
+        record,
+        sourceVersionId,
+        config.contentType,
+        config.processName,
+      );
       knowledgeChanges.push({
         accessScopeId: scopeFor(record.visibility),
         sourceObjectVersionId: sourceVersionId,
@@ -573,7 +781,14 @@ async function runSourceSync<T extends KnowledgeSourceRecord>(
       syncRunId: runId,
       changes: knowledgeChanges,
     });
-    return { runId, cursorBefore, cursorAfter: page.nextCursor, seen: page.records.length, changed, events };
+    return {
+      runId,
+      cursorBefore,
+      cursorAfter: page.nextCursor,
+      seen: page.records.length,
+      changed,
+      events,
+    };
   } catch (error) {
     await client.query(
       `UPDATE sync_runs SET status = 'failed', error_summary = $2, finished_at = now() WHERE id = $1`,
@@ -583,7 +798,10 @@ async function runSourceSync<T extends KnowledgeSourceRecord>(
   }
 }
 
-export function runResearchSync(client: PoolClient, connector: Connector<ResearchSourceRecord>) {
+export function runResearchSync(
+  client: PoolClient,
+  connector: Connector<ResearchSourceRecord>,
+) {
   return runSourceSync(client, connector, {
     sourceId: IDS.sources.research,
     sourceName: 'Northstar Research Repository',
@@ -592,7 +810,10 @@ export function runResearchSync(client: PoolClient, connector: Connector<Researc
   });
 }
 
-export function runMeetingSync(client: PoolClient, connector: Connector<MeetingSourceRecord>) {
+export function runMeetingSync(
+  client: PoolClient,
+  connector: Connector<MeetingSourceRecord>,
+) {
   return runSourceSync(client, connector, {
     sourceId: IDS.sources.meetings,
     sourceName: 'Northstar Meeting Notes',
@@ -601,7 +822,10 @@ export function runMeetingSync(client: PoolClient, connector: Connector<MeetingS
   });
 }
 
-export function runDocumentSync(client: PoolClient, connector: Connector<DocumentSourceRecord>) {
+export function runDocumentSync(
+  client: PoolClient,
+  connector: Connector<DocumentSourceRecord>,
+) {
   return runSourceSync(client, connector, {
     sourceId: IDS.sources.documents,
     sourceName: 'Northstar Documents',
@@ -610,7 +834,10 @@ export function runDocumentSync(client: PoolClient, connector: Connector<Documen
   });
 }
 
-export function runMessageSync(client: PoolClient, connector: Connector<MessageSourceRecord>) {
+export function runMessageSync(
+  client: PoolClient,
+  connector: Connector<MessageSourceRecord>,
+) {
   return runSourceSync(client, connector, {
     sourceId: IDS.sources.messages,
     sourceName: 'Northstar Messages',

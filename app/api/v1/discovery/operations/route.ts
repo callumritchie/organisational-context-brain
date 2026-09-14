@@ -4,7 +4,10 @@ import {
   DiscoveryOperationPermissionError,
   operateDiscovery,
 } from '@/src/modules/discovery/discovery-operations';
-import { resolveDemoActor } from '@/src/modules/identity/demo-actor';
+import {
+  AuthenticationError,
+  resolveRequestActor,
+} from '@/src/modules/identity/request-actor';
 
 export const runtime = 'nodejs';
 
@@ -24,7 +27,7 @@ export async function POST(request: Request) {
     );
   }
   try {
-    const actor = resolveDemoActor(request.headers.get('x-demo-actor'));
+    const actor = await resolveRequestActor(request);
     const { operation } = operationSchema.parse(await request.json());
     return NextResponse.json({
       discovery: await operateDiscovery(actor, operation),
@@ -42,8 +45,11 @@ export async function POST(request: Request) {
         { status: 403 },
       );
     }
-    if (error instanceof Error && error.message === 'Unknown demo persona') {
-      return NextResponse.json({ type: 'invalid-actor' }, { status: 401 });
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json(
+        { type: 'authentication-failed', title: error.message },
+        { status: error.status },
+      );
     }
     console.error('Discovery operation failed', error);
     return NextResponse.json(

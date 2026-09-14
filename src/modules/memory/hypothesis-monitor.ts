@@ -5,6 +5,10 @@ import { withActorTransaction } from '@/src/db/actor-transaction';
 import { getIngestionPool } from '@/src/db/pool';
 import { IDS } from '@/src/modules/canonical/ids';
 import { stableId } from '@/src/modules/canonical/stable-id';
+import {
+  actorHasCapability,
+  type ActorCapability,
+} from '@/src/modules/identity/authorization';
 import { assembleContext } from '@/src/modules/context/context-service';
 import type { ContextResponse } from '@/src/modules/context/types';
 import {
@@ -349,7 +353,9 @@ export async function createHypothesisMonitor(
       [definition.accessScopeId],
     );
     if (!access.rows[0]?.permitted) {
-      throw new Error('The configured service actor cannot access this monitor scope');
+      throw new Error(
+        'The configured service actor cannot access this monitor scope',
+      );
     }
     const resource = await client.query<{
       canonical_name: string;
@@ -360,15 +366,19 @@ export async function createHypothesisMonitor(
        WHERE id = $1 AND semantic_type = 'Hypothesis'`,
       [definition.hypothesisResourceId],
     );
-    if (!resource.rows[0]) throw new Error('The monitored Hypothesis Resource was not found');
+    if (!resource.rows[0])
+      throw new Error('The monitored Hypothesis Resource was not found');
     if (resource.rows[0].access_scope_id !== definition.accessScopeId) {
-      throw new Error('The monitor and hypothesis must use the same permission scope');
+      throw new Error(
+        'The monitor and hypothesis must use the same permission scope',
+      );
     }
     const service = await client.query<{ name: string; role_label: string }>(
       'SELECT name, role_label FROM users WHERE id = $1',
       [definition.serviceActorId],
     );
-    if (!service.rows[0]) throw new Error('The monitor service actor was not found');
+    if (!service.rows[0])
+      throw new Error('The monitor service actor was not found');
     await client.query(
       `INSERT INTO model_route_policies
         (id, workspace_id, access_scope_id, name, mode, routing_rules, budget_limits,
@@ -376,7 +386,12 @@ export async function createHypothesisMonitor(
        VALUES ($1, $2, $3, $4, 'deterministic-only', '{}',
          '{"dailyInputTokens":0,"monthlyCostMicros":0,"maximumOutputTokens":0}', '[]', true)
        ON CONFLICT (id) DO NOTHING`,
-      [routePolicyId, IDS.workspace, definition.accessScopeId, `${definition.name} routing`],
+      [
+        routePolicyId,
+        IDS.workspace,
+        definition.accessScopeId,
+        `${definition.name} routing`,
+      ],
     );
     await ensureHypothesisLifecycle(client, {
       resourceId: definition.hypothesisResourceId,
@@ -444,7 +459,10 @@ export async function createHypothesisMonitor(
       [policyId],
     );
     if (policy.rows[0]?.latest_snapshot_id) return;
-    const snapshotId = stableId('monitor-snapshot', `${policyId}:baseline:${snapshotHash(current)}`);
+    const snapshotId = stableId(
+      'monitor-snapshot',
+      `${policyId}:baseline:${snapshotHash(current)}`,
+    );
     await insertSnapshot(client, current, {
       id: snapshotId,
       policyId,
@@ -606,7 +624,8 @@ export async function evaluateMonitorEvent(
        WHERE policy.id = $1 AND policy.status = 'active'`,
       [policyId],
     );
-    if (!result.rows[0]) throw new Error('The monitor policy is not active or could not be read');
+    if (!result.rows[0])
+      throw new Error('The monitor policy is not active or could not be read');
     return result.rows[0];
   });
   if (!configuration) return;
@@ -640,10 +659,7 @@ export async function evaluateMonitorEvent(
     ]);
     const before = beforeResult.rows[0]?.evidence_payload;
     if (!before) throw new Error('The monitor baseline could not be read');
-    const runId = stableId(
-      'monitor-run',
-      `${policyId}:${eventId}`,
-    );
+    const runId = stableId('monitor-run', `${policyId}:${eventId}`);
     const deltas = compareSnapshots(before, current);
     const candidates = deriveMemoryCandidates(
       deltas,
@@ -942,7 +958,13 @@ export async function getMemoryState(actor: {
         ),
         client.query<{
           lifecycle_status: 'proposed' | 'active' | 'superseded' | 'retired';
-          epistemic_status: 'untested' | 'insufficient' | 'supported' | 'contested' | 'refuted' | 'stale';
+          epistemic_status:
+            | 'untested'
+            | 'insufficient'
+            | 'supported'
+            | 'contested'
+            | 'refuted'
+            | 'stale';
           current_revision: number;
           last_evaluated_at: Date | null;
           statement: string;
@@ -993,8 +1015,17 @@ export async function getMemoryState(actor: {
           [policy.id],
         ),
         client.query<{
-          mode: 'deterministic-only' | 'economy' | 'balanced' | 'high-assurance';
-          selected_route: 'no-model' | 'economy' | 'high-assurance' | 'deferred' | null;
+          mode:
+            | 'deterministic-only'
+            | 'economy'
+            | 'balanced'
+            | 'high-assurance';
+          selected_route:
+            | 'no-model'
+            | 'economy'
+            | 'high-assurance'
+            | 'deferred'
+            | null;
           decision_reason: string | null;
         }>(
           `SELECT route_policy.mode, invocation.selected_route, invocation.decision_reason
@@ -1018,7 +1049,11 @@ export async function getMemoryState(actor: {
         ),
         client.query<{
           id: string;
-          notification_type: 'material-change' | 'review-required' | 'monitor-failed' | 'lifecycle-change';
+          notification_type:
+            | 'material-change'
+            | 'review-required'
+            | 'monitor-failed'
+            | 'lifecycle-change';
           severity: 'info' | 'attention' | 'critical';
           status: 'pending' | 'delivered' | 'read' | 'suppressed';
           payload: { title?: string };
@@ -1080,7 +1115,8 @@ export async function getMemoryState(actor: {
               statement: hypothesis.statement,
               predictions: hypothesis.predictions,
               falsificationConditions: hypothesis.falsification_conditions,
-              lastEvaluatedAt: hypothesis.last_evaluated_at?.toISOString() ?? null,
+              lastEvaluatedAt:
+                hypothesis.last_evaluated_at?.toISOString() ?? null,
               recentTransitions: transitionResult.rows.map((transition) => ({
                 from: transition.from_state,
                 to: transition.to_state,
@@ -1171,13 +1207,19 @@ export async function getMemoryState(actor: {
 export class MemoryReviewPermissionError extends Error {}
 
 export async function reviewMemoryCandidate(
-  actor: { id: string; workspaceId: string; name: string; role: string },
+  actor: {
+    id: string;
+    workspaceId: string;
+    name: string;
+    role: string;
+    capabilities?: ActorCapability[];
+  },
   candidateId: string,
   decision: 'accept' | 'dismiss',
 ) {
-  if (actor.id !== IDS.users.alex || actor.role !== 'Project Lead') {
+  if (!actorHasCapability(actor, 'hypothesis.review')) {
     throw new MemoryReviewPermissionError(
-      'Only the demo Project Lead can review memory proposals',
+      'A hypothesis.review capability is required to review memory proposals',
     );
   }
   await inMonitorTransaction(async (client) => {

@@ -37,6 +37,83 @@ export const users = pgTable('users', {
   ...timestamps,
 });
 
+export const identityProviders = pgTable(
+  'identity_providers',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    issuer: text('issuer').notNull(),
+    audience: text('audience').notNull(),
+    jwksUri: text('jwks_uri').notNull(),
+    enabled: boolean('enabled').notNull().default(true),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('identity_providers_issuer_audience_workspace').on(
+      table.issuer,
+      table.audience,
+      table.workspaceId,
+    ),
+  ],
+);
+
+export const externalIdentities = pgTable(
+  'external_identities',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    identityProviderId: uuid('identity_provider_id')
+      .notNull()
+      .references(() => identityProviders.id),
+    subject: text('subject').notNull(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    active: boolean('active').notNull().default(true),
+    lastAuthenticatedAt: timestamp('last_authenticated_at', {
+      withTimezone: true,
+    }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('external_identities_provider_subject').on(
+      table.identityProviderId,
+      table.subject,
+    ),
+    uniqueIndex('external_identities_provider_user').on(
+      table.identityProviderId,
+      table.userId,
+    ),
+  ],
+);
+
+export const userCapabilities = pgTable(
+  'user_capabilities',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    capability: text('capability').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('user_capabilities_user_capability').on(
+      table.userId,
+      table.capability,
+    ),
+  ],
+);
+
 export const groups = pgTable('groups', {
   id: uuid('id').primaryKey(),
   workspaceId: uuid('workspace_id')

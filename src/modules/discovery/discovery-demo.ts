@@ -7,6 +7,10 @@ import {
 import { withActorTransaction } from '@/src/db/actor-transaction';
 import { IDS } from '@/src/modules/canonical/ids';
 import { stableId } from '@/src/modules/canonical/stable-id';
+import {
+  actorHasCapability,
+  type ActorCapability,
+} from '@/src/modules/identity/authorization';
 import { registerPromotedHypothesis } from '@/src/modules/hypotheses/lifecycle';
 import {
   ensureBackgroundRoutePolicy,
@@ -812,13 +816,19 @@ export async function getDiscoveryState(actor: {
 export class DiscoveryReviewPermissionError extends Error {}
 
 export async function reviewDiscoveryCandidate(
-  actor: { id: string; workspaceId: string; name: string; role: string },
+  actor: {
+    id: string;
+    workspaceId: string;
+    name: string;
+    role: string;
+    capabilities?: ActorCapability[];
+  },
   candidateId: string,
   decision: 'accept' | 'dismiss',
 ) {
-  if (actor.id !== IDS.users.alex || actor.role !== 'Project Lead') {
+  if (!actorHasCapability(actor, 'hypothesis.review')) {
     throw new DiscoveryReviewPermissionError(
-      'Only the demo Project Lead can review discovered hypotheses',
+      'A hypothesis.review capability is required to review discovered hypotheses',
     );
   }
   let monitorDefinition: Parameters<typeof createHypothesisMonitor>[0] | null =

@@ -5,6 +5,10 @@ import { withActorTransaction } from '@/src/db/actor-transaction';
 import { getIngestionPool } from '@/src/db/pool';
 import { IDS, PERSONAS } from '@/src/modules/canonical/ids';
 import { stableId } from '@/src/modules/canonical/stable-id';
+import {
+  actorHasCapability,
+  type ActorCapability,
+} from '@/src/modules/identity/authorization';
 import { ontologySchema, type OntologyDocument } from './ontology';
 
 const semanticName = z
@@ -386,14 +390,19 @@ async function withStewardTransaction<T>(
 }
 
 export async function reviewOntologyProposal(
-  actor: { id: string; role: string; workspaceId: string },
+  actor: {
+    id: string;
+    role: string;
+    workspaceId: string;
+    capabilities?: ActorCapability[];
+  },
   proposalId: string,
   decision: 'approve' | 'reject',
   reviewNote?: string,
 ) {
-  if (actor.id !== IDS.users.alex || actor.role !== 'Project Lead') {
+  if (!actorHasCapability(actor, 'ontology.review')) {
     throw new OntologyProposalPermissionError(
-      'Only the Project Lead can review semantic changes',
+      'An ontology.review capability is required to review semantic changes',
     );
   }
   await withStewardTransaction(actor.id, (client) =>
@@ -410,14 +419,14 @@ export async function reviewOntologyProposal(
 
 export async function reviewOntologyProposalInTransaction(
   client: PoolClient,
-  actor: { id: string; role: string },
+  actor: { id: string; role: string; capabilities?: ActorCapability[] },
   proposalId: string,
   decision: 'approve' | 'reject',
   reviewNote?: string,
 ) {
-  if (actor.id !== IDS.users.alex || actor.role !== 'Project Lead') {
+  if (!actorHasCapability(actor, 'ontology.review')) {
     throw new OntologyProposalPermissionError(
-      'Only the Project Lead can review semantic changes',
+      'An ontology.review capability is required to review semantic changes',
     );
   }
   await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [

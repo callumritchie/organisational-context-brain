@@ -4,7 +4,10 @@ import {
   DiscoveryReviewPermissionError,
   reviewDiscoveryCandidate,
 } from '@/src/modules/discovery/discovery-demo';
-import { resolveDemoActor } from '@/src/modules/identity/demo-actor';
+import {
+  AuthenticationError,
+  resolveRequestActor,
+} from '@/src/modules/identity/request-actor';
 
 export const runtime = 'nodejs';
 
@@ -27,7 +30,7 @@ export async function POST(
     );
   }
   try {
-    const actor = resolveDemoActor(request.headers.get('x-demo-actor'));
+    const actor = await resolveRequestActor(request);
     const { candidateId } = await params;
     const candidate = z.string().uuid().parse(candidateId);
     const { decision } = reviewSchema.parse(await request.json());
@@ -47,8 +50,11 @@ export async function POST(
         { status: 403 },
       );
     }
-    if (error instanceof Error && error.message === 'Unknown demo persona') {
-      return NextResponse.json({ type: 'invalid-actor' }, { status: 401 });
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json(
+        { type: 'authentication-failed', title: error.message },
+        { status: error.status },
+      );
     }
     console.error('Discovery review failed', error);
     return NextResponse.json(

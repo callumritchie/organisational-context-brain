@@ -18,6 +18,7 @@ This plan supersedes the original horizontal roadmap. Work proceeds as sequentia
 12. Background evaluation reuses the same actor-scoped Context Service and may not broaden the monitor service identity beyond its declared access scope.
 13. An open-ended discovery is an untrusted candidate until review; it must retain its exact evidence Resources, model route, prediction and falsification condition.
 14. A discovered concept may propose semantic vocabulary, but only an impact-checked steward decision may publish a new immutable ontology version; hypotheses and ontology proposals are separate records.
+15. Production actor identity requires a verified issuer, audience, signature, algorithm, subject and expiry; workspace, role and action capabilities are resolved from server-owned mappings, never token claims.
 
 ## Milestone 0 — Repository foundation
 
@@ -203,3 +204,17 @@ Status: first governed vertical slice implemented and validated locally.
 - Implemented: every activation has a replay receipt showing which permission-scoped context was reconsidered and explicitly records that existing canonical Resources were not silently mutated.
 - Implemented: the existing Connect meaning drawer visualises observed pattern → untrusted change set → impact check → human gate → version activation, without adding a page or requiring page scrolling.
 - Remaining: model-assisted free-form semantic induction, steward assignment beyond the demo Project Lead, arbitrary connector mapping administration, rollback-by-new-version, and quality evaluation of proposed ontologies on independent domains.
+
+## Milestone 13 — Production identity and action authorisation
+
+Status: production API identity boundary implemented; interactive sign-in and deployment hardening remain.
+
+- Implemented: every read and mutation API now resolves its actor through one request-identity boundary rather than reading `x-demo-actor` directly.
+- Implemented: production accepts only bearer JWTs verified against an explicitly configured HTTPS JWKS URL, exact issuer and audience, an allow-list of RS256/ES256 algorithms, and required subject and expiry.
+- Implemented: token claims do not choose workspace, local user, role or capabilities. A narrow `SECURITY DEFINER` database function maps the verified issuer/subject/audience to an active server-owned identity link.
+- Implemented: identity-provider, external-identity and user-capability tables are unavailable to the normal app and ingestion roles; only the narrow resolver is executable by the app role.
+- Implemented: hypothesis review, monitor operation and ontology review use explicit server-owned capabilities instead of a hard-coded Alex user ID. The local fixture grants those capabilities to Alex only.
+- Implemented: `/api/v1/session` exposes the resolved actor contract to a future authenticated UI, while an explicit-confirmation administrative script links an IdP subject to an existing workspace user and optional capabilities.
+- Implemented: development and test retain the synthetic persona header only when no bearer token is supplied. Production rejects it and fails closed when OIDC configuration is absent or invalid.
+- Implemented: the prepared research mutation and current review/operation writes remain production-disabled despite the new read identity boundary; authentication alone does not imply deployment readiness.
+- Remaining: authorisation-code/PKCE browser sign-in, secure session cookies and CSRF controls if cookie mutations are introduced, identity lifecycle provisioning/deprovisioning, rate limiting, audit export, managed secrets, deployment network controls and a deployment-specific security review.

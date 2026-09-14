@@ -20,6 +20,8 @@ Milestone 11 adds a deliberately adversarial quality harness. Its 100 zero-egres
 
 Milestone 11 is now pinned at that external-quality gate. Milestone 12 adds governed semantic evolution: discoveries can propose new types, relationships and aliases, but those proposals remain inactive until a steward reviews their evidence and impact. Approval creates a new immutable ontology version, version-bound mapping rules and a replay receipt; it never edits an existing ontology snapshot or silently reclassifies canonical data.
 
+Milestone 13 replaces the API's production trust boundary. All routes now require verified OIDC bearer identity in production, then resolve workspace membership, role and explicit action capabilities from server-owned database mappings. The synthetic persona header remains available only for local development. This is an API authentication boundary, not yet a finished browser sign-in or a claim that the app is deployment-ready.
+
 No LLM or API key is required. Optional provider synthesis is a disposable consumer of the permissioned context packet, not a second retrieval system.
 
 ## Quick start
@@ -37,6 +39,8 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000).
 
 The credentials in `.env.example`, Docker Compose, and CI are deliberately disposable local-test values. Replace them with generated secrets for any non-local environment. Publishing this source repository does not deploy the application. The demo persona header is not production authentication: a network user could forge Alex’s ID and inherit Alex’s permissions. Ontology and prepared research-mutation writes are therefore blocked whenever `NODE_ENV=production`; do not expose this build directly to the public internet.
+
+For a future API deployment, configure `AUTH_OIDC_ISSUER`, `AUTH_OIDC_AUDIENCE` and an HTTPS `AUTH_OIDC_JWKS_URL`. Then link a verified provider subject to an existing workspace member using the owner-only, explicit-confirmation `auth:link-identity` command documented in [the production identity guide](./docs/production-identity.md). Never put role, workspace or capability authority in token claims. Interactive browser login and deployment hardening are still required.
 
 Useful checks:
 
@@ -97,7 +101,7 @@ The ranking is named `demo-ranking-v3`. Its retrieval contribution uses reciproc
 
 ## Current scope
 
-Completed foundations: Milestones 0–10. Milestone 11 is pinned after its harness exposed a 0/20 contradiction-surfacing result; independent case authoring, blind review and the separately unauthorised full-vector run remain incomplete. Milestone 12 now supplies the first governed semantic-evolution slice: additive proposal sets, pre-activation impact analysis, steward review, immutable ontology publication, version-bound aliases, run-version provenance and replay receipts. Still deliberately deferred: model-assisted free-form ontology induction, independent ontology-quality evaluation, external notification delivery, broader signal producers, approximate vector indexing at scale, production worker supervision and production authentication/deployment hardening.
+Completed foundations: Milestones 0–10. Milestone 11 is pinned after its harness exposed a 0/20 contradiction-surfacing result; independent case authoring, blind review and the separately unauthorised full-vector run remain incomplete. Milestone 12 supplies the first governed semantic-evolution slice: additive proposal sets, impact analysis, steward review, immutable publication, version-bound aliases and replay receipts. Milestone 13 adds verified production API identity plus server-owned workspace and capability mapping, but not interactive sign-in or general deployment readiness. Still deliberately deferred: model-assisted ontology induction, independent ontology-quality evaluation, external notification delivery, broader signal producers, approximate indexing at scale, production worker supervision, identity lifecycle provisioning, rate limiting, managed secrets and deployment hardening.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md), [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md), and [docs/permissions.md](./docs/permissions.md).
 

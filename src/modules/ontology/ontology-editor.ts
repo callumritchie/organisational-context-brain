@@ -4,6 +4,10 @@ import { z } from 'zod';
 import { getIngestionPool } from '@/src/db/pool';
 import { IDS } from '@/src/modules/canonical/ids';
 import { stableId } from '@/src/modules/canonical/stable-id';
+import {
+  actorHasCapability,
+  type ActorCapability,
+} from '@/src/modules/identity/authorization';
 import { ontologySchema, type OntologyDocument } from './ontology';
 
 export const ontologyRelationshipEditSchema = z
@@ -58,12 +62,12 @@ function toOntologyDto(
 
 async function publishOntologyRelationship(
   client: PoolClient,
-  actor: { id: string; role: string },
+  actor: { id: string; role: string; capabilities?: ActorCapability[] },
   rawInput: OntologyRelationshipEdit,
 ) {
-  if (actor.id !== IDS.users.alex || actor.role !== 'Project Lead') {
+  if (!actorHasCapability(actor, 'ontology.review')) {
     throw new OntologyPermissionError(
-      'Only the demo Project Lead can publish ontology versions',
+      'An ontology.review capability is required to publish ontology versions',
     );
   }
   const input = ontologyRelationshipEditSchema.parse(rawInput);
@@ -134,7 +138,7 @@ async function publishOntologyRelationship(
 }
 
 export async function publishOntologyRelationshipForDemoActor(
-  actor: { id: string; role: string },
+  actor: { id: string; role: string; capabilities?: ActorCapability[] },
   rawInput: OntologyRelationshipEdit,
 ) {
   const client = await getIngestionPool().connect();

@@ -1,4 +1,8 @@
 import { IDS } from '@/src/modules/canonical/ids';
+import {
+  actorHasCapability,
+  type ActorCapability,
+} from '@/src/modules/identity/authorization';
 import { inMonitorTransaction } from '@/src/modules/memory/hypothesis-monitor';
 import { getDiscoveryState } from './discovery-demo';
 import {
@@ -11,12 +15,18 @@ export class DiscoveryOperationPermissionError extends Error {}
 export type DiscoveryOperation = 'pause' | 'resume' | 'run-now';
 
 export async function operateDiscovery(
-  actor: { id: string; workspaceId: string; name: string; role: string },
+  actor: {
+    id: string;
+    workspaceId: string;
+    name: string;
+    role: string;
+    capabilities?: ActorCapability[];
+  },
   operation: DiscoveryOperation,
 ) {
-  if (actor.id !== IDS.users.alex || actor.role !== 'Project Lead') {
+  if (!actorHasCapability(actor, 'monitor.operate')) {
     throw new DiscoveryOperationPermissionError(
-      'Only the demo Project Lead can operate continual discovery',
+      'A monitor.operate capability is required to operate continual discovery',
     );
   }
   if (operation === 'pause' || operation === 'resume') {

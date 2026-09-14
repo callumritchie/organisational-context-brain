@@ -1,18 +1,24 @@
 import { NextResponse } from 'next/server';
 import { getSemanticEvolutionState } from '@/src/modules/ontology/semantic-evolution';
-import { resolveDemoActor } from '@/src/modules/identity/demo-actor';
+import {
+  AuthenticationError,
+  resolveRequestActor,
+} from '@/src/modules/identity/request-actor';
 
 export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
   try {
-    const actor = resolveDemoActor(request.headers.get('x-demo-actor'));
+    const actor = await resolveRequestActor(request);
     return NextResponse.json({
       evolution: await getSemanticEvolutionState(actor),
     });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unknown demo persona') {
-      return NextResponse.json({ type: 'invalid-actor' }, { status: 401 });
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json(
+        { type: 'authentication-failed', title: error.message },
+        { status: error.status },
+      );
     }
     console.error('Semantic evolution state failed', error);
     return NextResponse.json(

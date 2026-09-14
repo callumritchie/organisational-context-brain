@@ -10,12 +10,12 @@ Please use GitHub's private vulnerability reporting for this repository rather t
 
 ## Deployment warning
 
-The included personas, data, database names, and local/CI passwords are synthetic development fixtures. The `x-demo-actor` header is a UI demonstration mechanism, not authentication: any caller can send Alex Chen’s allow-listed identifier, and the server has no signed session or identity-provider proof that the caller is Alex. PostgreSQL row-level security correctly enforces the actor it receives, but cannot establish whether that actor claim is genuine.
+The included personas, data, database names, and local/CI passwords are synthetic development fixtures. The `x-demo-actor` header remains a local UI demonstration mechanism and is ignored as identity in production. Production API reads now require a signed OIDC bearer token with configured issuer, audience and HTTPS JWKS verification. The verified subject is mapped to workspace, user, role and capabilities by server-owned database records; those values are never accepted from token claims.
 
-Ontology mutation, the prepared research-learning mutation, memory-candidate review and monitor operations are disabled when `NODE_ENV=production` as a fail-safe. The research route accepts only a fixed mutation identifier—not arbitrary source content—and authorises the demo Project Lead before opening its ingestion transaction. The Hypothesis Monitor uses a dedicated service identity without internal or user-private grants. Events route only between exactly matching access scopes, and lifecycle, job, schedule, routing, usage and notification tables all use forced row-level security under non-owning roles. Notification payloads contain review metadata rather than raw source excerpts. Do not expose this application or its PostgreSQL service to the public internet without:
+The prepared research-learning mutation, ontology review, memory-candidate review and monitor/discovery operations remain disabled when `NODE_ENV=production` as an additional fail-safe. Authentication is not treated as blanket authorisation: review and operation services require explicit server-owned capabilities. The Hypothesis Monitor uses a dedicated service identity without internal or user-private grants. Events route only between exactly matching access scopes, and lifecycle, job, schedule, routing, usage, semantic-governance and notification tables use forced row-level security under non-owning roles. Do not expose this application or its PostgreSQL service to the public internet without:
 
-- replacing `x-demo-actor` with server-validated authentication and sessions;
-- adding server-side workspace membership and role authorisation;
+- completing an authorisation-code/PKCE browser login and secure session design;
+- provisioning, deprovisioning and periodically reviewing server-side identity links and capabilities;
 - adding CSRF protection to cookie-authenticated mutations;
 - rotating every database credential and placing them in a managed secret store;
 - restricting database network access; and

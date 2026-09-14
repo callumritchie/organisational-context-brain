@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z, ZodError } from 'zod';
-import { resolveDemoActor } from '@/src/modules/identity/demo-actor';
+import {
+  AuthenticationError,
+  resolveRequestActor,
+} from '@/src/modules/identity/request-actor';
 import {
   OntologyProposalConflictError,
   OntologyProposalPermissionError,
@@ -31,7 +34,7 @@ export async function POST(
     );
   }
   try {
-    const actor = resolveDemoActor(request.headers.get('x-demo-actor'));
+    const actor = await resolveRequestActor(request);
     const proposalId = z
       .string()
       .uuid()
@@ -64,8 +67,11 @@ export async function POST(
         { status: 409 },
       );
     }
-    if (error instanceof Error && error.message === 'Unknown demo persona') {
-      return NextResponse.json({ type: 'invalid-actor' }, { status: 401 });
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json(
+        { type: 'authentication-failed', title: error.message },
+        { status: error.status },
+      );
     }
     console.error('Semantic proposal review failed', error);
     return NextResponse.json(
