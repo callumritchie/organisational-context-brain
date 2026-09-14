@@ -4,6 +4,7 @@ import {
   AuthenticationError,
   resolveRequestActor,
 } from '@/src/modules/identity/request-actor';
+import { authorizeMutationRequest } from '@/src/modules/identity/mutation-authorization';
 import {
   MemoryReviewPermissionError,
   reviewMemoryCandidate,
@@ -21,18 +22,11 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ candidateId: string }> },
 ) {
-  if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json(
-      {
-        type: 'demo-mutation-disabled',
-        title:
-          'Memory review requires production authentication before deployment.',
-      },
-      { status: 403 },
-    );
-  }
   try {
-    const actor = await resolveRequestActor(request);
+    const actor = await resolveRequestActor(request, {
+      operationClass: 'mutation',
+    });
+    await authorizeMutationRequest(request, actor, 'hypothesis.review');
     const { candidateId } = await params;
     const candidate = z.string().uuid().parse(candidateId);
     const { decision } = reviewSchema.parse(await request.json());

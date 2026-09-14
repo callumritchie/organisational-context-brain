@@ -12,7 +12,9 @@ export const runtime = 'nodejs';
 export async function POST(request: Request) {
   try {
     const input = contextRequestSchema.parse(await request.json());
-    const actor = await resolveRequestActor(request);
+    const actor = await resolveRequestActor(request, {
+      operationClass: 'read',
+    });
     const response = await answerQuestion(
       {
         id: actor.id,

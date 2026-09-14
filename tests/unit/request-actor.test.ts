@@ -110,7 +110,7 @@ describe('production request identity', () => {
         }),
       ),
     ).rejects.toMatchObject({
-      message: 'A bearer token is required.',
+      message: 'A browser session or bearer token is required.',
       status: 401,
     });
   });

@@ -12,14 +12,14 @@ Please use GitHub's private vulnerability reporting for this repository rather t
 
 The included personas, data, database names, and local/CI passwords are synthetic development fixtures. The `x-demo-actor` header remains a local UI demonstration mechanism and is ignored as identity in production. Production API reads now require a signed OIDC bearer token with configured issuer, audience and HTTPS JWKS verification. The verified subject is mapped to workspace, user, role and capabilities by server-owned database records; those values are never accepted from token claims.
 
-The prepared research-learning mutation, ontology review, memory-candidate review and monitor/discovery operations remain disabled when `NODE_ENV=production` as an additional fail-safe. Authentication is not treated as blanket authorisation: review and operation services require explicit server-owned capabilities. The Hypothesis Monitor uses a dedicated service identity without internal or user-private grants. Events route only between exactly matching access scopes, and lifecycle, job, schedule, routing, usage, semantic-governance and notification tables use forced row-level security under non-owning roles. Do not expose this application or its PostgreSQL service to the public internet without:
+Interactive production sign-in uses authorization code with S256 PKCE, browser-bound one-time state, nonce and a verified ID token. The resulting browser session is opaque, revocable and retained only as a hash. Cookie-authenticated writes require an exact production origin and CSRF proof. Authentication is not blanket authorisation: review and operation services require explicit server-owned capabilities. These governed operations may run in production after this boundary succeeds; the prepared synthetic research-learning mutation remains disabled. The Hypothesis Monitor uses a dedicated service identity without internal or user-private grants. Events route only between exactly matching access scopes, and lifecycle, job, schedule, routing, usage, semantic-governance, session, rate-limit, audit and notification tables use forced row-level security under non-owning roles. Do not expose this application or its PostgreSQL service to the public internet without:
 
-- completing an authorisation-code/PKCE browser login and secure session design;
-- provisioning, deprovisioning and periodically reviewing server-side identity links and capabilities;
-- adding CSRF protection to cookie-authenticated mutations;
+- configuring and testing the selected identity provider, exact redirect and joiner/mover/leaver process;
+- periodically reviewing server-side identity links, sessions and capabilities;
 - rotating every database credential and placing them in a managed secret store;
 - restricting database network access; and
-- completing a deployment-specific security review, logging, rate limiting, backups, and recovery testing.
+- configuring ingress login throttling and central audit export; and
+- completing a deployment-specific security review, backups, and recovery testing.
 
 A public GitHub repository exposes source code, not the running application or local `.env.local`. The ignored `.env.local` file must never be committed.
 

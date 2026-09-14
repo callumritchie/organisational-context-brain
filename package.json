@@ -32,6 +32,8 @@
     "discovery:schedule": "tsx scripts/enqueue-discovery-schedules.ts",
     "ontology:bootstrap-proposal": "tsx scripts/bootstrap-semantic-evolution.ts",
     "auth:link-identity": "tsx scripts/link-external-identity.ts",
+    "auth:disable-identity": "tsx scripts/disable-external-identity.ts",
+    "auth:export-audit": "tsx scripts/export-security-audit.ts",
     "memory:bootstrap": "tsx scripts/bootstrap-monitor.ts",
     "monitor:worker": "tsx scripts/run-monitor-worker.ts",
     "monitor:schedule": "tsx scripts/enqueue-monitor-schedules.ts",

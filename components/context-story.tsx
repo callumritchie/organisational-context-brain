@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   ArrowDown,
   ArrowLeft,
@@ -14,6 +15,8 @@ import {
   Database,
   FileSearch,
   GitBranch,
+  LogIn,
+  LogOut,
   RefreshCw,
   Send,
   ShieldCheck,
@@ -42,6 +45,47 @@ import styles from './context-story.module.css';
 const PRESET =
   "What do we currently know about why users abandon Atlas Bank's onboarding journey?";
 const RANKING_FACTORS = Object.keys(DEMO_RANKING_V3.weights) as RankingFactor[];
+
+interface SessionContract {
+  actor: {
+    id: string;
+    name: string;
+    role: string;
+    workspaceId: string;
+    authenticationMode: 'demo' | 'oidc' | 'session';
+    capabilities: string[];
+  };
+  authentication: {
+    interactive: boolean;
+    loginUrl: string;
+    logoutUrl: string;
+  };
+}
+
+function browserCookie(...names: string[]) {
+  if (typeof document === 'undefined') return null;
+  for (const part of document.cookie.split(';')) {
+    const separator = part.indexOf('=');
+    if (separator < 0) continue;
+    const name = part.slice(0, separator).trim();
+    if (!names.includes(name)) continue;
+    return decodeURIComponent(part.slice(separator + 1).trim());
+  }
+  return null;
+}
+
+function apiHeaders(
+  actorId: string,
+  options: { json?: boolean; mutation?: boolean } = {},
+) {
+  const headers: Record<string, string> = { 'x-demo-actor': actorId };
+  if (options.json) headers['content-type'] = 'application/json';
+  if (options.mutation) {
+    const csrf = browserCookie('__Host-org_brain_csrf', 'org_brain_csrf');
+    if (csrf) headers['x-csrf-token'] = csrf;
+  }
+  return headers;
+}
 
 type StageId = 'scope' | 'identity' | 'meaning' | 'evidence' | 'monitor';
 
@@ -475,6 +519,7 @@ function MemoryDrawer({
   memory,
   discovery,
   canReview,
+  canOperate,
   reviewLoading,
   discoveryReviewLoading,
   discoveryOperationLoading,
@@ -488,6 +533,7 @@ function MemoryDrawer({
   memory: MemoryState | null;
   discovery: DiscoveryState | null;
   canReview: boolean;
+  canOperate: boolean;
   reviewLoading: string | null;
   discoveryReviewLoading: string | null;
   discoveryOperationLoading: string | null;
@@ -571,7 +617,7 @@ function MemoryDrawer({
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={!canReview || discoveryOperationLoading !== null}
+                  disabled={!canOperate || discoveryOperationLoading !== null}
                   onClick={() => onDiscoveryOperate('run-now')}
                 >
                   {discoveryOperationLoading === 'run-now'
@@ -581,7 +627,7 @@ function MemoryDrawer({
                 <Button
                   size="sm"
                   variant="ghost"
-                  disabled={!canReview || discoveryOperationLoading !== null}
+                  disabled={!canOperate || discoveryOperationLoading !== null}
                   onClick={() =>
                     onDiscoveryOperate(
                       discovery?.policy.status === 'active'
@@ -771,7 +817,7 @@ function MemoryDrawer({
               <div>
                 <Button
                   variant="outline"
-                  disabled={!canReview || operationLoading !== null}
+                  disabled={!canOperate || operationLoading !== null}
                   onClick={() =>
                     onOperate(
                       memory?.policy?.status === 'active' ? 'pause' : 'resume',
@@ -784,7 +830,7 @@ function MemoryDrawer({
                 </Button>
                 <Button
                   disabled={
-                    !canReview ||
+                    !canOperate ||
                     operationLoading !== null ||
                     memory?.policy?.status !== 'active'
                   }
@@ -879,7 +925,7 @@ function MemoryDrawer({
                 ) ? (
                   <button
                     type="button"
-                    disabled={!canReview || operationLoading !== null}
+                    disabled={!canOperate || operationLoading !== null}
                     onClick={() => onOperate('mark-notifications-read')}
                   >
                     Mark read
@@ -1414,6 +1460,7 @@ function TraceCard({
 }
 
 export function ContextStory() {
+  const router = useRouter();
   const [query, setQuery] = useState(PRESET);
   const [actorId, setActorId] = useState<string>(PERSONAS[0].id);
   const [result, setResult] = useState<ContextResponse | null>(null);
@@ -1439,10 +1486,12 @@ export function ContextStory() {
   const [semanticReviewLoading, setSemanticReviewLoading] = useState<
     string | null
   >(null);
+  const [session, setSession] = useState<SessionContract | null>(null);
+  const [authRequired, setAuthRequired] = useState(false);
 
   const loadMemory = useCallback(async (nextActorId: string) => {
     const response = await fetch('/api/v1/memory', {
-      headers: { 'x-demo-actor': nextActorId },
+      headers: apiHeaders(nextActorId),
     });
     if (!response.ok) return;
     const payload = (await response.json()) as { memory: MemoryState };
@@ -1451,7 +1500,7 @@ export function ContextStory() {
 
   const loadDiscovery = useCallback(async (nextActorId: string) => {
     const response = await fetch('/api/v1/discovery', {
-      headers: { 'x-demo-actor': nextActorId },
+      headers: apiHeaders(nextActorId),
     });
     if (!response.ok) return;
     const payload = (await response.json()) as {
@@ -1462,7 +1511,7 @@ export function ContextStory() {
 
   const loadSemanticEvolution = useCallback(async (nextActorId: string) => {
     const response = await fetch('/api/v1/ontology/proposals', {
-      headers: { 'x-demo-actor': nextActorId },
+      headers: apiHeaders(nextActorId),
     });
     if (!response.ok) return;
     const payload = (await response.json()) as {
@@ -1478,12 +1527,13 @@ export function ContextStory() {
       try {
         const response = await fetch('/api/v1/ask', {
           method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'x-demo-actor': nextActorId,
-          },
+          headers: apiHeaders(nextActorId, { json: true }),
           body: JSON.stringify({ query: nextQuery, maxEvidence: 6 }),
         });
+        if (response.status === 401) {
+          setAuthRequired(true);
+          throw new Error('Your session has expired. Sign in again.');
+        }
         if (!response.ok)
           throw new Error(
             'The answer service could not complete this request.',
@@ -1512,7 +1562,29 @@ export function ContextStory() {
   useEffect(() => {
     if (initialised.current) return;
     initialised.current = true;
-    void ask();
+    void (async () => {
+      const response = await fetch('/api/v1/session', {
+        headers: apiHeaders(PERSONAS[0].id),
+        cache: 'no-store',
+      });
+      if (response.status === 401) {
+        setAuthRequired(true);
+        setLoading(false);
+        return;
+      }
+      if (!response.ok) {
+        setError('The current identity could not be resolved.');
+        setLoading(false);
+        return;
+      }
+      const resolved = (await response.json()) as SessionContract;
+      setSession(resolved);
+      const nextActorId = resolved.actor.id;
+      if (resolved.actor.authenticationMode === 'session') {
+        setActorId(nextActorId);
+      }
+      await ask(nextActorId);
+    })();
   }, [ask]);
 
   useEffect(() => {
@@ -1575,10 +1647,7 @@ export function ContextStory() {
     try {
       const response = await fetch('/api/v1/demo/research-mutation', {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-demo-actor': actorId,
-        },
+        headers: apiHeaders(actorId, { json: true, mutation: true }),
         body: JSON.stringify({ mutation: 'eligibility-guidance-finding' }),
       });
       const payload = (await response.json()) as {
@@ -1618,10 +1687,7 @@ export function ContextStory() {
         `/api/v1/ontology/proposals/${proposalId}/review`,
         {
           method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'x-demo-actor': actorId,
-          },
+          headers: apiHeaders(actorId, { json: true, mutation: true }),
           body: JSON.stringify({ decision }),
         },
       );
@@ -1662,10 +1728,7 @@ export function ContextStory() {
         `/api/v1/memory/candidates/${candidateId}/review`,
         {
           method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'x-demo-actor': actorId,
-          },
+          headers: apiHeaders(actorId, { json: true, mutation: true }),
           body: JSON.stringify({ decision }),
         },
       );
@@ -1706,10 +1769,7 @@ export function ContextStory() {
         `/api/v1/discovery/candidates/${candidateId}/review`,
         {
           method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'x-demo-actor': actorId,
-          },
+          headers: apiHeaders(actorId, { json: true, mutation: true }),
           body: JSON.stringify({ decision }),
         },
       );
@@ -1747,10 +1807,7 @@ export function ContextStory() {
     try {
       const response = await fetch('/api/v1/memory/operations', {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-demo-actor': actorId,
-        },
+        headers: apiHeaders(actorId, { json: true, mutation: true }),
         body: JSON.stringify({ operation }),
       });
       const payload = (await response.json()) as {
@@ -1785,10 +1842,7 @@ export function ContextStory() {
     try {
       const response = await fetch('/api/v1/discovery/operations', {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-demo-actor': actorId,
-        },
+        headers: apiHeaders(actorId, { json: true, mutation: true }),
         body: JSON.stringify({ operation }),
       });
       const payload = (await response.json()) as {
@@ -1815,6 +1869,19 @@ export function ContextStory() {
     }
   }
 
+  async function signOut() {
+    if (!session) return;
+    const response = await fetch(session.authentication.logoutUrl, {
+      method: 'POST',
+      headers: apiHeaders(actorId, { mutation: true }),
+    });
+    if (response.ok) {
+      router.push(`${session.authentication.loginUrl}?returnTo=%2F%23ask`);
+      return;
+    }
+    setMutationMessage('Sign-out could not be completed.');
+  }
+
   const stages = result ? stagesFor(result, memory) : [];
   const selectedStage = stages.find((stage) => stage.id === stageId) ?? null;
   const healthyCount =
@@ -1833,17 +1900,29 @@ export function ContextStory() {
         <div className={styles.topMeta}>
           <code>sources_healthy={healthyCount}</code>
           {result ? <code>trace={result.traceId.slice(0, 8)}</code> : null}
-          <NativeSelect
-            aria-label="Demo persona"
-            value={actorId}
-            onChange={(event) => changeActor(event.target.value)}
-          >
-            {PERSONAS.map((persona) => (
-              <NativeSelectOption key={persona.id} value={persona.id}>
-                {persona.name} · {persona.role}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+          {session?.actor.authenticationMode === 'session' ? (
+            <div className={styles.signedInIdentity}>
+              <span>
+                <small className={styles.uiLabel}>Signed in</small>
+                <strong>{session.actor.name}</strong>
+              </span>
+              <Button variant="outline" onClick={() => void signOut()}>
+                Sign out <LogOut />
+              </Button>
+            </div>
+          ) : (
+            <NativeSelect
+              aria-label="Demo persona"
+              value={actorId}
+              onChange={(event) => changeActor(event.target.value)}
+            >
+              {PERSONAS.map((persona) => (
+                <NativeSelectOption key={persona.id} value={persona.id}>
+                  {persona.name} · {persona.role}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          )}
         </div>
       </header>
       <section className={styles.questionBar}>
@@ -1853,20 +1932,39 @@ export function ContextStory() {
         </div>
         <input
           aria-label="Question"
+          disabled={authRequired}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter') void ask();
           }}
         />
-        <Button disabled={loading} onClick={() => void ask()}>
+        <Button disabled={loading || authRequired} onClick={() => void ask()}>
           {loading ? 'Tracing…' : 'Run question'}
           <Send />
         </Button>
       </section>
       <div className={styles.workspace}>
-        {error ? <div className={styles.error}>{error}</div> : null}
-        {!result ? (
+        {authRequired ? (
+          <div className={styles.authGate}>
+            <ShieldCheck />
+            <span>
+              <small className={styles.uiLabel}>
+                Production identity boundary
+              </small>
+              <strong>Sign in to enter the Context Brain</strong>
+              <p>
+                Your identity provider proves who you are. Workspace access and
+                review capabilities are then resolved by this system.
+              </p>
+            </span>
+            <a href="/api/v1/auth/login?returnTo=%2F%23ask">
+              Sign in securely <LogIn />
+            </a>
+          </div>
+        ) : error ? (
+          <div className={styles.error}>{error}</div>
+        ) : !result ? (
           <div className={styles.loading}>
             <BrainCircuit />
             <span>
@@ -1898,7 +1996,11 @@ export function ContextStory() {
         <StageDrawer
           stage={selectedStage}
           semanticEvolution={semanticEvolution}
-          canReviewSemantic={actorId === PERSONAS[0].id}
+          canReviewSemantic={
+            session?.actor.authenticationMode === 'session'
+              ? session.actor.capabilities.includes('ontology.review')
+              : actorId === PERSONAS[0].id
+          }
           semanticReviewLoading={semanticReviewLoading}
           onSemanticReview={(proposalId, decision) =>
             void reviewSemanticProposal(proposalId, decision)
@@ -1910,7 +2012,16 @@ export function ContextStory() {
         <MemoryDrawer
           memory={memory}
           discovery={discovery}
-          canReview={actorId === PERSONAS[0].id}
+          canReview={
+            session?.actor.authenticationMode === 'session'
+              ? session.actor.capabilities.includes('hypothesis.review')
+              : actorId === PERSONAS[0].id
+          }
+          canOperate={
+            session?.actor.authenticationMode === 'session'
+              ? session.actor.capabilities.includes('monitor.operate')
+              : actorId === PERSONAS[0].id
+          }
           reviewLoading={reviewLoading}
           discoveryReviewLoading={discoveryReviewLoading}
           discoveryOperationLoading={discoveryOperationLoading}

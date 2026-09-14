@@ -9,16 +9,24 @@ export const runtime = 'nodejs';
 export async function GET(request: Request) {
   try {
     const actor = await resolveRequestActor(request);
-    return NextResponse.json({
-      actor: {
-        id: actor.id,
-        name: actor.name,
-        role: actor.role,
-        workspaceId: actor.workspaceId,
-        authenticationMode: actor.authenticationMode,
-        capabilities: actor.capabilities,
+    return NextResponse.json(
+      {
+        actor: {
+          id: actor.id,
+          name: actor.name,
+          role: actor.role,
+          workspaceId: actor.workspaceId,
+          authenticationMode: actor.authenticationMode,
+          capabilities: actor.capabilities,
+        },
+        authentication: {
+          interactive: actor.authenticationMode === 'session',
+          loginUrl: '/api/v1/auth/login',
+          logoutUrl: '/api/v1/auth/logout',
+        },
       },
-    });
+      { headers: { 'cache-control': 'no-store' } },
+    );
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return NextResponse.json(

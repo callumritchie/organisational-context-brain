@@ -9,7 +9,7 @@ export interface CapabilityActor {
   id: string;
   role: string;
   capabilities?: ActorCapability[];
-  authenticationMode?: 'demo' | 'oidc';
+  authenticationMode?: 'demo' | 'oidc' | 'session';
 }
 
 export function actorHasCapability(

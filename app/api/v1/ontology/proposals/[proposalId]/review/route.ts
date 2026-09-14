@@ -4,6 +4,7 @@ import {
   AuthenticationError,
   resolveRequestActor,
 } from '@/src/modules/identity/request-actor';
+import { authorizeMutationRequest } from '@/src/modules/identity/mutation-authorization';
 import {
   OntologyProposalConflictError,
   OntologyProposalPermissionError,
@@ -23,18 +24,11 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ proposalId: string }> },
 ) {
-  if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json(
-      {
-        type: 'demo-mutation-disabled',
-        title:
-          'Semantic review requires production authentication before deployment.',
-      },
-      { status: 403 },
-    );
-  }
   try {
-    const actor = await resolveRequestActor(request);
+    const actor = await resolveRequestActor(request, {
+      operationClass: 'mutation',
+    });
+    await authorizeMutationRequest(request, actor, 'ontology.review');
     const proposalId = z
       .string()
       .uuid()

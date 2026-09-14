@@ -4,6 +4,7 @@ import {
   AuthenticationError,
   resolveRequestActor,
 } from '@/src/modules/identity/request-actor';
+import { authorizeMutationRequest } from '@/src/modules/identity/mutation-authorization';
 import {
   MonitorOperationPermissionError,
   operateMonitor,
@@ -23,18 +24,11 @@ const operationSchema = z
   .strict();
 
 export async function POST(request: Request) {
-  if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json(
-      {
-        type: 'demo-operation-disabled',
-        title:
-          'Monitor operations require production authentication before deployment.',
-      },
-      { status: 403 },
-    );
-  }
   try {
-    const actor = await resolveRequestActor(request);
+    const actor = await resolveRequestActor(request, {
+      operationClass: 'mutation',
+    });
+    await authorizeMutationRequest(request, actor, 'monitor.operate');
     const input = operationSchema.parse(await request.json());
     return NextResponse.json({
       memory: await operateMonitor(actor, input.operation),

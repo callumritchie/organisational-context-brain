@@ -61,6 +61,15 @@ try {
        user_id = EXCLUDED.user_id, active = true, updated_at = now()`,
     [identityId, workspaceId, providerId, subject, userId],
   );
+  await client.query(
+    `UPDATE browser_sessions
+     SET revoked_at = COALESCE(revoked_at, now()), revoke_reason = 'identity_relinked'
+     WHERE external_identity_id = $1 AND revoked_at IS NULL`,
+    [identityId],
+  );
+  await client.query(`DELETE FROM user_capabilities WHERE user_id = $1`, [
+    userId,
+  ]);
   for (const capability of capabilities) {
     await client.query(
       `INSERT INTO user_capabilities
@@ -75,6 +84,16 @@ try {
       ],
     );
   }
+  await client.query(
+    `INSERT INTO security_audit_events
+      (id, workspace_id, actor_id, event_type, outcome, metadata)
+     VALUES (gen_random_uuid(), $1, $2, 'identity.linked', 'success', $3::jsonb)`,
+    [
+      workspaceId,
+      userId,
+      JSON.stringify({ capabilityCount: capabilities.length }),
+    ],
+  );
   await client.query('COMMIT');
   console.log(
     `Linked external subject to workspace user ${userId} with ${capabilities.length} explicit capabilities.`,

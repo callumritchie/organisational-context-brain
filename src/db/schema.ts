@@ -114,6 +114,102 @@ export const userCapabilities = pgTable(
   ],
 );
 
+export const oidcLoginAttempts = pgTable(
+  'oidc_login_attempts',
+  {
+    id: uuid('id').primaryKey(),
+    stateHash: text('state_hash').notNull(),
+    browserBindingHash: text('browser_binding_hash').notNull(),
+    codeVerifier: text('code_verifier').notNull(),
+    nonce: text('nonce').notNull(),
+    redirectUri: text('redirect_uri').notNull(),
+    returnTo: text('return_to').notNull().default('/'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    consumedAt: timestamp('consumed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('oidc_login_attempts_state_hash').on(table.stateHash),
+  ],
+);
+
+export const browserSessions = pgTable(
+  'browser_sessions',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    externalIdentityId: uuid('external_identity_id')
+      .notNull()
+      .references(() => externalIdentities.id),
+    sessionTokenHash: text('session_token_hash').notNull(),
+    csrfTokenHash: text('csrf_token_hash').notNull(),
+    userAgentHash: text('user_agent_hash'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    idleExpiresAt: timestamp('idle_expires_at', {
+      withTimezone: true,
+    }).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    revokeReason: text('revoke_reason'),
+  },
+  (table) => [
+    uniqueIndex('browser_sessions_session_token_hash').on(
+      table.sessionTokenHash,
+    ),
+  ],
+);
+
+export const apiRateLimitWindows = pgTable(
+  'api_rate_limit_windows',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    actorId: uuid('actor_id')
+      .notNull()
+      .references(() => users.id),
+    operationClass: text('operation_class').notNull(),
+    windowStartedAt: timestamp('window_started_at', {
+      withTimezone: true,
+    }).notNull(),
+    requestCount: integer('request_count').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('api_rate_limit_windows_actor_operation').on(
+      table.workspaceId,
+      table.actorId,
+      table.operationClass,
+    ),
+  ],
+);
+
+export const securityAuditEvents = pgTable('security_audit_events', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id').references(() => workspaces.id),
+  actorId: uuid('actor_id').references(() => users.id),
+  eventType: text('event_type').notNull(),
+  outcome: text('outcome').notNull(),
+  requestId: text('request_id'),
+  sessionId: uuid('session_id'),
+  metadata: jsonb('metadata').notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export const groups = pgTable('groups', {
   id: uuid('id').primaryKey(),
   workspaceId: uuid('workspace_id')

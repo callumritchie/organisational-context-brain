@@ -19,6 +19,7 @@ This plan supersedes the original horizontal roadmap. Work proceeds as sequentia
 13. An open-ended discovery is an untrusted candidate until review; it must retain its exact evidence Resources, model route, prediction and falsification condition.
 14. A discovered concept may propose semantic vocabulary, but only an impact-checked steward decision may publish a new immutable ontology version; hypotheses and ontology proposals are separate records.
 15. Production actor identity requires a verified issuer, audience, signature, algorithm, subject and expiry; workspace, role and action capabilities are resolved from server-owned mappings, never token claims.
+16. Browser authentication uses authorization code with S256 PKCE, one-time browser-bound state and nonce, hashed revocable sessions, exact-origin CSRF checks and server-owned capabilities; application sessions are never identity-provider tokens.
 
 ## Milestone 0 — Repository foundation
 
@@ -218,3 +219,17 @@ Status: production API identity boundary implemented; interactive sign-in and de
 - Implemented: development and test retain the synthetic persona header only when no bearer token is supplied. Production rejects it and fails closed when OIDC configuration is absent or invalid.
 - Implemented: the prepared research mutation and current review/operation writes remain production-disabled despite the new read identity boundary; authentication alone does not imply deployment readiness.
 - Remaining: authorisation-code/PKCE browser sign-in, secure session cookies and CSRF controls if cookie mutations are introduced, identity lifecycle provisioning/deprovisioning, rate limiting, audit export, managed secrets, deployment network controls and a deployment-specific security review.
+
+## Milestone 14 — Interactive identity and deployment control plane
+
+Status: application identity/session vertical slice implemented; infrastructure-specific deployment gate remains.
+
+- Implemented: provider-neutral authorization-code browser sign-in with S256 PKCE, one-time state, nonce, browser binding, fixed endpoints and exact redirect configuration.
+- Implemented: ID-token verification against the fixed issuer, client audience, HTTPS JWKS, RS256/ES256 allow-list, expiry, subject and exact transaction nonce before the subject enters the server-owned workspace mapping.
+- Implemented: opaque browser sessions whose token and CSRF values are retained only as hashes; eight-hour absolute expiry, 30-minute idle expiry, user-agent binding, revocation and fail-closed provider/identity deactivation.
+- Implemented: Secure host-only HTTP-only session cookies, a separate Strict CSRF cookie, exact-origin validation and double-submit proof for cookie-authenticated writes.
+- Implemented: capability-authorized production hypothesis/discovery review, monitor/discovery operations and ontology review. Bearer clients remain supported; the prepared synthetic research mutation remains production-disabled.
+- Implemented: database-backed per-actor production limits of 120 reads and 30 mutations per minute, plus private append-only authentication, mutation-authorization, identity-lifecycle and rate-limit audit events.
+- Implemented: explicit administrative link/re-link, deprovision-and-revoke and JSONL audit-export commands. Re-linking invalidates existing sessions and applies the declared capability set exactly.
+- Implemented: the fixed-viewport UI resolves its current session, shows the mapped production identity, supplies CSRF proof automatically and presents a clear sign-in boundary when no session exists.
+- Remaining: choose a hosting and identity provider; configure managed secrets, TLS/proxy/WAF, login-endpoint throttling, database network isolation, worker supervision, backups/recovery and central audit shipping; implement provider-specific automatic joiner/mover/leaver events; complete a deployment threat model and independent security review.

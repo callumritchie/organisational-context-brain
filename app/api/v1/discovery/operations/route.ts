@@ -8,6 +8,7 @@ import {
   AuthenticationError,
   resolveRequestActor,
 } from '@/src/modules/identity/request-actor';
+import { authorizeMutationRequest } from '@/src/modules/identity/mutation-authorization';
 
 export const runtime = 'nodejs';
 
@@ -16,18 +17,11 @@ const operationSchema = z
   .strict();
 
 export async function POST(request: Request) {
-  if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json(
-      {
-        type: 'demo-mutation-disabled',
-        title:
-          'Discovery operations require production authentication before deployment.',
-      },
-      { status: 403 },
-    );
-  }
   try {
-    const actor = await resolveRequestActor(request);
+    const actor = await resolveRequestActor(request, {
+      operationClass: 'mutation',
+    });
+    await authorizeMutationRequest(request, actor, 'discovery.operate');
     const { operation } = operationSchema.parse(await request.json());
     return NextResponse.json({
       discovery: await operateDiscovery(actor, operation),
