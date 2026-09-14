@@ -210,7 +210,7 @@ async function readOntology(client: PoolClient) {
   };
 }
 
-async function readSourceSystems(client: PoolClient, sourceTypes: string[]) {
+async function readSourceSystems(client: PoolClient, projectIds: string[]) {
   const result = await client.query<{
     id: string;
     name: string;
@@ -218,11 +218,37 @@ async function readSourceSystems(client: PoolClient, sourceTypes: string[]) {
     status: string;
     last_successful_sync_at: Date | null;
   }>(
-    `SELECT id, name, source_type, status, last_successful_sync_at
-     FROM sources
-     WHERE source_type = ANY($1::text[])
-     ORDER BY name`,
-    [sourceTypes],
+    `SELECT source.id, source.name, source.source_type, source.status,
+     source.last_successful_sync_at
+     FROM sources source
+     WHERE EXISTS (
+       SELECT 1 FROM source_objects source_object
+       JOIN source_object_versions source_version
+         ON source_version.source_object_id = source_object.id
+       WHERE source_object.source_id = source.id
+         AND (
+           EXISTS (
+             SELECT 1 FROM content_versions content_version
+             JOIN relationships content_relationship
+               ON content_relationship.from_resource_id = content_version.content_resource_id
+              AND content_relationship.relationship_type = 'BELONGS_TO'
+             WHERE content_version.source_object_version_id = source_version.id
+               AND content_relationship.to_resource_id = ANY($1::uuid[])
+           )
+           OR EXISTS (
+             SELECT 1 FROM assertions source_assertion
+             JOIN relationships asserted_relationship
+               ON asserted_relationship.id = source_assertion.relationship_id
+             WHERE source_assertion.source_object_version_id = source_version.id
+               AND (
+                 asserted_relationship.from_resource_id = ANY($1::uuid[])
+                 OR asserted_relationship.to_resource_id = ANY($1::uuid[])
+               )
+           )
+         )
+     )
+     ORDER BY source.name`,
+    [projectIds],
   );
   return result.rows.map((row) => ({
     id: row.id,
@@ -425,9 +451,12 @@ export async function assembleContext(
     const graph = await buildGraph(client, evidence.map((item) => item.id));
     const [ontology, sourceSystems, accessProfile] = await Promise.all([
       readOntology(client),
-      readSourceSystems(client, [
-        ...new Set(evidence.map((item) => item.source.type)),
-      ]),
+      readSourceSystems(
+        client,
+        interpreted.entities
+          .filter((entity) => entity.type === 'Project')
+          .map((entity) => entity.id),
+      ),
       readAccessProfile(client),
     ]);
     const trace = [
