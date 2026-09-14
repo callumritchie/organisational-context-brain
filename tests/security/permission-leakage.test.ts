@@ -79,6 +79,58 @@ describe('permission leakage', () => {
     }
   });
 
+  it('forces row-level security on monitor, lifecycle, routing and notification records', async () => {
+    const owner = new Pool({ connectionString: process.env.DATABASE_URL_OWNER });
+    const protectedTables = [
+      'hypothesis_records',
+      'hypothesis_revisions',
+      'hypothesis_evaluations',
+      'hypothesis_transitions',
+      'model_route_policies',
+      'monitor_jobs',
+      'monitor_schedules',
+      'model_invocations',
+      'model_usage_ledger',
+      'notification_outbox',
+    ];
+    try {
+      const result = await owner.query<{
+        relname: string;
+        relrowsecurity: boolean;
+        relforcerowsecurity: boolean;
+        app_policy: boolean;
+        ingest_policy: boolean;
+      }>(
+        `SELECT table_record.relname, table_record.relrowsecurity,
+         table_record.relforcerowsecurity,
+         EXISTS (
+           SELECT 1 FROM pg_policies policy
+           WHERE policy.tablename = table_record.relname
+             AND policy.roles = ARRAY['org_brain_app']::name[]
+         ) AS app_policy,
+         EXISTS (
+           SELECT 1 FROM pg_policies policy
+           WHERE policy.tablename = table_record.relname
+             AND policy.roles = ARRAY['org_brain_ingest']::name[]
+         ) AS ingest_policy
+         FROM pg_class table_record WHERE table_record.relname = ANY($1::text[])
+         ORDER BY table_record.relname`,
+        [protectedTables],
+      );
+      expect(result.rows).toHaveLength(protectedTables.length);
+      for (const table of result.rows) {
+        expect(table).toMatchObject({
+          relrowsecurity: true,
+          relforcerowsecurity: true,
+          app_policy: true,
+          ingest_policy: true,
+        });
+      }
+    } finally {
+      await owner.end();
+    }
+  });
+
   it('never allows Morgan restricted evidence or side-channel metadata', async () => {
     const context = await assembleContext(
       { id: IDS.users.morgan, workspaceId: IDS.workspace, name: 'Morgan Reed', role: 'External Contractor' },

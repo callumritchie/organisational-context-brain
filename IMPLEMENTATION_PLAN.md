@@ -126,13 +126,19 @@ Status: in progress.
 
 ## Milestone 8 — Continual hypotheses and durable memory
 
-Status: first event-driven vertical slice implemented; generalisation remains.
+Status: control-plane implementation complete; semantic-quality validation remains.
 
 - Implemented: an explicit monitor policy with hypothesis, owner, restricted service actor, source-change trigger, materiality rule, mandatory review policy and stop conditions.
 - Implemented: a separate Hypothesis Monitor identity that can read workspace-wide evidence but has none of the Sync Service’s internal or user-private grants.
-- Implemented: successful relevant source changes are recorded as durable, replay-safe events and rerun the Context Service with external embeddings disabled.
+- Implemented: all five connectors commit a normalized, permission-scoped event in the same transaction as their source versions; active policies subscribe by source and exact access scope.
+- Implemented: PostgreSQL workers lease jobs with `SKIP LOCKED`, expiry, retry limits, dead-letter state and idempotency. Daily schedules and manual runs enqueue the same job contract.
 - Implemented: permission-scoped context snapshots and evidence deltas retain the before/change/after explanation for each monitor run.
 - Implemented: a deterministic formation rule turns newly supporting or contradicting evidence into an attributable memory candidate; the prepared contradiction forms a counter-hypothesis rather than silently rewriting the original claim.
 - Implemented: Project Lead review can dismiss a candidate or promote it to a canonical Hypothesis Resource with a source-version-backed assertion and provenance span. Production review writes remain disabled until genuine authentication exists.
 - Implemented: the fixed-viewport prototype exposes the whole loop through progressive disclosure in the existing answer trace rather than adding another page or tab.
-- Remaining: general-purpose hypothesis extraction, scheduled/asynchronous workers, connector-independent routing, repeated testing over multiple events, staleness/supersession policy, notifications, monitor operations, and evaluation against a larger messy corpus.
+- Implemented: the evaluator is policy-driven rather than Atlas-specific; another governed Hypothesis Resource can declare its query, scope, owner, service actor, connector subscriptions and interval.
+- Implemented: administrative lifecycle, immutable revisions, predictions, falsification conditions, evaluations, epistemic transitions, staleness scanning, explicit supersession/retirement and monitor shutdown primitives.
+- Implemented: permission-scoped notification outbox plus local Project Lead pause, resume, run-now and mark-read operations. Production writes remain disabled until genuine authentication exists.
+- Implemented: provider-neutral model routing with deterministic-only, economy, balanced and high-assurance policies; approved-provider and budget checks; durable invocation and token/cost ledgers. Background monitoring defaults to deterministic-only and zero external tokens.
+- Implemented: a deterministic 10,000-record hypothesis-monitor contract benchmark covering every source type, 200 projects, versioned stance changes, duplicates, permission leakage and routing spend.
+- Remaining: independently authored evaluation for open-ended hypothesis quality, an explicitly approved/configured provider for raw-content hypothesis discovery, external notification delivery, production job supervision and production authentication.

@@ -301,13 +301,17 @@ function MemoryDrawer({
   memory,
   canReview,
   reviewLoading,
+  operationLoading,
   onReview,
+  onOperate,
   onClose,
 }: {
   memory: MemoryState | null;
   canReview: boolean;
   reviewLoading: string | null;
+  operationLoading: string | null;
   onReview: (candidateId: string, decision: 'accept' | 'dismiss') => void;
+  onOperate: (operation: 'pause' | 'resume' | 'run-now' | 'mark-notifications-read') => void;
   onClose: () => void;
 }) {
   const run = memory?.latestRun;
@@ -343,7 +347,9 @@ function MemoryDrawer({
             </p>
           </div>
           <b className={memory?.configured ? styles.working : styles.notBuilt}>
-            {memory?.configured ? 'Active' : 'Not configured'}
+            {memory?.configured
+              ? (memory.policy?.status ?? 'active')
+              : 'Not configured'}
           </b>
           <button
             type="button"
@@ -375,6 +381,96 @@ function MemoryDrawer({
                 review_required={String(memory?.policy?.reviewRequired ?? true)}
               </code>
             </div>
+          </section>
+          <section className={styles.monitorOperations}>
+            <header>
+              <div>
+                <span className={styles.uiLabel}>Monitor operations</span>
+                <strong>One hypothesis, continuously evaluated</strong>
+                <p>
+                  Lifecycle is an administrative state; evidence state is what
+                  the permitted sources currently support.
+                </p>
+              </div>
+              <div>
+                <Button
+                  variant="outline"
+                  disabled={!canReview || operationLoading !== null}
+                  onClick={() =>
+                    onOperate(
+                      memory?.policy?.status === 'active' ? 'pause' : 'resume',
+                    )
+                  }
+                >
+                  {memory?.policy?.status === 'active' ? 'Pause monitor' : 'Resume monitor'}
+                </Button>
+                <Button
+                  disabled={
+                    !canReview ||
+                    operationLoading !== null ||
+                    memory?.policy?.status !== 'active'
+                  }
+                  onClick={() => onOperate('run-now')}
+                >
+                  <RefreshCw />
+                  {operationLoading === 'run-now' ? 'Running…' : 'Run now'}
+                </Button>
+              </div>
+            </header>
+            <div>
+              <article>
+                <span className={styles.dataLabel}>HYPOTHESIS_RECORD</span>
+                <strong>{memory?.hypothesis?.statement ?? 'Not initialised'}</strong>
+                <dl>
+                  <div><dt>Lifecycle</dt><dd>{memory?.hypothesis?.lifecycleStatus ?? '—'}</dd></div>
+                  <div><dt>Evidence state</dt><dd>{memory?.hypothesis?.epistemicStatus ?? '—'}</dd></div>
+                  <div><dt>Revision</dt><dd>v{memory?.hypothesis?.revision ?? 0}</dd></div>
+                </dl>
+              </article>
+              <article>
+                <span className={styles.dataLabel}>WORKER_QUEUE</span>
+                <strong>{memory?.operations?.pendingJobs ?? 0} ready</strong>
+                <dl>
+                  <div><dt>Completed</dt><dd>{memory?.operations?.completedJobs ?? 0}</dd></div>
+                  <div><dt>Retrying</dt><dd>{memory?.operations?.retryingJobs ?? 0}</dd></div>
+                  <div><dt>Dead letter</dt><dd>{memory?.operations?.deadLetterJobs ?? 0}</dd></div>
+                </dl>
+              </article>
+              <article>
+                <span className={styles.dataLabel}>MODEL_ROUTE</span>
+                <strong>{memory?.modelRouting?.latestRoute ?? 'not used yet'}</strong>
+                <dl>
+                  <div><dt>Policy</dt><dd>{memory?.modelRouting?.mode ?? '—'}</dd></div>
+                  <div><dt>Tokens</dt><dd>{(memory?.modelRouting?.totalInputTokens ?? 0) + (memory?.modelRouting?.totalOutputTokens ?? 0)}</dd></div>
+                  <div><dt>Cost</dt><dd>£{((memory?.modelRouting?.totalCostMicros ?? 0) / 1_000_000).toFixed(4)}</dd></div>
+                </dl>
+              </article>
+              <article>
+                <span className={styles.dataLabel}>NOTIFICATION_OUTBOX</span>
+                <strong>{memory?.notifications.filter((item) => item.status !== 'read').length ?? 0} unread</strong>
+                <p>{memory?.notifications[0]?.title ?? 'No action needs attention.'}</p>
+                {memory?.notifications.some((item) => item.status !== 'read') ? (
+                  <button
+                    type="button"
+                    disabled={!canReview || operationLoading !== null}
+                    onClick={() => onOperate('mark-notifications-read')}
+                  >
+                    Mark read
+                  </button>
+                ) : null}
+              </article>
+            </div>
+            <footer>
+              <code>
+                schedule={memory?.operations?.scheduleEnabled ? 'enabled' : 'paused'}
+              </code>
+              <code>
+                next_due={memory?.operations?.nextDueAt
+                  ? new Date(memory.operations.nextDueAt).toLocaleString()
+                  : '—'}
+              </code>
+              <span>{memory?.modelRouting?.latestReason ?? 'No routing decision recorded.'}</span>
+            </footer>
           </section>
           <section
             className={styles.learningLoop}
@@ -850,7 +946,9 @@ function TraceCard({
               <strong>Open continual hypothesis + memory loop</strong>
             </span>
             <b className={memory?.configured ? styles.liveState : ''}>
-              {memory?.configured ? 'Active' : 'Setup required'}
+              {memory?.configured
+                ? (memory.policy?.status ?? 'active')
+                : 'Setup required'}
             </b>
             <ChevronRight />
           </button>
@@ -896,6 +994,7 @@ export function ContextStory() {
   const [mutationLoading, setMutationLoading] = useState(false);
   const [mutationMessage, setMutationMessage] = useState<string | null>(null);
   const [reviewLoading, setReviewLoading] = useState<string | null>(null);
+  const [operationLoading, setOperationLoading] = useState<string | null>(null);
 
   const loadMemory = useCallback(async (nextActorId: string) => {
     const response = await fetch('/api/v1/memory', {
@@ -1081,6 +1180,46 @@ export function ContextStory() {
     }
   }
 
+  async function operateMonitor(
+    operation: 'pause' | 'resume' | 'run-now' | 'mark-notifications-read',
+  ) {
+    setOperationLoading(operation);
+    setMutationMessage(null);
+    try {
+      const response = await fetch('/api/v1/memory/operations', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-demo-actor': actorId,
+        },
+        body: JSON.stringify({ operation }),
+      });
+      const payload = (await response.json()) as {
+        memory?: MemoryState;
+        title?: string;
+      };
+      if (!response.ok || !payload.memory) {
+        throw new Error(payload.title ?? 'The monitor operation failed.');
+      }
+      setMemory(payload.memory);
+      setMutationMessage(
+        operation === 'run-now'
+          ? 'The queued manual evaluation completed.'
+          : operation === 'mark-notifications-read'
+            ? 'Monitor notifications marked as read.'
+            : `The monitor is now ${operation === 'pause' ? 'paused' : 'active'}.`,
+      );
+    } catch (requestError) {
+      setMutationMessage(
+        requestError instanceof Error
+          ? requestError.message
+          : 'The monitor operation failed.',
+      );
+    } finally {
+      setOperationLoading(null);
+    }
+  }
+
   const stages = result ? stagesFor(result, memory) : [];
   const selectedStage = stages.find((stage) => stage.id === stageId) ?? null;
   const healthyCount =
@@ -1168,9 +1307,11 @@ export function ContextStory() {
           memory={memory}
           canReview={actorId === PERSONAS[0].id}
           reviewLoading={reviewLoading}
+          operationLoading={operationLoading}
           onReview={(candidateId, decision) =>
             void reviewCandidate(candidateId, decision)
           }
+          onOperate={(operation) => void operateMonitor(operation)}
           onClose={() => setStageId(null)}
         />
       ) : null}

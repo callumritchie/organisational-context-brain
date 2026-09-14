@@ -64,27 +64,34 @@ Cursor advancement occurs only after mapping succeeds. Replaying an unchanged cu
 
 The Milestone 5 learning demonstration advances the research connector from its initial cursor to a prepared eligibility-guidance follow-up. It uses the same ingestion transaction and mapping path to persist a new immutable source version, content and evidence Resources, assertion, provenance, search document, signals and `CONTRADICTS` relationship. Subsequent actor-scoped context requests reassess only their selected visible evidence. The mutation route is Project Lead-controlled in the demo and entirely disabled in production until genuine authentication exists.
 
-## Continual hypothesis and memory loop
+## Continual hypothesis and memory control plane
 
-The first Milestone 8 slice makes learning an explicit product operation rather than a side effect of answering a question:
+Milestone 8 makes learning an explicit product operation rather than a side effect of answering a question:
 
 ```text
-SourceObjectVersion changed
-  → durable SourceChangeEvent
-  → restricted monitor service identity
+Any connector commits SourceObjectVersion(s)
+  → permission-scoped SourceChangeEvent
+  → matching MonitorPolicy
+  → leased, retryable MonitorJob
+  → restricted service identity
   → same permission-scoped Context Service
   → compare before/after ContextSnapshots
   → durable EvidenceDelta
-  → deterministic MemoryCandidate
-  → human review
-  → accepted canonical Hypothesis Resource or retained dismissal
+  → HypothesisEvaluation + state transition
+  → ModelRouteDecision + token/cost ledger
+  → reviewable MemoryCandidate + NotificationOutbox
+  → human promotion, dismissal, supersession or retirement
 ```
 
-The initial policy monitors the durable Atlas abandonment hypothesis. A relevant research sync triggers one idempotent monitor run. The run does not use external embeddings, does not see internal or user-private evidence, and retains the materiality rationale plus both context checkpoints. Newly contradicting evidence forms a counter-hypothesis candidate with its evidence Resource, assertion, source URI, process version and confidence.
+Research, meeting, CRM, document and message syncs all use one change-event contract. Events are grouped by access scope and route only to active policies with the exact same scope and an explicit connector subscription. Workers claim jobs with `FOR UPDATE SKIP LOCKED`, a lease timeout, bounded retries, idempotency keys and a dead-letter state. Daily schedules and manual operations create events and jobs through the same path. The local demo drains after its prepared mutation so interaction remains immediate, while `monitor:schedule` and `monitor:worker` can run as separate processes.
+
+Each configurable policy supplies its Hypothesis Resource, query, owner, service actor, access scope, connectors and interval. The evaluator no longer contains Atlas-specific IDs. `hypothesis_records` keeps administrative lifecycle (`proposed`, `active`, `superseded`, `retired`) separate from evidence state (`untested`, `insufficient`, `supported`, `contested`, `refuted`, `stale`). Immutable revisions carry predictions and falsification conditions; evaluations and transitions retain why the state changed. Lifecycle supersession or retirement stops associated monitors and strands no runnable job.
 
 `memory_candidates.status = proposed` is deliberately not organisational truth. Acceptance creates a canonical `Hypothesis` Resource and a rule-derived, source-version-backed `Evidence SUPPORTS Hypothesis` assertion with a copied provenance span. Dismissal retains the candidate and its audit trail. This is explicit durable memory; it is not model fine-tuning, hidden prompt state or an untraceable model-weight change.
 
-The current executor is synchronously invoked after the prepared connector sync so the vertical slice is deterministic and testable. A queue, scheduler, notification delivery and general-purpose hypothesis extraction are not yet implemented.
+Model routing follows “no model unless needed”. Deterministic evidence deltas use `no-model`; configurable economy, balanced and high-assurance routes enforce approved providers plus daily-token and monthly-cost ceilings before a gateway can run. Every decision—including skipped and budget-blocked work—is durable. No cross-scope model-output cache exists, so cached restricted content cannot be replayed into another permission context.
+
+The implemented formation rule generalises across configured hypotheses and all connector events when evidence already has a governed `SUPPORTS` or `CONTRADICTS` stance. The 10,000-record deterministic contract benchmark validates event uniqueness, connector coverage, versioned stance changes, duplicate suppression, permissions and zero-token routing. It does not establish the quality of open-ended, model-generated hypotheses from raw unstructured content; that requires independently authored evaluation data and an explicitly enabled provider route.
 
 CRM account `381`, the `atlas-bank` CRM slug, document folder `fld-atlas-381`, and `/clients/atlas-bank` folder path are stored as traceable identity keys backed by their source-object versions. They resolve to the existing Atlas Bank Resource rather than creating duplicate client or folder entities. The document itself remains a canonical content Resource.
 
@@ -128,4 +135,4 @@ Domain work lives under `src/modules`; the application and API may depend on tho
 
 ## Current milestone state
 
-Milestones 0–6 are complete. Milestone 7 scale validation and Milestone 8 continual-memory generalisation are in progress. The system now has a measured 10,000-record relational/graph/retrieval baseline and one working, review-gated event-driven hypothesis loop. Independently authored questions, full-corpus vector measurements, general hypothesis formation and asynchronous monitor operations remain before broader infrastructure decisions are justified.
+Milestones 0–6 are complete. Milestone 7 scale validation and Milestone 8 semantic-quality validation remain in progress. The system has a measured 10,000-record relational/graph/retrieval baseline and a working, configurable, review-gated hypothesis control plane with connector events, workers, schedules, lifecycle, notifications and cost routing. Independently authored questions, full-corpus vector measurements, open-ended hypothesis discovery and production operations remain before broader infrastructure decisions are justified.

@@ -12,6 +12,7 @@ import type {
   ResearchSourceRecord,
   SourceVisibility,
 } from '@/src/modules/connectors/types';
+import { recordKnowledgeChangeEvents, type KnowledgeChange } from '@/src/modules/events/knowledge-change';
 
 function contentHash(record: KnowledgeSourceRecord) {
   return createHash('sha256').update(JSON.stringify(record)).digest('hex');
@@ -404,7 +405,7 @@ async function mapRecord(
     processName,
   });
 
-  if (!record.evidence) return;
+  if (!record.evidence) return { contentResourceId, evidenceResourceId: null };
   const evidenceResourceId = stableId('evidence-resource', record.externalId);
   await upsertResource(client, {
     id: evidenceResourceId,
@@ -478,6 +479,7 @@ async function mapRecord(
       ],
     );
   }
+  return { contentResourceId, evidenceResourceId };
 }
 
 async function runSourceSync<T extends KnowledgeSourceRecord>(
@@ -508,6 +510,7 @@ async function runSourceSync<T extends KnowledgeSourceRecord>(
   try {
     const page = await connector.listChanges(cursorBefore);
     let changed = 0;
+    const knowledgeChanges: KnowledgeChange[] = [];
     for (const record of page.records) {
       const hash = contentHash(record);
       const sourceObjectId = stableId('source-object', `${config.sourceId}:${record.externalId}`);
@@ -540,7 +543,19 @@ async function runSourceSync<T extends KnowledgeSourceRecord>(
          ON CONFLICT (source_object_id, content_hash) DO NOTHING`,
         [sourceVersionId, IDS.workspace, sourceObjectId, scopeFor(record.visibility), hash, record, record.updatedAt],
       );
-      await mapRecord(client, record, sourceVersionId, config.contentType, config.processName);
+      const mapped = await mapRecord(client, record, sourceVersionId, config.contentType, config.processName);
+      knowledgeChanges.push({
+        accessScopeId: scopeFor(record.visibility),
+        sourceObjectVersionId: sourceVersionId,
+        affectedResourceIds: [
+          mapped.contentResourceId,
+          ...(mapped.evidenceResourceId ? [mapped.evidenceResourceId] : []),
+          IDS.resources.project,
+          IDS.resources.atlas,
+          ...(mapped.evidenceResourceId ? [IDS.resources.hypothesis] : []),
+        ],
+        changeKind: existing.rows[0] ? 'updated' : 'created',
+      });
     }
     await client.query(
       `UPDATE sources SET cursor = $2, status = 'healthy', last_successful_sync_at = now(), updated_at = now()
@@ -552,7 +567,13 @@ async function runSourceSync<T extends KnowledgeSourceRecord>(
        objects_changed = $4, finished_at = now() WHERE id = $1`,
       [runId, page.nextCursor, page.records.length, changed],
     );
-    return { runId, cursorBefore, cursorAfter: page.nextCursor, seen: page.records.length, changed };
+    const events = await recordKnowledgeChangeEvents(client, {
+      sourceId: config.sourceId,
+      connectorType: connector.sourceType,
+      syncRunId: runId,
+      changes: knowledgeChanges,
+    });
+    return { runId, cursorBefore, cursorAfter: page.nextCursor, seen: page.records.length, changed, events };
   } catch (error) {
     await client.query(
       `UPDATE sync_runs SET status = 'failed', error_summary = $2, finished_at = now() WHERE id = $1`,

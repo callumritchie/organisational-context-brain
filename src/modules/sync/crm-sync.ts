@@ -3,6 +3,7 @@ import type { PoolClient } from 'pg';
 import { IDS } from '@/src/modules/canonical/ids';
 import { stableId } from '@/src/modules/canonical/stable-id';
 import type { Connector, CrmAccountRecord } from '@/src/modules/connectors/types';
+import { recordKnowledgeChangeEvents, type KnowledgeChange } from '@/src/modules/events/knowledge-change';
 
 function contentHash(record: CrmAccountRecord) {
   return createHash('sha256').update(JSON.stringify(record)).digest('hex');
@@ -29,6 +30,7 @@ export async function runCrmSync(client: PoolClient, connector: Connector<CrmAcc
   try {
     const page = await connector.listChanges(cursorBefore);
     let changed = 0;
+    const knowledgeChanges: KnowledgeChange[] = [];
     for (const record of page.records) {
       const hash = contentHash(record);
       const sourceObjectId = stableId('source-object', `${IDS.sources.crm}:${record.externalId}`);
@@ -109,6 +111,12 @@ export async function runCrmSync(client: PoolClient, connector: Connector<CrmAcc
         [stableId('provenance', assertionId), IDS.workspace, assertionId, sourceVersionId,
           excerpt.length, excerpt],
       );
+      knowledgeChanges.push({
+        accessScopeId: IDS.scopes.everyone,
+        sourceObjectVersionId: sourceVersionId,
+        affectedResourceIds: [IDS.resources.atlas, IDS.resources.project],
+        changeKind: existing.rows[0] ? 'updated' : 'created',
+      });
     }
     await client.query(
       `UPDATE sources SET cursor = $2, status = 'healthy', last_successful_sync_at = now(), updated_at = now()
@@ -120,7 +128,13 @@ export async function runCrmSync(client: PoolClient, connector: Connector<CrmAcc
        objects_changed = $4, finished_at = now() WHERE id = $1`,
       [runId, page.nextCursor, page.records.length, changed],
     );
-    return { runId, cursorBefore, cursorAfter: page.nextCursor, seen: page.records.length, changed };
+    const events = await recordKnowledgeChangeEvents(client, {
+      sourceId: IDS.sources.crm,
+      connectorType: connector.sourceType,
+      syncRunId: runId,
+      changes: knowledgeChanges,
+    });
+    return { runId, cursorBefore, cursorAfter: page.nextCursor, seen: page.records.length, changed, events };
   } catch (error) {
     await client.query(
       `UPDATE sync_runs SET status = 'failed', error_summary = $2, finished_at = now() WHERE id = $1`,

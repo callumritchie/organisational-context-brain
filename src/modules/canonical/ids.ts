@@ -27,6 +27,12 @@ export const IDS = {
   monitors: {
     atlasAbandonment: '45000000-0000-4000-8000-000000000001',
   },
+  modelPolicies: {
+    background: '46000000-0000-4000-8000-000000000001',
+  },
+  monitorSchedules: {
+    atlasAbandonment: '47000000-0000-4000-8000-000000000001',
+  },
   resources: {
     northstar: '50000000-0000-4000-8000-000000000001',
     atlas: '50000000-0000-4000-8000-000000000002',

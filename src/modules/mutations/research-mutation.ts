@@ -7,10 +7,10 @@ import { ResearchFixtureConnector } from '@/src/modules/connectors/research-fixt
 import { upsertEvidenceSignals } from '@/src/modules/signals/signal-service';
 import { runResearchSync } from '@/src/modules/sync/research-sync';
 import {
+  getMemoryState,
   initializeDefaultMonitor,
-  newSourceTriggerRef,
-  recordAndEvaluateSourceChange,
 } from '@/src/modules/memory/hypothesis-monitor';
+import { drainMonitorJobs } from '@/src/modules/memory/monitor-worker';
 
 export const researchMutationSchema = z.object({
   mutation: z.literal('eligibility-guidance-finding'),
@@ -47,10 +47,12 @@ export async function applyResearchMutation(
       },
     });
     await client.query('COMMIT');
-    const memory = await recordAndEvaluateSourceChange({
-      sourceId: IDS.sources.research,
-      triggerRef: newSourceTriggerRef(sync.runId),
-      changedObjects: sync.changed,
+    await drainMonitorJobs({ limit: 20 });
+    const memory = await getMemoryState({
+      id: actor.id,
+      workspaceId: IDS.workspace,
+      name: 'Alex Chen',
+      role: actor.role,
     });
     return {
       applied: sync.changed > 0,

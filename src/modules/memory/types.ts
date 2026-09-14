@@ -39,6 +39,9 @@ export interface DerivedMemoryCandidate {
   rationale: string;
   confidence: number;
   evidence: SnapshotEvidence;
+  proposedScope: Record<string, unknown>;
+  predictions: string[];
+  falsificationConditions: string[];
 }
 
 export interface MemoryState {
@@ -63,6 +66,46 @@ export interface MemoryState {
     evidenceCount: number;
     capturedAt: string;
   };
+  hypothesis: null | {
+    lifecycleStatus: 'proposed' | 'active' | 'superseded' | 'retired';
+    epistemicStatus: 'untested' | 'insufficient' | 'supported' | 'contested' | 'refuted' | 'stale';
+    revision: number;
+    statement: string;
+    predictions: string[];
+    falsificationConditions: string[];
+    lastEvaluatedAt: string | null;
+    recentTransitions: Array<{
+      from: string;
+      to: string;
+      reason: string;
+      at: string;
+    }>;
+  };
+  operations: null | {
+    pendingJobs: number;
+    retryingJobs: number;
+    deadLetterJobs: number;
+    completedJobs: number;
+    scheduleEnabled: boolean;
+    nextDueAt: string | null;
+    intervalSeconds: number | null;
+  };
+  modelRouting: null | {
+    mode: 'deterministic-only' | 'economy' | 'balanced' | 'high-assurance';
+    latestRoute: 'no-model' | 'economy' | 'high-assurance' | 'deferred' | null;
+    latestReason: string | null;
+    totalInputTokens: number;
+    totalOutputTokens: number;
+    totalCostMicros: number;
+  };
+  notifications: Array<{
+    id: string;
+    type: 'material-change' | 'review-required' | 'monitor-failed' | 'lifecycle-change';
+    severity: 'info' | 'attention' | 'critical';
+    status: 'pending' | 'delivered' | 'read' | 'suppressed';
+    title: string;
+    createdAt: string;
+  }>;
   latestRun: null | {
     id: string;
     status: 'running' | 'completed' | 'no-change' | 'failed';
@@ -99,6 +142,8 @@ export interface MemoryState {
     evidenceTitle: string;
     sourceUri: string;
     process: string;
+    predictions: string[];
+    falsificationConditions: string[];
     promotedResourceId: string | null;
     createdAt: string;
   }>;
