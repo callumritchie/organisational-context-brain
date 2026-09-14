@@ -210,7 +210,7 @@ async function readOntology(client: PoolClient) {
   };
 }
 
-async function readSourceSystems(client: PoolClient) {
+async function readSourceSystems(client: PoolClient, sourceTypes: string[]) {
   const result = await client.query<{
     id: string;
     name: string;
@@ -220,7 +220,9 @@ async function readSourceSystems(client: PoolClient) {
   }>(
     `SELECT id, name, source_type, status, last_successful_sync_at
      FROM sources
+     WHERE source_type = ANY($1::text[])
      ORDER BY name`,
+    [sourceTypes],
   );
   return result.rows.map((row) => ({
     id: row.id,
@@ -423,7 +425,9 @@ export async function assembleContext(
     const graph = await buildGraph(client, evidence.map((item) => item.id));
     const [ontology, sourceSystems, accessProfile] = await Promise.all([
       readOntology(client),
-      readSourceSystems(client),
+      readSourceSystems(client, [
+        ...new Set(evidence.map((item) => item.source.type)),
+      ]),
       readAccessProfile(client),
     ]);
     const trace = [
