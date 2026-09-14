@@ -546,6 +546,7 @@ export const modelInvocations = pgTable('model_invocations', {
   monitorRunId: uuid('monitor_run_id').references(() => monitorRuns.id),
   monitorJobId: uuid('monitor_job_id').references(() => monitorJobs.id),
   discoveryRunId: uuid('discovery_run_id'),
+  discoveryJobId: uuid('discovery_job_id'),
   purpose: text('purpose').notNull(),
   taskFingerprint: text('task_fingerprint').notNull(),
   selectedRoute: text('selected_route').notNull(),
@@ -605,6 +606,7 @@ export const hypothesisDiscoveryPolicies = pgTable('hypothesis_discovery_policie
   ownerActorId: uuid('owner_actor_id').notNull().references(() => users.id),
   serviceActorId: uuid('service_actor_id').notNull().references(() => users.id),
   name: text('name').notNull(),
+  subject: text('subject').notNull().default('Organisational outcome'),
   projectResourceId: uuid('project_resource_id').notNull().references(() => resources.id),
   sourceIds: jsonb('source_ids').notNull(),
   conceptRules: jsonb('concept_rules').notNull(),
@@ -612,6 +614,7 @@ export const hypothesisDiscoveryPolicies = pgTable('hypothesis_discovery_policie
   status: text('status').notNull().default('active'),
   modelRoutePolicyId: uuid('model_route_policy_id').notNull().references(() => modelRoutePolicies.id),
   ontologyVersionId: uuid('ontology_version_id').notNull().references(() => ontologyVersions.id),
+  lastSuccessfulRunAt: timestamp('last_successful_run_at', { withTimezone: true }),
   ...timestamps,
 });
 
@@ -625,6 +628,7 @@ export const hypothesisDiscoveryRuns = pgTable('hypothesis_discovery_runs', {
   documentsScanned: integer('documents_scanned').notNull().default(0),
   sourceSystemsScanned: integer('source_systems_scanned').notNull().default(0),
   candidatesFormed: integer('candidates_formed').notNull().default(0),
+  candidatesReobserved: integer('candidates_reobserved').notNull().default(0),
   selectedRoute: text('selected_route').notNull(),
   rationale: text('rationale'),
   startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
@@ -655,5 +659,56 @@ export const hypothesisDiscoveryCandidates = pgTable('hypothesis_discovery_candi
   reviewedBy: uuid('reviewed_by').references(() => users.id),
   reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
   promotedResourceId: uuid('promoted_resource_id').references(() => resources.id),
+  lastObservedAt: timestamp('last_observed_at', { withTimezone: true }).notNull().defaultNow(),
+  missingRunCount: integer('missing_run_count').notNull().default(0),
   ...timestamps,
 });
+
+export const hypothesisDiscoveryJobs = pgTable('hypothesis_discovery_jobs', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
+  accessScopeId: uuid('access_scope_id').notNull().references(() => accessScopes.id),
+  discoveryPolicyId: uuid('discovery_policy_id').notNull().references(() => hypothesisDiscoveryPolicies.id),
+  sourceChangeEventId: uuid('source_change_event_id').references(() => sourceChangeEvents.id),
+  jobKind: text('job_kind').notNull(),
+  idempotencyKey: text('idempotency_key').notNull(),
+  status: text('status').notNull().default('pending'),
+  priority: integer('priority').notNull().default(50),
+  attempts: integer('attempts').notNull().default(0),
+  maxAttempts: integer('max_attempts').notNull().default(3),
+  availableAt: timestamp('available_at', { withTimezone: true }).notNull().defaultNow(),
+  leasedUntil: timestamp('leased_until', { withTimezone: true }),
+  workerId: text('worker_id'),
+  lastError: text('last_error'),
+  payload: jsonb('payload').notNull().default({}),
+  ...timestamps,
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+});
+
+export const hypothesisDiscoverySchedules = pgTable('hypothesis_discovery_schedules', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
+  accessScopeId: uuid('access_scope_id').notNull().references(() => accessScopes.id),
+  discoveryPolicyId: uuid('discovery_policy_id').notNull().references(() => hypothesisDiscoveryPolicies.id),
+  intervalSeconds: integer('interval_seconds').notNull(),
+  enabled: boolean('enabled').notNull().default(true),
+  nextDueAt: timestamp('next_due_at', { withTimezone: true }).notNull(),
+  lastEnqueuedAt: timestamp('last_enqueued_at', { withTimezone: true }),
+  ...timestamps,
+});
+
+export const hypothesisDiscoveryCandidateObservations = pgTable(
+  'hypothesis_discovery_candidate_observations',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id),
+    accessScopeId: uuid('access_scope_id').notNull().references(() => accessScopes.id),
+    candidateId: uuid('candidate_id').notNull().references(() => hypothesisDiscoveryCandidates.id),
+    discoveryRunId: uuid('discovery_run_id').notNull().references(() => hypothesisDiscoveryRuns.id),
+    observationKind: text('observation_kind').notNull(),
+    evidenceResourceIds: jsonb('evidence_resource_ids').notNull(),
+    sourceSystems: jsonb('source_systems').notNull(),
+    confidence: real('confidence').notNull(),
+    observedAt: timestamp('observed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+);

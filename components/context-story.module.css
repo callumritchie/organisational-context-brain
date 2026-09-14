@@ -1040,13 +1040,25 @@
   font-size: 7px;
 }
 
-.discoveryInbox > header > code {
+.discoveryControls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.discoveryControls code {
   padding: 4px 6px;
   border-radius: 5px;
   color: #6c5c36;
   background: #f2e6cc;
   font-size: 6px;
   white-space: nowrap;
+}
+
+.discoveryControls button {
+  height: 24px;
+  padding-inline: 8px;
+  font-size: 6px;
 }
 
 .discoveryFlow {

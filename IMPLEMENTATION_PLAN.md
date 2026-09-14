@@ -156,4 +156,20 @@ Status: first deterministic vertical slice implemented; human-quality validation
 - Implemented: a single-view unprompted hypothesis inbox that visually separates raw inputs, system processing, untrusted output, human review and continual monitoring.
 - Implemented: Project Lead acceptance creates a canonical Hypothesis Resource and standard continual monitor; dismissal preserves the audit trail. Production writes remain disabled without genuine authentication.
 - Implemented: a 50-case generated contract benchmark for candidate formation, primary concept selection, evidence grounding, source diversity, falsifiability and zero external spend, plus an ignored human-scoring packet.
-- Remaining: blind independent human scoring, model-assisted concept induction if justified, scheduled/retryable discovery sweeps over arbitrary projects, contradiction-rich held-out inputs and production operations.
+- Remaining: blind independent human scoring, model-assisted concept induction if justified, contradiction-rich held-out inputs and production operations.
+
+## Milestone 10 — Continual discovery runtime
+
+Status: local control-plane implementation complete; production supervision remains.
+
+- Implemented: a project-agnostic policy creation service configures the subject, project, exact permission scope, source subscriptions, governed concept rules, corroboration threshold and schedule without changing the discovery algorithm.
+- Implemented: connector change events route to both matching hypothesis monitors and matching discovery policies. A discovery policy is eligible only when the source, project and exact access scope match.
+- Implemented: PostgreSQL discovery workers use `SKIP LOCKED` leases, lease expiry, bounded retries, dead-letter state and replay-safe idempotency keys.
+- Implemented: six-hour schedules, event triggers and Project Lead “Scan now” operations all enqueue the same job contract. Pause/resume disables scheduling without deleting history.
+- Implemented: each job reads the current, non-deleted canonical content for its configured project and sources through the restricted background identity, then records a zero-token routing decision.
+- Implemented: repeated observations update an unreviewed candidate instead of duplicating it; immutable per-run observations retain the evidence set, source systems and confidence seen at that time.
+- Implemented: a missing candidate is marked superseded only after two consecutive full sweeps. If the pattern later returns, it becomes reviewable again and the reactivation is recorded.
+- Implemented: source events are considered processed only after every associated monitor and discovery job settles. Terminal discovery failures create a permission-scoped operational notification.
+- Implemented: the existing progressive-disclosure drawer exposes schedule state, manual scanning and pause/resume controls without adding another page.
+- Verified: focused database integration covers event routing replay, run replay, evidence re-observation and candidate deduplication.
+- Remaining: independent process supervision, external notification delivery, arbitrary connector administration UI, blind quality scoring and production authentication.

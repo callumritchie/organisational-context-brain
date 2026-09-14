@@ -42,6 +42,10 @@ function documentsForRule(
   });
 }
 
+function sourceKey(document: DiscoveryDocument) {
+  return document.sourceId ?? document.sourceSystem;
+}
+
 export function discoverHypotheses(
   documents: DiscoveryDocument[],
   policy: DiscoveryPolicyContract,
@@ -52,7 +56,7 @@ export function discoverHypotheses(
       return {
         rule,
         evidence,
-        sourceDiversity: new Set(evidence.map((item) => item.sourceSystem))
+        sourceDiversity: new Set(evidence.map(sourceKey))
           .size,
       };
     })
@@ -85,8 +89,7 @@ export function discoverHypotheses(
         .map((document) => [document.resourceId, document]),
     ).values(),
   ];
-  const sourceDiversity = new Set(evidence.map((item) => item.sourceSystem))
-    .size;
+  const sourceDiversity = new Set(evidence.map(sourceKey)).size;
   const strongestExistingSimilarity = Math.max(
     0,
     ...(policy.existingHypotheses ?? []).map((existing) =>

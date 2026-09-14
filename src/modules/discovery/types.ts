@@ -1,6 +1,7 @@
 export interface DiscoveryDocument {
   resourceId: string;
   sourceUri: string;
+  sourceId?: string;
   sourceSystem: string;
   title: string;
   body: string;
@@ -53,10 +54,20 @@ export interface DiscoveryState {
     documentsScanned: number;
     sourceSystemsScanned: number;
     candidatesFormed: number;
+    candidatesReobserved: number;
     selectedRoute: 'no-model' | 'economy' | 'high-assurance' | 'deferred';
     rationale: string | null;
     finishedAt: string | null;
   } | null;
+  operations: {
+    scheduleEnabled: boolean;
+    intervalSeconds: number;
+    nextDueAt: string | null;
+    pendingJobs: number;
+    retryingJobs: number;
+    deadLetterJobs: number;
+    lastSuccessfulRunAt: string | null;
+  };
   candidates: Array<{
     id: string;
     statement: string;

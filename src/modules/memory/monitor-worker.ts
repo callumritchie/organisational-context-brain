@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { IDS } from '@/src/modules/canonical/ids';
 import { stableId } from '@/src/modules/canonical/stable-id';
 import { markStaleHypotheses } from '@/src/modules/hypotheses/lifecycle';
+import { markSourceEventProcessedWhenSettled } from '@/src/modules/events/event-status';
 import { evaluateMonitorEvent, inMonitorTransaction } from './hypothesis-monitor';
 
 interface ClaimedJob {
@@ -42,20 +43,18 @@ export async function claimMonitorJob(workerId: string) {
 
 async function completeJob(jobId: string) {
   await inMonitorTransaction(async (client) => {
+    const event = await client.query<{ source_change_event_id: string | null }>(
+      'SELECT source_change_event_id FROM monitor_jobs WHERE id = $1',
+      [jobId],
+    );
     await client.query(
       `UPDATE monitor_jobs SET status = 'completed', completed_at = now(), leased_until = NULL,
        worker_id = NULL, updated_at = now() WHERE id = $1`,
       [jobId],
     );
-    await client.query(
-      `UPDATE source_change_events event SET status = 'processed', processed_at = now()
-       WHERE event.id = (SELECT source_change_event_id FROM monitor_jobs WHERE id = $1)
-         AND NOT EXISTS (
-           SELECT 1 FROM monitor_jobs pending
-           WHERE pending.source_change_event_id = event.id
-             AND pending.status <> 'completed'
-         )`,
-      [jobId],
+    await markSourceEventProcessedWhenSettled(
+      client,
+      event.rows[0]?.source_change_event_id ?? null,
     );
   });
 }

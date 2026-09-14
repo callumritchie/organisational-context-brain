@@ -311,9 +311,11 @@ function MemoryDrawer({
   canReview,
   reviewLoading,
   discoveryReviewLoading,
+  discoveryOperationLoading,
   operationLoading,
   onReview,
   onDiscoveryReview,
+  onDiscoveryOperate,
   onOperate,
   onClose,
 }: {
@@ -322,12 +324,14 @@ function MemoryDrawer({
   canReview: boolean;
   reviewLoading: string | null;
   discoveryReviewLoading: string | null;
+  discoveryOperationLoading: string | null;
   operationLoading: string | null;
   onReview: (candidateId: string, decision: 'accept' | 'dismiss') => void;
   onDiscoveryReview: (
     candidateId: string,
     decision: 'accept' | 'dismiss',
   ) => void;
+  onDiscoveryOperate: (operation: 'pause' | 'resume' | 'run-now') => void;
   onOperate: (
     operation: 'pause' | 'resume' | 'run-now' | 'mark-notifications-read',
   ) => void;
@@ -392,11 +396,35 @@ function MemoryDrawer({
                   remains outside trusted memory until a person accepts it.
                 </p>
               </div>
-              <code>
-                {discovery?.latestRun
-                  ? `${discovery.latestRun.documentsScanned} inputs · ${discovery.latestRun.sourceSystemsScanned} systems · ${discovery.latestRun.selectedRoute}`
-                  : 'discovery not initialised'}
-              </code>
+              <aside className={styles.discoveryControls}>
+                <code>
+                  {discovery?.operations.scheduleEnabled
+                    ? `scheduled · every ${Math.round(discovery.operations.intervalSeconds / 3600)}h`
+                    : 'schedule paused'}
+                </code>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!canReview || discoveryOperationLoading !== null}
+                  onClick={() => onDiscoveryOperate('run-now')}
+                >
+                  {discoveryOperationLoading === 'run-now'
+                    ? 'Scanning…'
+                    : 'Scan now'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={!canReview || discoveryOperationLoading !== null}
+                  onClick={() =>
+                    onDiscoveryOperate(
+                      discovery?.policy.status === 'active' ? 'pause' : 'resume',
+                    )
+                  }
+                >
+                  {discovery?.policy.status === 'active' ? 'Pause' : 'Resume'}
+                </Button>
+              </aside>
             </header>
             <div
               className={styles.discoveryFlow}
@@ -1234,6 +1262,9 @@ export function ContextStory() {
   const [discoveryReviewLoading, setDiscoveryReviewLoading] = useState<
     string | null
   >(null);
+  const [discoveryOperationLoading, setDiscoveryOperationLoading] = useState<
+    string | null
+  >(null);
   const [operationLoading, setOperationLoading] = useState<string | null>(null);
 
   const loadMemory = useCallback(async (nextActorId: string) => {
@@ -1517,6 +1548,44 @@ export function ContextStory() {
     }
   }
 
+  async function operateDiscovery(
+    operation: 'pause' | 'resume' | 'run-now',
+  ) {
+    setDiscoveryOperationLoading(operation);
+    setMutationMessage(null);
+    try {
+      const response = await fetch('/api/v1/discovery/operations', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-demo-actor': actorId,
+        },
+        body: JSON.stringify({ operation }),
+      });
+      const payload = (await response.json()) as {
+        discovery?: DiscoveryState;
+        title?: string;
+      };
+      if (!response.ok || !payload.discovery) {
+        throw new Error(payload.title ?? 'The discovery operation failed.');
+      }
+      setDiscovery(payload.discovery);
+      setMutationMessage(
+        operation === 'run-now'
+          ? 'The background discovery sweep completed without requiring a question.'
+          : `Continual discovery is now ${operation === 'pause' ? 'paused' : 'active'}.`,
+      );
+    } catch (requestError) {
+      setMutationMessage(
+        requestError instanceof Error
+          ? requestError.message
+          : 'The discovery operation failed.',
+      );
+    } finally {
+      setDiscoveryOperationLoading(null);
+    }
+  }
+
   const stages = result ? stagesFor(result, memory) : [];
   const selectedStage = stages.find((stage) => stage.id === stageId) ?? null;
   const healthyCount =
@@ -1606,6 +1675,7 @@ export function ContextStory() {
           canReview={actorId === PERSONAS[0].id}
           reviewLoading={reviewLoading}
           discoveryReviewLoading={discoveryReviewLoading}
+          discoveryOperationLoading={discoveryOperationLoading}
           operationLoading={operationLoading}
           onReview={(candidateId, decision) =>
             void reviewCandidate(candidateId, decision)
@@ -1613,6 +1683,7 @@ export function ContextStory() {
           onDiscoveryReview={(candidateId, decision) =>
             void reviewDiscoveredHypothesis(candidateId, decision)
           }
+          onDiscoveryOperate={(operation) => void operateDiscovery(operation)}
           onOperate={(operation) => void operateMonitor(operation)}
           onClose={() => setStageId(null)}
         />

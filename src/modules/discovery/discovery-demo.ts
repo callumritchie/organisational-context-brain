@@ -502,13 +502,14 @@ export async function initializeDiscoveryDemo() {
     await ensureBackgroundRoutePolicy(client);
     await client.query(
       `INSERT INTO hypothesis_discovery_policies
-        (id, workspace_id, access_scope_id, owner_actor_id, service_actor_id, name,
+        (id, workspace_id, access_scope_id, owner_actor_id, service_actor_id, name, subject,
          project_resource_id, source_ids, concept_rules, minimum_source_diversity,
          status, model_route_policy_id, ontology_version_id)
        VALUES ($1, $2, $3, $4, $5, 'Cross-source supplier friction discovery',
-         $6, $7, $8, 3, 'active', $9,
+         'Supplier onboarding abandonment', $6, $7, $8, 3, 'active', $9,
          (SELECT id FROM ontology_versions WHERE workspace_id = $2 AND status = 'current'))
-       ON CONFLICT (id) DO UPDATE SET concept_rules = EXCLUDED.concept_rules, updated_at = now()`,
+       ON CONFLICT (id) DO UPDATE SET subject = EXCLUDED.subject,
+         concept_rules = EXCLUDED.concept_rules, updated_at = now()`,
       [
         IDS.discoveryPolicies.supplierOnboarding,
         IDS.workspace,
@@ -521,6 +522,19 @@ export async function initializeDiscoveryDemo() {
         ),
         JSON.stringify(SUPPLIER_DISCOVERY_RULES),
         IDS.modelPolicies.background,
+      ],
+    );
+    await client.query(
+      `INSERT INTO hypothesis_discovery_schedules
+        (id, workspace_id, access_scope_id, discovery_policy_id,
+         interval_seconds, enabled, next_due_at)
+       VALUES ($1, $2, $3, $4, 21600, true, now() + interval '6 hours')
+       ON CONFLICT (discovery_policy_id) DO NOTHING`,
+      [
+        IDS.discoverySchedules.supplierOnboarding,
+        IDS.workspace,
+        IDS.scopes.everyone,
+        IDS.discoveryPolicies.supplierOnboarding,
       ],
     );
     const existingHypotheses = await client.query<{ canonical_name: string }>(
@@ -638,6 +652,11 @@ export async function initializeDiscoveryDemo() {
        WHERE id = $1`,
       [runId, candidates.length ? 'completed' : 'no-candidate'],
     );
+    await client.query(
+      `UPDATE hypothesis_discovery_policies SET last_successful_run_at = now(),
+       updated_at = now() WHERE id = $1`,
+      [IDS.discoveryPolicies.supplierOnboarding],
+    );
     return {
       runId,
       documents: documents.length,
@@ -659,22 +678,24 @@ export async function getDiscoveryState(actor: {
         status: 'active' | 'paused' | 'stopped';
         minimum_source_diversity: number;
         ontology_version: string;
+        last_successful_run_at: Date | null;
       }>(
         `SELECT policy.id, policy.name, policy.status, policy.minimum_source_diversity,
-         ontology.version AS ontology_version
+         policy.last_successful_run_at, ontology.version AS ontology_version
          FROM hypothesis_discovery_policies policy
          JOIN ontology_versions ontology ON ontology.id = policy.ontology_version_id
          WHERE policy.id = $1`,
         [IDS.discoveryPolicies.supplierOnboarding],
       );
       if (!policy.rows[0]) return null;
-      const [run, candidates] = await Promise.all([
+      const [run, candidates, schedule, jobs] = await Promise.all([
         client.query<{
           id: string;
           status: 'running' | 'completed' | 'no-candidate' | 'failed';
           documents_scanned: number;
           source_systems_scanned: number;
           candidates_formed: number;
+          candidates_reobserved: number;
           selected_route:
             | 'no-model'
             | 'economy'
@@ -711,6 +732,27 @@ export async function getDiscoveryState(actor: {
            ORDER BY created_at DESC LIMIT 10`,
           [policy.rows[0].id],
         ),
+        client.query<{
+          enabled: boolean;
+          interval_seconds: number;
+          next_due_at: Date;
+        }>(
+          `SELECT enabled, interval_seconds, next_due_at
+           FROM hypothesis_discovery_schedules WHERE discovery_policy_id = $1`,
+          [policy.rows[0].id],
+        ),
+        client.query<{
+          pending: string;
+          retrying: string;
+          dead_letter: string;
+        }>(
+          `SELECT
+             count(*) FILTER (WHERE status IN ('pending', 'leased'))::text AS pending,
+             count(*) FILTER (WHERE status = 'retrying')::text AS retrying,
+             count(*) FILTER (WHERE status = 'dead-letter')::text AS dead_letter
+           FROM hypothesis_discovery_jobs WHERE discovery_policy_id = $1`,
+          [policy.rows[0].id],
+        ),
       ]);
       return {
         policy: {
@@ -727,11 +769,22 @@ export async function getDiscoveryState(actor: {
               documentsScanned: run.rows[0].documents_scanned,
               sourceSystemsScanned: run.rows[0].source_systems_scanned,
               candidatesFormed: run.rows[0].candidates_formed,
+              candidatesReobserved: run.rows[0].candidates_reobserved,
               selectedRoute: run.rows[0].selected_route,
               rationale: run.rows[0].rationale,
               finishedAt: run.rows[0].finished_at?.toISOString() ?? null,
             }
           : null,
+        operations: {
+          scheduleEnabled: schedule.rows[0]?.enabled ?? false,
+          intervalSeconds: schedule.rows[0]?.interval_seconds ?? 0,
+          nextDueAt: schedule.rows[0]?.next_due_at.toISOString() ?? null,
+          pendingJobs: Number(jobs.rows[0]?.pending ?? 0),
+          retryingJobs: Number(jobs.rows[0]?.retrying ?? 0),
+          deadLetterJobs: Number(jobs.rows[0]?.dead_letter ?? 0),
+          lastSuccessfulRunAt:
+            policy.rows[0].last_successful_run_at?.toISOString() ?? null,
+        },
         candidates: candidates.rows.map((candidate) => ({
           id: candidate.id,
           statement: candidate.statement,

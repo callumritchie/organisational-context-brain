@@ -145,6 +145,7 @@ export async function recordDeterministicRouteDecision(
     monitorRunId?: string | null;
     discoveryRunId?: string | null;
     monitorJobId?: string | null;
+    discoveryJobId?: string | null;
     taskFingerprint: string;
     inputCharacters: number;
     routePolicyId?: string;
@@ -177,12 +178,12 @@ export async function recordDeterministicRouteDecision(
   const invocation = await client.query<{ id: string }>(
     `INSERT INTO model_invocations
       (id, workspace_id, access_scope_id, route_policy_id, monitor_run_id, monitor_job_id,
-       discovery_run_id,
+      discovery_run_id, discovery_job_id,
        purpose, task_fingerprint, selected_route, decision_reason, provider, model,
        prompt_version, estimated_input_tokens, maximum_output_tokens, estimated_cost_micros,
        actual_input_tokens, actual_output_tokens, actual_cost_micros, status, completed_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
-       $12, $13, $14, $15, $16, $17, 0, 0, 0, $18, now())
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+       $13, $14, $15, $16, $17, $18, 0, 0, 0, $19, now())
      ON CONFLICT (workspace_id, purpose, task_fingerprint, prompt_version)
      DO UPDATE SET id = model_invocations.id
      RETURNING id`,
@@ -194,6 +195,7 @@ export async function recordDeterministicRouteDecision(
       input.monitorRunId,
       input.monitorJobId ?? null,
       input.discoveryRunId ?? null,
+      input.discoveryJobId ?? null,
       input.purpose ?? 'hypothesis-evaluation',
       input.taskFingerprint,
       decision.route,

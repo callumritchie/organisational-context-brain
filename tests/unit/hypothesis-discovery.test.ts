@@ -4,6 +4,8 @@ import {
   SUPPLIER_DISCOVERY_RULES,
 } from '@/data/sources/discovery/supplier-onboarding';
 import { discoverHypotheses } from '@/src/modules/discovery/hypothesis-discovery';
+import { createDiscoveryPolicy } from '@/src/modules/discovery/discovery-policy';
+import { IDS } from '@/src/modules/canonical/ids';
 
 describe('hypothesis discovery', () => {
   it('forms a falsifiable cross-source candidate from unlabeled records', () => {
@@ -34,5 +36,23 @@ describe('hypothesis discovery', () => {
         conceptRules: SUPPLIER_DISCOVERY_RULES,
       }),
     ).toEqual([]);
+  });
+
+  it('rejects a discovery policy whose corroboration threshold exceeds its sources', async () => {
+    await expect(
+      createDiscoveryPolicy({
+        accessScopeId: IDS.scopes.everyone,
+        ownerActorId: IDS.users.alex,
+        serviceActorId: IDS.users.memoryAgent,
+        name: 'Invalid policy',
+        subject: 'An outcome',
+        projectResourceId: IDS.resources.project,
+        sourceIds: [IDS.sources.research, IDS.sources.meetings],
+        conceptRules: SUPPLIER_DISCOVERY_RULES,
+        minimumSourceDiversity: 3,
+      }),
+    ).rejects.toThrow(
+      'The source-diversity threshold cannot exceed the configured source count',
+    );
   });
 });

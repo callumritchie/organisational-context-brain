@@ -21,6 +21,8 @@ const ownerClient = await ownerPool.connect();
 try {
   await ownerClient.query('BEGIN');
   await ownerClient.query(`TRUNCATE TABLE
+    hypothesis_discovery_candidate_observations, hypothesis_discovery_schedules,
+    hypothesis_discovery_jobs,
     hypothesis_discovery_candidates, hypothesis_discovery_runs, hypothesis_discovery_policies,
     notification_outbox, model_usage_ledger, model_invocations, monitor_schedules, monitor_jobs,
     hypothesis_transitions, hypothesis_evaluations, hypothesis_revisions, hypothesis_records,

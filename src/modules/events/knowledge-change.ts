@@ -33,7 +33,7 @@ export async function recordKnowledgeChangeEvents(
     const versions = [...new Set(changes.map((change) => change.sourceObjectVersionId))];
     const resources = [...new Set(changes.flatMap((change) => change.affectedResourceIds))];
     const changeKinds = [...new Set(changes.map((change) => change.changeKind ?? 'updated'))];
-    const policies = await client.query<{
+    const monitorPolicies = await client.query<{
       id: string;
       trigger_policy: { sources?: string[] };
     }>(
@@ -41,10 +41,28 @@ export async function recordKnowledgeChangeEvents(
        WHERE workspace_id = $1 AND access_scope_id = $2 AND status = 'active'`,
       [IDS.workspace, accessScopeId],
     );
-    const matching = policies.rows.filter((policy) =>
+    const matchingMonitors = monitorPolicies.rows.filter((policy) =>
       (policy.trigger_policy.sources ?? []).includes(batch.sourceId),
     );
-    const status = matching.length > 0 ? 'queued' : 'ignored';
+    const discoveryPolicies = await client.query<{
+      id: string;
+      project_resource_id: string;
+      source_ids: string[];
+    }>(
+      `SELECT id, project_resource_id, source_ids
+       FROM hypothesis_discovery_policies
+       WHERE workspace_id = $1 AND access_scope_id = $2 AND status = 'active'`,
+      [IDS.workspace, accessScopeId],
+    );
+    const matchingDiscoveries = discoveryPolicies.rows.filter(
+      (policy) =>
+        policy.source_ids.includes(batch.sourceId) &&
+        resources.includes(policy.project_resource_id),
+    );
+    const status =
+      matchingMonitors.length > 0 || matchingDiscoveries.length > 0
+        ? 'queued'
+        : 'ignored';
     await client.query(
       `INSERT INTO source_change_events
         (id, workspace_id, access_scope_id, source_id, trigger_ref, changed_objects,
@@ -72,13 +90,35 @@ export async function recordKnowledgeChangeEvents(
       ],
     );
     const jobIds: string[] = [];
-    for (const policy of matching) {
+    for (const policy of matchingMonitors) {
       const idempotencyKey = `event:${policy.id}:${eventId}`;
       const jobId = stableId('monitor-job', idempotencyKey);
       await client.query(
         `INSERT INTO monitor_jobs
           (id, workspace_id, access_scope_id, monitor_policy_id, source_change_event_id,
            job_kind, idempotency_key, status, priority, payload)
+         VALUES ($1, $2, $3, $4, $5, 'event', $6, 'pending', 70, $7)
+         ON CONFLICT (workspace_id, idempotency_key) DO NOTHING`,
+        [
+          jobId,
+          IDS.workspace,
+          accessScopeId,
+          policy.id,
+          eventId,
+          idempotencyKey,
+          { sourceId: batch.sourceId, connectorType: batch.connectorType },
+        ],
+      );
+      jobIds.push(jobId);
+    }
+    for (const policy of matchingDiscoveries) {
+      const idempotencyKey = `event-discovery:${policy.id}:${eventId}`;
+      const jobId = stableId('hypothesis-discovery-job', idempotencyKey);
+      await client.query(
+        `INSERT INTO hypothesis_discovery_jobs
+          (id, workspace_id, access_scope_id, discovery_policy_id,
+           source_change_event_id, job_kind, idempotency_key, status, priority,
+           payload)
          VALUES ($1, $2, $3, $4, $5, 'event', $6, 'pending', 70, $7)
          ON CONFLICT (workspace_id, idempotency_key) DO NOTHING`,
         [

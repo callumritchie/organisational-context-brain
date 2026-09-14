@@ -41,6 +41,9 @@ export const IDS = {
   discoveryPolicies: {
     supplierOnboarding: '48000000-0000-4000-8000-000000000001',
   },
+  discoverySchedules: {
+    supplierOnboarding: '49000000-0000-4000-8000-000000000001',
+  },
   resources: {
     northstar: '50000000-0000-4000-8000-000000000001',
     atlas: '50000000-0000-4000-8000-000000000002',
