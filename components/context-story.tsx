@@ -65,6 +65,13 @@ function safeToken(value: string) {
     .replaceAll(/^_|_$/g, '');
 }
 
+function displayMonitorStatus(
+  status: 'active' | 'paused' | 'stopped' | undefined,
+) {
+  if (!status) return 'Active';
+  return `${status.charAt(0).toUpperCase()}${status.slice(1)}`;
+}
+
 function stagesFor(
   result: ContextResponse,
   memory: MemoryState | null,
@@ -348,7 +355,7 @@ function MemoryDrawer({
           </div>
           <b className={memory?.configured ? styles.working : styles.notBuilt}>
             {memory?.configured
-              ? (memory.policy?.status ?? 'active')
+              ? displayMonitorStatus(memory.policy?.status)
               : 'Not configured'}
           </b>
           <button
@@ -947,7 +954,7 @@ function TraceCard({
             </span>
             <b className={memory?.configured ? styles.liveState : ''}>
               {memory?.configured
-                ? (memory.policy?.status ?? 'active')
+                ? displayMonitorStatus(memory.policy?.status)
                 : 'Setup required'}
             </b>
             <ChevronRight />

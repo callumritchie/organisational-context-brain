@@ -63,8 +63,20 @@ test('turns the brain into an inspectable product blueprint without page scrolli
   await expect(monitorDialog.getByText('Active', { exact: true })).toBeVisible();
   await expect(monitorDialog.getByText('Form', { exact: true })).toBeVisible();
   await expect(
+    monitorDialog.getByRole('button', { name: 'Run now' }),
+  ).toBeVisible();
+  await expect(
     monitorDialog.getByText(
-      /No proposal exists. A relevant evidence change must pass the materiality check first/i,
+      'Proposed learnings are not trusted memory yet',
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await monitorDialog.getByRole('button', { name: 'Run now' }).click();
+  await expect(monitorDialog.getByText('no-model', { exact: true })).toBeVisible();
+  await expect(
+    monitorDialog.getByText(
+      'Deterministic evidence-delta rules were sufficient.',
+      { exact: true },
     ),
   ).toBeVisible();
   expect(
