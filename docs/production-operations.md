@@ -85,11 +85,11 @@ Before every release:
 
 1. confirm the latest backup and PITR window;
 2. review migration compatibility with the previous application image;
-3. test the release job in a staging database restored from a recent backup; and
+3. test the release job in a staging database restored from a recent backup and run `npm run recovery:verify`; and
 4. record the image digests and commit SHA.
 
 For data corruption or an incompatible migration, stop writers, preserve the affected database for investigation, restore into a new isolated database to the selected recovery point, validate permissions and readiness, then switch application secrets/traffic. Test that procedure periodically; an untested backup is not a recovery capability.
 
 ## Still external to this repository
 
-The operator must still choose and configure a cloud, DNS/TLS, WAF or ingress, managed PostgreSQL, secret manager, identity provider, central logging and alerting. Provider-specific joiner/mover/leaver automation, external notification delivery, load testing, a deployment threat model and independent penetration testing remain separate milestones.
+The operator must still choose and configure a cloud, DNS/TLS, WAF or ingress, managed PostgreSQL, secret manager, identity provider, central logging and alerting. Milestone 16 supplies bounded staging/load checks, a recovery verifier and a provider-completion threat model, but they have not run against a live environment. Provider-specific joiner/mover/leaver automation, external notification delivery, representative-scale load testing and independent penetration testing remain separate milestones.

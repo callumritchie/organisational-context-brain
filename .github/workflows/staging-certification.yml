@@ -1,0 +1,58 @@
+name: Staging certification
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: Bare HTTPS origin of the staging deployment
+        required: true
+        type: string
+      identity_origin:
+        description: Bare HTTPS origin of the configured OIDC provider
+        required: true
+        type: string
+      expected_commit:
+        description: Full deployed commit SHA (defaults to this workflow commit)
+        required: false
+        type: string
+      ready_probe_requests:
+        description: Bounded readiness requests (1-500)
+        required: true
+        default: '50'
+        type: string
+
+concurrency:
+  group: staging-certification
+  cancel-in-progress: false
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: staging
+      url: ${{ inputs.target_url }}
+    env:
+      STAGING_BASE_URL: ${{ inputs.target_url }}
+      STAGING_EXPECTED_IDP_ORIGIN: ${{ inputs.identity_origin }}
+      STAGING_EXPECTED_COMMIT: ${{ inputs.expected_commit || github.sha }}
+      STAGING_TEST_BEARER_TOKEN: ${{ secrets.STAGING_TEST_BEARER_TOKEN }}
+      STAGING_LOAD_TARGET: ready
+      STAGING_LOAD_REQUESTS: ${{ inputs.ready_probe_requests }}
+      STAGING_LOAD_CONCURRENCY: '2'
+      STAGING_LOAD_MAXIMUM_P95_MS: '2000'
+      STAGING_LOAD_MINIMUM_SUCCESS_RATE: '0.99'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Certify staging trust boundaries
+        run: npm run staging:certify
+      - name: Run bounded readiness load
+        run: npm run staging:load

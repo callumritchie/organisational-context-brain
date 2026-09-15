@@ -27,6 +27,8 @@ describe('deployment health contracts', () => {
         {
           role_name: 'org_brain_app',
           session_boundary: 'resolve_browser_session(text,text,interval)',
+          migration_checksum:
+            'a4a0790b1641277fe92fbf6440ef408e4e83975b40d0edf3ac662487c4035ee3',
         },
       ],
     });
@@ -39,7 +41,13 @@ describe('deployment health contracts', () => {
     });
 
     query.mockResolvedValueOnce({
-      rows: [{ role_name: 'postgres', session_boundary: null }],
+      rows: [
+        {
+          role_name: 'postgres',
+          session_boundary: null,
+          migration_checksum: null,
+        },
+      ],
     });
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const unavailable = await ready();

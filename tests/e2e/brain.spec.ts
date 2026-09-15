@@ -1,6 +1,25 @@
 import { expect, test } from '@playwright/test';
 import { IDS } from '@/src/modules/canonical/ids';
 
+test('serves the application shell with a per-response script nonce', async ({
+  request,
+}) => {
+  const first = await request.get('/');
+  const second = await request.get('/');
+  expect(first.ok()).toBe(true);
+  expect(second.ok()).toBe(true);
+  const firstPolicy = first.headers()['content-security-policy'];
+  const secondPolicy = second.headers()['content-security-policy'];
+  const firstNonce = /'nonce-([^']+)'/.exec(firstPolicy ?? '')?.[1];
+  const secondNonce = /'nonce-([^']+)'/.exec(secondPolicy ?? '')?.[1];
+  expect(firstNonce).toBeTruthy();
+  expect(secondNonce).toBeTruthy();
+  expect(firstNonce).not.toBe(secondNonce);
+  expect(firstPolicy).toContain("'strict-dynamic'");
+  expect(firstPolicy).not.toMatch(/script-src [^;]*'unsafe-inline'/);
+  expect(await first.text()).toContain(`nonce="${firstNonce}"`);
+});
+
 test('resolves evidence and changes safely for Morgan', async ({ page }) => {
   await page.goto('/');
   await expect(

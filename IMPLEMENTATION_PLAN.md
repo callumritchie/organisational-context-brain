@@ -246,3 +246,16 @@ Status: portable application/runtime foundation implemented; live provider deplo
 - Implemented: a deployment sequence, minimum monitoring/alerting contract, forward-only rollback policy and restore-to-new-database recovery drill.
 - Implemented: CI builds both production image targets in addition to running the full database, security, build and browser suites.
 - Remaining: select accounts/providers; configure managed secrets, private networking, DNS/TLS and WAF; deploy staging; exercise a real OIDC login; ship logs/audits; test backup restoration; load-test queues/API; perform a deployment threat model and independent security review.
+
+## Milestone 16 — Staging certification and release integrity
+
+Status: provider-neutral certification and recovery gates implemented; no live provider environment has been created.
+
+- Implemented: a remote staging certifier binds its verdict to the exact 40-character deployed commit and verifies liveness, readiness, non-cacheable health, strict browser headers, anonymous denial, production rejection of the demo persona header and invalid-token denial.
+- Implemented: the certifier proves OIDC login starts only at the declared identity origin with authorization code, S256 PKCE, state, nonce and a secure host-only binding cookie. Full certification also requires a real verified test subject to resolve through the server-owned workspace mapping; public-only checks are labelled incomplete.
+- Implemented: a per-response nonce CSP protects scripts without `unsafe-inline`; the application shell is dynamically rendered so Next.js can attach the nonce. Inline styles remain allowed for the interactive graph and are recorded as a deliberate residual compromise.
+- Implemented: the migration runner serialises releases with a PostgreSQL advisory lock, applies each new migration atomically and records its SHA-256 checksum. Changed or unexpected applied migrations stop a release rather than silently rewriting history.
+- Implemented: a read-only recovery verifier refuses the configured source target and checks an isolated restore's full migration ledger, restricted runtime roles, forced RLS, session boundary and non-sensitive row counts.
+- Implemented: a bounded load harness caps requests and concurrency, defaults to unauthenticated readiness, reports percentile latency and requires an explicit confirmation plus test token for authenticated context traffic.
+- Implemented: a protected, manually dispatched GitHub workflow runs full staging certification and bounded readiness load. A deployment runbook, manual acceptance protocol and provider-completion threat model state exactly what the evidence does and does not establish.
+- Remaining: choose and provision the provider stack; configure private networking, secrets, DNS/TLS, WAF and central observability; perform the first live OIDC/browser test and restore drill; validate real connector scopes; automate provider-specific joiner/mover/leaver events; complete independent security testing. Until then, staging certification code exists but no staging environment is certified.

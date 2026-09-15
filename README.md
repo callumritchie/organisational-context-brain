@@ -22,6 +22,8 @@ Milestone 11 is now pinned at that external-quality gate. Milestone 12 adds gove
 
 Milestone 13 replaces the API's production trust boundary. All routes now require verified OIDC bearer identity in production, then resolve workspace membership, role and explicit action capabilities from server-owned database mappings. The synthetic persona header remains available only for local development. This is an API authentication boundary, not yet a finished browser sign-in or a claim that the app is deployment-ready.
 
+Milestones 14–16 add the deployment control plane around that boundary: interactive authorization-code + S256 PKCE sign-in, hashed revocable browser sessions, capability-authorised production operations, separately supervised web/worker/scheduler/release containers, and an exact-commit staging certification gate. Releases are serialised and recorded in a checksum ledger; an isolated restored backup can be verified read-only before traffic moves. This is deployment-ready application machinery, not evidence that a live environment has been provisioned or independently approved.
+
 No LLM or API key is required. Optional provider synthesis is a disposable consumer of the permissioned context packet, not a second retrieval system.
 
 ## Quick start
@@ -38,9 +40,9 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The credentials in `.env.example`, Docker Compose, and CI are deliberately disposable local-test values. Replace them with generated secrets for any non-local environment. Publishing this source repository does not deploy the application. The demo persona header is not production authentication: a network user could forge Alex’s ID and inherit Alex’s permissions. Ontology and prepared research-mutation writes are therefore blocked whenever `NODE_ENV=production`; do not expose this build directly to the public internet.
+The credentials in `.env.example`, Docker Compose, and CI are deliberately disposable local-test values. Replace them with generated secrets for any non-local environment. Publishing this source repository does not deploy the application. The demo persona header is never accepted as production identity. Governed production operations require both verified identity and server-owned capabilities; the prepared synthetic research mutation remains blocked in production.
 
-For a future deployment, configure the fixed OIDC issuer, audience, JWKS, authorization/token endpoints, client, callback and public origin. Then link a verified provider subject to an existing workspace member using the owner-only, explicit-confirmation `auth:link-identity` command. Never put role, workspace or capability authority in token claims. The trust chain is documented in the [production identity guide](./docs/production-identity.md), [browser authentication guide](./docs/browser-authentication.md) and [production operations runbook](./docs/production-operations.md). Hosting-specific controls and a security review are still required.
+For a future deployment, configure the fixed OIDC issuer, audience, JWKS, authorization/token endpoints, client, callback and public origin. Then link a verified provider subject to an existing workspace member using the owner-only, explicit-confirmation `auth:link-identity` command. Never put role, workspace or capability authority in token claims. The trust chain is documented in the [production identity guide](./docs/production-identity.md), [browser authentication guide](./docs/browser-authentication.md), [production operations runbook](./docs/production-operations.md), [staging certification guide](./docs/staging-certification.md) and [deployment threat model](./docs/deployment-threat-model.md). Hosting-specific controls and an independent security review are still required.
 
 Useful checks:
 
@@ -101,7 +103,7 @@ The ranking is named `demo-ranking-v3`. Its retrieval contribution uses reciproc
 
 ## Current scope
 
-Completed foundations: Milestones 0–10. Milestone 11 is pinned after its harness exposed a 0/20 contradiction-surfacing result; independent case authoring, blind review and the separately unauthorised full-vector run remain incomplete. Milestone 12 supplies governed semantic evolution, Milestone 13 supplies verified production API identity, Milestone 14 adds interactive PKCE sign-in and session controls, and Milestone 15 packages separately supervised web/worker/scheduler/release processes with health checks and a recovery contract. Still deliberately deferred: model-assisted ontology induction, independent ontology-quality evaluation, external notification delivery, broader signal producers, approximate indexing at scale, provider-specific automatic identity lifecycle events, live managed hosting controls and an independent deployment security review.
+Completed foundations: Milestones 0–10. Milestone 11 is pinned after its harness exposed a 0/20 contradiction-surfacing result; independent case authoring, blind review and the separately unauthorised full-vector run remain incomplete. Milestone 12 supplies governed semantic evolution, Milestone 13 supplies verified production API identity, Milestone 14 adds interactive PKCE sign-in and session controls, Milestone 15 packages separately supervised web/worker/scheduler/release processes, and Milestone 16 supplies exact-release staging, load, migration-integrity, recovery and threat-model gates. Still deliberately deferred: a live provider deployment, model-assisted ontology induction, independent ontology-quality evaluation, external notification delivery, broader signal producers, approximate indexing at scale, provider-specific automatic identity lifecycle events and an independent deployment security review.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md), [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md), and [docs/permissions.md](./docs/permissions.md).
 

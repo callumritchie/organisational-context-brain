@@ -42,6 +42,9 @@
     "production:validate:web": "tsx scripts/validate-production-config.ts --profile=web",
     "production:validate:operations": "tsx scripts/validate-production-config.ts --profile=operations",
     "production:validate:release": "tsx scripts/validate-production-config.ts --profile=release",
+    "staging:certify": "tsx scripts/certify-staging.ts",
+    "staging:load": "tsx scripts/load-staging.ts",
+    "recovery:verify": "tsx scripts/verify-recovery.ts",
     "demo:setup": "npm run db:migrate && npm run db:seed"
   },
   "dependencies": {

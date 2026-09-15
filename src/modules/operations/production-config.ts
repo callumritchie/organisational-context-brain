@@ -52,6 +52,11 @@ function databaseUrl(
       `${name} must require TLS with sslmode=require, verify-ca or verify-full.`,
     );
   }
+  return parsed;
+}
+
+function databaseTarget(url: URL) {
+  return `${url.hostname.toLowerCase()}:${url.port || '5432'}${url.pathname}`;
 }
 
 function requiredSecret(
@@ -99,4 +104,45 @@ export function validateProductionConfiguration(
     return { profile, authentication: true } as const;
   }
   return { profile, authentication: false } as const;
+}
+
+export function validateRecoveryConfiguration(
+  environment: Record<string, string | undefined> = process.env,
+) {
+  if (environment.NODE_ENV !== 'production') {
+    throw new ProductionConfigurationError('NODE_ENV must be production.');
+  }
+  if (environment.RECOVERY_DRILL_CONFIRM !== 'isolated-restore-read-only') {
+    throw new ProductionConfigurationError(
+      'RECOVERY_DRILL_CONFIRM must be isolated-restore-read-only.',
+    );
+  }
+  const owner = databaseUrl(environment, 'DATABASE_URL_RECOVERY_OWNER', {
+    owner: true,
+  });
+  const app = databaseUrl(environment, 'DATABASE_URL_RECOVERY_APP');
+  if (decodeURIComponent(app.username) !== 'org_brain_app') {
+    throw new ProductionConfigurationError(
+      'DATABASE_URL_RECOVERY_APP must use org_brain_app.',
+    );
+  }
+  if (databaseTarget(owner) !== databaseTarget(app)) {
+    throw new ProductionConfigurationError(
+      'Recovery owner and app URLs must target the same restored database.',
+    );
+  }
+  if (environment.DATABASE_URL_OWNER) {
+    let source: URL;
+    try {
+      source = new URL(environment.DATABASE_URL_OWNER);
+    } catch {
+      throw new ProductionConfigurationError('DATABASE_URL_OWNER is invalid.');
+    }
+    if (databaseTarget(source) === databaseTarget(owner)) {
+      throw new ProductionConfigurationError(
+        'The recovery target must not be the configured source database.',
+      );
+    }
+  }
+  return { profile: 'recovery', target: databaseTarget(owner) } as const;
 }

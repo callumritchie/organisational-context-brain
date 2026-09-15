@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ProductionConfigurationError,
+  validateRecoveryConfiguration,
   validateProductionConfiguration,
 } from '@/src/modules/operations/production-config';
 
@@ -76,5 +77,35 @@ describe('enforced production configuration', () => {
         DATABASE_PASSWORD_INGEST: 'a-new-ingestion-password',
       }),
     ).toThrow(ProductionConfigurationError);
+  });
+
+  it('requires a distinct, explicitly confirmed restored database', () => {
+    expect(
+      validateRecoveryConfiguration({
+        NODE_ENV: 'production',
+        RECOVERY_DRILL_CONFIRM: 'isolated-restore-read-only',
+        DATABASE_URL_OWNER:
+          'postgresql://postgres:a-long-owner-password@primary.example.test/org_brain?sslmode=verify-full',
+        DATABASE_URL_RECOVERY_OWNER:
+          'postgresql://postgres:a-long-recovery-password@restore.example.test/org_brain?sslmode=verify-full',
+        DATABASE_URL_RECOVERY_APP:
+          'postgresql://org_brain_app:a-long-recovery-app-password@restore.example.test/org_brain?sslmode=verify-full',
+      }),
+    ).toEqual({
+      profile: 'recovery',
+      target: 'restore.example.test:5432/org_brain',
+    });
+    expect(() =>
+      validateRecoveryConfiguration({
+        NODE_ENV: 'production',
+        RECOVERY_DRILL_CONFIRM: 'isolated-restore-read-only',
+        DATABASE_URL_OWNER:
+          'postgresql://postgres:a-long-owner-password@primary.example.test/org_brain?sslmode=verify-full',
+        DATABASE_URL_RECOVERY_OWNER:
+          'postgresql://postgres:a-long-recovery-password@primary.example.test/org_brain?sslmode=verify-full',
+        DATABASE_URL_RECOVERY_APP:
+          'postgresql://org_brain_app:a-long-recovery-app-password@primary.example.test/org_brain?sslmode=verify-full',
+      }),
+    ).toThrow('must not be the configured source');
   });
 });
