@@ -21,6 +21,14 @@ Stored embeddings also carry both access scope and canonical Resource identity. 
 
 For a future derived content Resource synthesised from several inputs, its base scope will conservatively allow only actors who can read every input actually used. This rule applies to that derived Resource; it does not retroactively restrict the canonical entities it mentions.
 
+## Organisational memory scopes
+
+An organisational memory remains a canonical Resource, but also declares an origin scope and a visibility scope. The Resource access scope must equal the visibility scope's backing access scope. This prevents a memory-specific query from disagreeing with ordinary Resource security.
+
+Person memory uses a dedicated owner-only access scope. Database validation rejects non-owner grants added after the person scope is created, and memory access independently checks the owner identity.
+
+Cross-boundary reuse creates a new reviewed abstraction. It never updates the source memory's visibility. Evidence, memory relations and promotion lineage require the actor to access both linked sides, so a broadly visible abstraction does not reveal a restricted source's identity or existence. Raw evidence cannot be attached to a promotion record. See [the memory isolation contract](./memory-isolation-contract.md) for the full matrix.
+
 ## Actor transaction
 
 Every permission-sensitive repository call must receive a `PoolClient` from `withActorTransaction`:
@@ -42,7 +50,7 @@ Missing settings produce zero visible protected rows. A pooled connection cannot
 - `org_brain_ingest`: non-owning `NOBYPASSRLS` role with workspace-scoped connector write policies.
 - `org_brain_app`: non-owning `NOBYPASSRLS` role with narrowly granted reads and trace writes.
 
-Protected tables use `FORCE ROW LEVEL SECURITY`. Connector transactions establish an internal actor and workspace before writing, so ingestion follows explicit policies rather than relying on ownership bypass.
+Protected tables use `FORCE ROW LEVEL SECURITY`, including `memory_scopes`, `organisational_memories`, `organisational_memory_evidence`, `organisational_memory_relations` and `organisational_memory_promotions`. Connector transactions establish an internal actor and workspace before writing, so ingestion follows explicit policies rather than relying on ownership bypass.
 
 The internal actor is a dedicated Sync Service user that is not included in the selectable demo-persona allow-list. It has explicit manage grants for all fixture scopes. Human personas therefore need only their real read grants: Alex-only, Jamie-only, shared internal, or workspace-wide.
 

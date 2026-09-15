@@ -29,6 +29,8 @@ try {
   await ownerClient.query('BEGIN');
   await ownerClient.query(`TRUNCATE TABLE
     external_identities, identity_providers, user_capabilities,
+    organisational_memory_promotions, organisational_memory_relations,
+    organisational_memory_evidence, organisational_memories, memory_scopes,
     ontology_activation_runs, ontology_mapping_rules, ontology_change_proposals,
     hypothesis_discovery_candidate_observations, hypothesis_discovery_schedules,
     hypothesis_discovery_jobs,

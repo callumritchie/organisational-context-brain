@@ -20,6 +20,7 @@ This plan supersedes the original horizontal roadmap. Work proceeds as sequentia
 14. A discovered concept may propose semantic vocabulary, but only an impact-checked steward decision may publish a new immutable ontology version; hypotheses and ontology proposals are separate records.
 15. Production actor identity requires a verified issuer, audience, signature, algorithm, subject and expiry; workspace, role and action capabilities are resolved from server-owned mappings, never token claims.
 16. Browser authentication uses authorization code with S256 PKCE, one-time browser-bound state and nonce, hashed revocable sessions, exact-origin CSRF checks and server-owned capabilities; application sessions are never identity-provider tokens.
+17. Organisational memory is captured in its origin scope. Cross-boundary reuse creates a separately reviewed abstraction with a new Resource identity; it never widens the source row or exposes restricted evidence or lineage.
 
 ## Milestone 0 — Repository foundation
 
@@ -259,3 +260,16 @@ Status: provider-neutral certification and recovery gates implemented; no live p
 - Implemented: a bounded load harness caps requests and concurrency, defaults to unauthenticated readiness, reports percentile latency and requires an explicit confirmation plus test token for authenticated context traffic.
 - Implemented: a protected, manually dispatched GitHub workflow runs full staging certification and bounded readiness load. A deployment runbook, manual acceptance protocol and provider-completion threat model state exactly what the evidence does and does not establish.
 - Remaining: choose and provision the provider stack; configure private networking, secrets, DNS/TLS, WAF and central observability; perform the first live OIDC/browser test and restore drill; validate real connector scopes; automate provider-specific joiner/mover/leaver events; complete independent security testing. Until then, staging certification code exists but no staging environment is certified.
+
+## Milestone 17 — Real-product memory domain and isolation contract
+
+Status: executable domain and security contract implemented; host-product integration remains next.
+
+- Implemented: reframed the product around a project-work-to-precedent loop rather than a standalone question-answering surface.
+- Implemented: explicit person, project, client, domain and organisation memory scopes backed by canonical Resources and existing access scopes. The layers form a governance lattice, not an automatic promotion ladder.
+- Implemented: typed durable memories for decisions, approaches, risks, constraint adaptations, anti-patterns, stakeholder patterns and explicit person preferences, with review, lifecycle, outcome, quality, freshness and policy context.
+- Implemented: deterministic capture, retrieval and promotion decisions in a versioned TypeScript policy.
+- Implemented: reviewed promotion creates a new abstraction and retains restricted source evidence behind its original boundary. Project-to-project copying, person-memory propagation, organisation-to-project copying and client-wide propagation are denied in policy v1.
+- Implemented: forced PostgreSQL RLS plus integrity triggers for owner-only person scopes, Resource/scope alignment, evidence declarations, relations and promotion lineage.
+- Implemented: a synthetic database isolation matrix proving that a user can consume an organisation abstraction without seeing another project's memory, evidence, promotion lineage or private person memory.
+- Remaining: integrate the contract with the host product's project, membership, chat and file models; define explicit conversation contribution; build debrief capture and background candidate formation; then add review/correction/promotion workflows and proactive kickoff delivery.

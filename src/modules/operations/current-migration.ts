@@ -1,4 +1,4 @@
 export const currentMigration = {
-  name: '0017_browser_identity_control_plane.sql',
-  checksum: 'a4a0790b1641277fe92fbf6440ef408e4e83975b40d0edf3ac662487c4035ee3',
+  name: '0019_organisational_memory_integrity.sql',
+  checksum: 'bf424a1821237506ab48eae2a87d2703e567e57329f7da182a837c3055d23ee6',
 } as const;

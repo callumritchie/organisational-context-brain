@@ -2,13 +2,20 @@
 
 ## Product boundary
 
-The central product operation is:
+This repository is a reference implementation for a governed memory extension to an existing internal AI product. The product loop is:
 
 ```text
-ContextRequest → ContextResponse
+Project work
+  → evidenced candidate in its original permission scope
+  → review, conflict and outcome handling
+  → durable scoped memory
+  → proactive precedent in later work
+  → new outcomes compound or correct that memory
 ```
 
-`ContextResponse` is useful without chat. It contains interpreted entities, ranked evidence, relationships, sources, provenance, an explicit actor-visible epistemic state, a deterministic synthesis, and a safe execution trace. `POST /api/v1/ask` calls this same context service before optionally passing only its selected authorised evidence to a chat provider.
+`ContextRequest → ContextResponse` is the currently implemented reference path and one eventual consumer of that memory. `ContextResponse` is useful without chat: it contains interpreted entities, ranked evidence, relationships, sources, provenance, an explicit actor-visible epistemic state, deterministic synthesis and a safe execution trace. `POST /api/v1/ask` calls the same context service before optionally passing only selected authorised evidence to a chat provider.
+
+Milestone 17 does not pretend that the reference UI is already integrated into the host product. It defines the portable memory and isolation contract that its project, membership, conversation and file models must satisfy next.
 
 ## Canonical resource
 
@@ -63,6 +70,26 @@ TypeScript fixture
 Cursor advancement occurs only after mapping succeeds. Replaying an unchanged cursor is idempotent.
 
 The Milestone 5 learning demonstration advances the research connector from its initial cursor to a prepared eligibility-guidance follow-up. It uses the same ingestion transaction and mapping path to persist a new immutable source version, content and evidence Resources, assertion, provenance, search document, signals and `CONTRADICTS` relationship. Subsequent actor-scoped context requests reassess only their selected visible evidence. The mutation route is Project Lead-controlled in the demo and entirely disabled in production until genuine authentication exists.
+
+## Organisational memory domain
+
+Milestone 17 generalises “memory” beyond hypothesis records. It defines person, project, client, domain and organisation scopes as explicit logical boundaries mapped to existing PostgreSQL access scopes.
+
+```text
+Evidence Resource(s) in scope A
+  → typed candidate in scope A
+  → corroborate / contradict / qualify / attach outcome
+  → human-reviewed abstraction, when policy permits
+  → new Memory Resource in scope B
+
+Restricted evidence and promotion lineage remain in scope A.
+```
+
+`organisational_memories.resource_id` references the canonical `resources` table. The Resource base access scope must equal the memory visibility scope, so a separate memory table cannot bypass ordinary identity and retrieval security. Memory records retain origin and visibility independently, along with type, transfer class, sensitivity, review state, lifecycle, outcome, confidence, quality, validity, freshness and process/policy versions.
+
+The five scopes form a lattice, not a pipeline. Version 1 keeps person memory owner-only, forbids direct project-to-project copies, disables project-to-client promotion, and retrieves organisation memory rather than copying it downward. A cross-boundary project/client-to-domain/organisation or domain-to-organisation transition can only create a new approved, reviewed, non-confidential abstraction without raw evidence. Forced RLS hides evidence, relations and promotion lineage unless the actor can access both sides.
+
+The policy is encoded in `src/modules/organisational-memory/isolation-policy.ts` and enforced again by migrations `0018` and `0019`. The complete decision matrix and remaining host-product integration decisions are in [docs/memory-isolation-contract.md](./docs/memory-isolation-contract.md).
 
 ## Continual hypothesis and memory control plane
 
@@ -164,4 +191,6 @@ Domain work lives under `src/modules`; the application and API may depend on tho
 
 ## Current milestone state
 
-Milestones 0–6 are complete. Milestone 7 scale validation remains in progress; Milestone 8's monitoring control plane, Milestone 9's first deterministic open-ended discovery slice and Milestone 10's local continual-discovery runtime are implemented. Milestone 11 now has an independent-evaluation harness and a measured contradiction-handling gap, but is not complete until external authors and reviewers supply genuine judgements. The system has a measured 10,000-record relational/graph/retrieval baseline, configurable monitoring and discovery policies, replay-safe background jobs, and a review-gated hypothesis inbox. Independently authored quality judgements, full-corpus vector measurements, model-assisted concept induction and production operations remain before broader infrastructure decisions are justified.
+Milestones 0–10 are implemented. Milestone 11 has an independent-evaluation harness and a measured contradiction-handling gap, but is pinned until external authors and reviewers supply genuine judgements. Milestones 12–16 provide governed ontology evolution, production identity, browser authentication, portable runtime operations and exact-release certification. Milestone 17 provides the broader organisational-memory domain and executable isolation contract.
+
+The repository still does not contain the host product's adapters, debrief capture, general-purpose background memory formation, reviewer service, proactive kickoff pack or a live deployment. Those are the next vertical slices; the existing Context Service and hypothesis machinery are components to reuse, not evidence that the integration already exists.

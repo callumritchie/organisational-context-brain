@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   bigint,
   boolean,
   integer,
@@ -962,6 +963,193 @@ export const memoryCandidates = pgTable('memory_candidates', {
     .notNull()
     .defaultNow(),
 });
+
+export const memoryScopes = pgTable('memory_scopes', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id')
+    .notNull()
+    .references(() => workspaces.id),
+  scopeKind: text('scope_kind').notNull(),
+  name: text('name').notNull(),
+  accessScopeId: uuid('access_scope_id')
+    .notNull()
+    .references(() => accessScopes.id),
+  subjectResourceId: uuid('subject_resource_id').references(() => resources.id),
+  ownerActorId: uuid('owner_actor_id').references(() => users.id),
+  parentScopeId: uuid('parent_scope_id').references(
+    (): AnyPgColumn => memoryScopes.id,
+  ),
+  status: text('status').notNull().default('active'),
+  ...timestamps,
+});
+
+export const organisationalMemories = pgTable(
+  'organisational_memories',
+  {
+    resourceId: uuid('resource_id')
+      .primaryKey()
+      .references(() => resources.id),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    originScopeId: uuid('origin_scope_id')
+      .notNull()
+      .references(() => memoryScopes.id),
+    visibilityScopeId: uuid('visibility_scope_id')
+      .notNull()
+      .references(() => memoryScopes.id),
+    memoryType: text('memory_type').notNull(),
+    statement: text('statement').notNull(),
+    statementHash: text('statement_hash').notNull(),
+    contextDocument: jsonb('context_document').notNull().default({}),
+    policyContext: jsonb('policy_context').notNull().default({}),
+    transferClass: text('transfer_class').notNull(),
+    sensitivity: text('sensitivity').notNull(),
+    lifecycleStatus: text('lifecycle_status').notNull().default('candidate'),
+    reviewStatus: text('review_status').notNull().default('proposed'),
+    outcomeStatus: text('outcome_status').notNull().default('untested'),
+    confidence: real('confidence').notNull(),
+    qualityScore: real('quality_score').notNull().default(0),
+    abstractionReviewed: boolean('abstraction_reviewed')
+      .notNull()
+      .default(false),
+    validFrom: timestamp('valid_from', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    staleAfterSeconds: integer('stale_after_seconds')
+      .notNull()
+      .default(15_552_000),
+    lastOutcomeAt: timestamp('last_outcome_at', { withTimezone: true }),
+    processName: text('process_name').notNull(),
+    processVersion: text('process_version').notNull(),
+    policyVersion: text('policy_version')
+      .notNull()
+      .default('memory-isolation-v1'),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => users.id),
+    reviewedBy: uuid('reviewed_by').references(() => users.id),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    supersededByMemoryId: uuid('superseded_by_memory_id').references(
+      (): AnyPgColumn => organisationalMemories.resourceId,
+    ),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('organisational_memories_scope_statement').on(
+      table.visibilityScopeId,
+      table.statementHash,
+    ),
+  ],
+);
+
+export const organisationalMemoryEvidence = pgTable(
+  'organisational_memory_evidence',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    memoryId: uuid('memory_id')
+      .notNull()
+      .references(() => organisationalMemories.resourceId),
+    evidenceResourceId: uuid('evidence_resource_id')
+      .notNull()
+      .references(() => resources.id),
+    evidenceAssertionId: uuid('evidence_assertion_id').references(
+      () => assertions.id,
+    ),
+    evidenceScopeId: uuid('evidence_scope_id')
+      .notNull()
+      .references(() => memoryScopes.id),
+    stance: text('stance').notNull(),
+    contribution: text('contribution').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('organisational_memory_evidence_unique').on(
+      table.memoryId,
+      table.evidenceResourceId,
+      table.evidenceAssertionId,
+      table.stance,
+    ),
+  ],
+);
+
+export const organisationalMemoryRelations = pgTable(
+  'organisational_memory_relations',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    fromMemoryId: uuid('from_memory_id')
+      .notNull()
+      .references(() => organisationalMemories.resourceId),
+    toMemoryId: uuid('to_memory_id')
+      .notNull()
+      .references(() => organisationalMemories.resourceId),
+    relationType: text('relation_type').notNull(),
+    rationale: text('rationale').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('organisational_memory_relations_unique').on(
+      table.fromMemoryId,
+      table.toMemoryId,
+      table.relationType,
+    ),
+  ],
+);
+
+export const organisationalMemoryPromotions = pgTable(
+  'organisational_memory_promotions',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    sourceMemoryId: uuid('source_memory_id')
+      .notNull()
+      .references(() => organisationalMemories.resourceId),
+    promotedMemoryId: uuid('promoted_memory_id')
+      .notNull()
+      .references(() => organisationalMemories.resourceId),
+    fromScopeId: uuid('from_scope_id')
+      .notNull()
+      .references(() => memoryScopes.id),
+    toScopeId: uuid('to_scope_id')
+      .notNull()
+      .references(() => memoryScopes.id),
+    decision: text('decision').notNull(),
+    abstractionSummary: text('abstraction_summary').notNull(),
+    rawEvidenceAttached: boolean('raw_evidence_attached')
+      .notNull()
+      .default(false),
+    policyVersion: text('policy_version')
+      .notNull()
+      .default('memory-isolation-v1'),
+    reviewedBy: uuid('reviewed_by')
+      .notNull()
+      .references(() => users.id),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('organisational_memory_promotions_unique').on(
+      table.sourceMemoryId,
+      table.promotedMemoryId,
+    ),
+  ],
+);
 
 export const hypothesisRecords = pgTable('hypothesis_records', {
   resourceId: uuid('resource_id')

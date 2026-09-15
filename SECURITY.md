@@ -27,6 +27,8 @@ The production container contract enforces a separate release process for the ow
 
 Milestone 16 adds a nonce-based script CSP, exact-commit staging certification, checksum-locked serial migrations, bounded load probes and a read-only isolated-restore verifier. A passing automated check is not a substitute for the provider-specific controls, manual abuse cases and independent review in the [deployment threat model](./docs/deployment-threat-model.md).
 
+Milestone 17 adds a separate organisational-memory isolation boundary. Memories retain origin and visibility scopes, and broader reuse creates a new reviewed abstraction rather than widening the source record. Forced row-level security hides restricted memories, evidence, relationships and promotion lineage; person memory remains owner-only. These controls do not define the future host product's project or client membership. Client-wide propagation must remain disabled until that system of record and its joiner/mover/leaver behavior are integrated and independently tested. See the [memory isolation contract](./docs/memory-isolation-contract.md).
+
 ## Optional AI provider
 
 AI synthesis is off by default. When deliberately enabled, selected actor-authorised evidence excerpts and the user's question are sent to the configured provider. The provider is given no retrieval tools, calls request non-persistence, and generated claims are accepted only when they cite evidence UUIDs from that same authorised packet. This application-level `store: false` setting does not replace reviewing the provider account's data controls, retention policy, regional processing, contractual terms, and model availability before using non-synthetic organisational data.

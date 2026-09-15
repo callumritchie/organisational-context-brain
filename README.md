@@ -2,11 +2,13 @@
 
 Most AI agents search organisational data independently.
 
-This project explores a different model: a shared organisational context layer that continuously resolves content, entities, relationships, permissions and signals into a reusable “brain” that any authorised agent or application can query.
+This project explores a different model: a governed memory extension for an existing internal AI product. It turns project work into evidence-backed, permission-scoped precedent that can improve later work without leaking one client or person's context into another.
 
 ```text
-Sources → Canonical resources + assertions → Permissioned retrieval → Context API → Consumers
+Project work → Debrief/observation → Scoped memory → Review/outcomes → Proactive reuse
 ```
+
+Question answering is one consumer of that memory, not the product boundary. The longer-term payoff is proactive: when a new engagement begins, the system can surface relevant decisions, approaches, risks, adaptations and anti-patterns from permitted precedent, then strengthen, qualify or retire them as outcomes arrive.
 
 The completed Milestones 0–6 are intentionally small but real. Independent research, meeting, CRM, document, and message connectors ingest Northstar Labs knowledge about Atlas Bank, store immutable source versions, resolve aliases and source identity keys to canonical resources, create assertion-level provenance, apply forced PostgreSQL row-level security, retrieve evidence, expand a permission-safe resource graph, and expose the result through `POST /api/v1/context` and an evidence-first interface. The same response includes connector health, a checksummed ontology, first-class signal snapshots, transparent hybrid ranking, and an explicit evidence state.
 
@@ -23,6 +25,8 @@ Milestone 11 is now pinned at that external-quality gate. Milestone 12 adds gove
 Milestone 13 replaces the API's production trust boundary. All routes now require verified OIDC bearer identity in production, then resolve workspace membership, role and explicit action capabilities from server-owned database mappings. The synthetic persona header remains available only for local development. This is an API authentication boundary, not yet a finished browser sign-in or a claim that the app is deployment-ready.
 
 Milestones 14–16 add the deployment control plane around that boundary: interactive authorization-code + S256 PKCE sign-in, hashed revocable browser sessions, capability-authorised production operations, separately supervised web/worker/scheduler/release containers, and an exact-commit staging certification gate. Releases are serialised and recorded in a checksum ledger; an isolated restored backup can be verified read-only before traffic moves. This is deployment-ready application machinery, not evidence that a live environment has been provisioned or independently approved.
+
+Milestone 17 grounds the extension in an explicit organisational-memory domain. Person, project, client, domain and organisation scopes are enforceable governance boundaries; initial learning remains in its origin scope. Broader reuse can only create a new reviewed abstraction, never widen the source memory or expose its restricted evidence and lineage. The client-wide layer is intentionally disabled until the host product supplies authoritative client-membership semantics. See the [memory isolation contract](./docs/memory-isolation-contract.md).
 
 No LLM or API key is required. Optional provider synthesis is a disposable consumer of the permissioned context packet, not a second retrieval system.
 
@@ -103,7 +107,7 @@ The ranking is named `demo-ranking-v3`. Its retrieval contribution uses reciproc
 
 ## Current scope
 
-Completed foundations: Milestones 0–10. Milestone 11 is pinned after its harness exposed a 0/20 contradiction-surfacing result; independent case authoring, blind review and the separately unauthorised full-vector run remain incomplete. Milestone 12 supplies governed semantic evolution, Milestone 13 supplies verified production API identity, Milestone 14 adds interactive PKCE sign-in and session controls, Milestone 15 packages separately supervised web/worker/scheduler/release processes, and Milestone 16 supplies exact-release staging, load, migration-integrity, recovery and threat-model gates. Still deliberately deferred: a live provider deployment, model-assisted ontology induction, independent ontology-quality evaluation, external notification delivery, broader signal producers, approximate indexing at scale, provider-specific automatic identity lifecycle events and an independent deployment security review.
+Completed foundations: Milestones 0–10. Milestone 11 is pinned after its harness exposed a 0/20 contradiction-surfacing result; independent case authoring, blind review and the separately unauthorised full-vector run remain incomplete. Milestones 12–16 supply governed semantic evolution, production identity, browser sign-in, portable operations and release certification. Milestone 17 adds the real-product memory domain and executable isolation contract. Still deliberately deferred: host-product adapters, debrief capture, background general-purpose memory formation, reviewer operations, kickoff delivery, a live provider deployment, model-assisted ontology induction, independent quality evaluation, external notification delivery and an independent deployment security review.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md), [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md), and [docs/permissions.md](./docs/permissions.md).
 

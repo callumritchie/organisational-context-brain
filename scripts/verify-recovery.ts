@@ -67,12 +67,17 @@ try {
       (SELECT count(*) FROM pg_class
         WHERE relnamespace = 'public'::regnamespace
           AND relname IN ('resources', 'source_objects', 'browser_sessions',
-            'hypothesis_records', 'hypothesis_discovery_jobs')
+            'hypothesis_records', 'hypothesis_discovery_jobs', 'memory_scopes',
+            'organisational_memories', 'organisational_memory_evidence',
+            'organisational_memory_relations', 'organisational_memory_promotions')
           AND relrowsecurity AND relforcerowsecurity)::text AS forced_rls_tables,
       to_regprocedure('resolve_browser_session(text,text,interval)')::text
         AS session_boundary`);
   const boundary = schema.rows[0];
-  if (!boundary?.session_boundary || Number(boundary.forced_rls_tables) !== 5) {
+  if (
+    !boundary?.session_boundary ||
+    Number(boundary.forced_rls_tables) !== 10
+  ) {
     throw new Error(
       'Restored schema is missing the session boundary or forced RLS.',
     );
