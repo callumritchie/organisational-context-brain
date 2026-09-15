@@ -145,7 +145,7 @@ Status: control-plane implementation complete; semantic-quality validation remai
 - Implemented: permission-scoped notification outbox plus local Project Lead pause, resume, run-now and mark-read operations. Production writes remain disabled until genuine authentication exists.
 - Implemented: provider-neutral model routing with deterministic-only, economy, balanced and high-assurance policies; approved-provider and budget checks; durable invocation and token/cost ledgers. Background monitoring defaults to deterministic-only and zero external tokens.
 - Implemented: a deterministic 10,000-record hypothesis-monitor contract benchmark covering every source type, 200 projects, versioned stance changes, duplicates, permission leakage and routing spend.
-- Remaining: independently authored evaluation for open-ended hypothesis quality, an explicitly approved/configured provider for raw-content hypothesis discovery, external notification delivery, production job supervision and production authentication.
+- Remaining: independently authored evaluation for open-ended hypothesis quality, an explicitly approved/configured provider for raw-content hypothesis discovery, external notification delivery and validation under a live managed deployment.
 
 ## Milestone 9 — Open-ended hypothesis discovery
 
@@ -175,7 +175,7 @@ Status: local control-plane implementation complete; production supervision rema
 - Implemented: source events are considered processed only after every associated monitor and discovery job settles. Terminal discovery failures create a permission-scoped operational notification.
 - Implemented: the existing progressive-disclosure drawer exposes schedule state, manual scanning and pause/resume controls without adding another page.
 - Verified: focused database integration covers event routing replay, run replay, evidence re-observation and candidate deduplication.
-- Remaining: independent process supervision, external notification delivery, arbitrary connector administration UI, blind quality scoring and production authentication.
+- Remaining: external notification delivery, arbitrary connector administration UI, blind quality scoring and validation of the supervised processes under live managed infrastructure.
 
 ## Milestone 11 — Independent intelligence evaluation
 
@@ -208,7 +208,7 @@ Status: first governed vertical slice implemented and validated locally.
 
 ## Milestone 13 — Production identity and action authorisation
 
-Status: production API identity boundary implemented; interactive sign-in and deployment hardening remain.
+Status: production API identity boundary implemented; browser sign-in is completed in Milestone 14 and portable runtime hardening in Milestone 15.
 
 - Implemented: every read and mutation API now resolves its actor through one request-identity boundary rather than reading `x-demo-actor` directly.
 - Implemented: production accepts only bearer JWTs verified against an explicitly configured HTTPS JWKS URL, exact issuer and audience, an allow-list of RS256/ES256 algorithms, and required subject and expiry.
@@ -218,7 +218,7 @@ Status: production API identity boundary implemented; interactive sign-in and de
 - Implemented: `/api/v1/session` exposes the resolved actor contract to a future authenticated UI, while an explicit-confirmation administrative script links an IdP subject to an existing workspace user and optional capabilities.
 - Implemented: development and test retain the synthetic persona header only when no bearer token is supplied. Production rejects it and fails closed when OIDC configuration is absent or invalid.
 - Implemented: the prepared research mutation and current review/operation writes remain production-disabled despite the new read identity boundary; authentication alone does not imply deployment readiness.
-- Remaining: authorisation-code/PKCE browser sign-in, secure session cookies and CSRF controls if cookie mutations are introduced, identity lifecycle provisioning/deprovisioning, rate limiting, audit export, managed secrets, deployment network controls and a deployment-specific security review.
+- Remaining after later milestones: provider-specific automatic identity lifecycle events, managed secrets, live deployment network controls and a deployment-specific security review.
 
 ## Milestone 14 — Interactive identity and deployment control plane
 
@@ -232,4 +232,17 @@ Status: application identity/session vertical slice implemented; infrastructure-
 - Implemented: database-backed per-actor production limits of 120 reads and 30 mutations per minute, plus private append-only authentication, mutation-authorization, identity-lifecycle and rate-limit audit events.
 - Implemented: explicit administrative link/re-link, deprovision-and-revoke and JSONL audit-export commands. Re-linking invalidates existing sessions and applies the declared capability set exactly.
 - Implemented: the fixed-viewport UI resolves its current session, shows the mapped production identity, supplies CSRF proof automatically and presents a clear sign-in boundary when no session exists.
-- Remaining: choose a hosting and identity provider; configure managed secrets, TLS/proxy/WAF, login-endpoint throttling, database network isolation, worker supervision, backups/recovery and central audit shipping; implement provider-specific automatic joiner/mover/leaver events; complete a deployment threat model and independent security review.
+- Remaining after Milestone 15: choose a hosting and identity provider; configure managed secrets, TLS/proxy/WAF, login-endpoint throttling, database network isolation, live backups/recovery and central audit shipping; implement provider-specific automatic joiner/mover/leaver events; complete a deployment threat model and independent security review.
+
+## Milestone 15 — Production operations and recovery contract
+
+Status: portable application/runtime foundation implemented; live provider deployment remains external.
+
+- Implemented: separate hardened container targets for a minimal non-root standalone web runtime, unprivileged operations runtime and one-shot release/migration job.
+- Implemented: owner database credentials are rejected by web and operations startup and accepted only by the release profile. Runtime URLs require dedicated users, TLS, non-loopback hosts and non-disposable passwords.
+- Implemented: independently supervised continual worker and scheduler processes with connection probes, bounded intervals, structured content-safe logs, non-overlapping iterations, durable job semantics and graceful SIGTERM/SIGINT shutdown.
+- Implemented: safe unauthenticated liveness and readiness contracts. Readiness requires the non-owning application role, database availability and the current browser-session migration boundary.
+- Implemented: immutable commit identification, baseline security headers, standalone packaging, read-only runtime filesystems, dropped Linux capabilities, `no-new-privileges`, bounded temporary storage and explicit shutdown grace periods.
+- Implemented: a deployment sequence, minimum monitoring/alerting contract, forward-only rollback policy and restore-to-new-database recovery drill.
+- Implemented: CI builds both production image targets in addition to running the full database, security, build and browser suites.
+- Remaining: select accounts/providers; configure managed secrets, private networking, DNS/TLS and WAF; deploy staging; exercise a real OIDC login; ship logs/audits; test backup restoration; load-test queues/API; perform a deployment threat model and independent security review.

@@ -44,5 +44,24 @@ jobs:
       - run: npm run lint
       - run: npm run test
       - run: npm run build
+      - name: Validate production topology
+        env:
+          APP_COMMIT_SHA: '0000000000000000000000000000000000000000'
+          DATABASE_URL_APP: postgresql://app:test@db.example/org?sslmode=require
+          DATABASE_URL_INGEST: postgresql://ingest:test@db.example/org?sslmode=require
+          DATABASE_URL_OWNER: postgresql://owner:test@db.example/org?sslmode=require
+          DATABASE_PASSWORD_APP: ci-application-password
+          DATABASE_PASSWORD_INGEST: ci-ingestion-password
+          AUTH_OIDC_ISSUER: https://identity.example/
+          AUTH_OIDC_AUDIENCE: org-brain-api
+          AUTH_OIDC_JWKS_URL: https://identity.example/jwks
+          AUTH_OIDC_AUTHORIZATION_URL: https://identity.example/authorize
+          AUTH_OIDC_TOKEN_URL: https://identity.example/token
+          AUTH_OIDC_CLIENT_ID: org-brain-web
+          AUTH_OIDC_REDIRECT_URI: https://brain.example/api/v1/auth/callback
+          AUTH_PUBLIC_ORIGIN: https://brain.example
+        run: docker compose -f docker-compose.production.yml config --quiet
+      - run: docker build --target web -t org-brain-web:ci .
+      - run: docker build --target operations -t org-brain-operations:ci .
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e

@@ -1,0 +1,93 @@
+x-runtime-environment: &runtime-environment
+  NODE_ENV: production
+  DEPLOYMENT_ENFORCE_CONFIG: 'true'
+  APP_COMMIT_SHA: ${APP_COMMIT_SHA:?APP_COMMIT_SHA is required}
+  DATABASE_URL_APP: ${DATABASE_URL_APP:?DATABASE_URL_APP is required}
+  DATABASE_URL_INGEST: ${DATABASE_URL_INGEST:?DATABASE_URL_INGEST is required}
+  AI_MODE: ${AI_MODE:-offline}
+
+x-runtime-security: &runtime-security
+  restart: unless-stopped
+  read_only: true
+  tmpfs:
+    - /tmp:size=64m,noexec,nosuid
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  stop_grace_period: 30s
+
+services:
+  web:
+    <<: *runtime-security
+    build:
+      context: .
+      target: web
+    environment:
+      <<: *runtime-environment
+      DEPLOYMENT_PROCESS: web
+      AUTH_OIDC_ISSUER: ${AUTH_OIDC_ISSUER:?AUTH_OIDC_ISSUER is required}
+      AUTH_OIDC_AUDIENCE: ${AUTH_OIDC_AUDIENCE:?AUTH_OIDC_AUDIENCE is required}
+      AUTH_OIDC_JWKS_URL: ${AUTH_OIDC_JWKS_URL:?AUTH_OIDC_JWKS_URL is required}
+      AUTH_OIDC_AUTHORIZATION_URL: ${AUTH_OIDC_AUTHORIZATION_URL:?AUTH_OIDC_AUTHORIZATION_URL is required}
+      AUTH_OIDC_TOKEN_URL: ${AUTH_OIDC_TOKEN_URL:?AUTH_OIDC_TOKEN_URL is required}
+      AUTH_OIDC_CLIENT_ID: ${AUTH_OIDC_CLIENT_ID:?AUTH_OIDC_CLIENT_ID is required}
+      AUTH_OIDC_CLIENT_SECRET: ${AUTH_OIDC_CLIENT_SECRET:-}
+      AUTH_OIDC_REDIRECT_URI: ${AUTH_OIDC_REDIRECT_URI:?AUTH_OIDC_REDIRECT_URI is required}
+      AUTH_PUBLIC_ORIGIN: ${AUTH_PUBLIC_ORIGIN:?AUTH_PUBLIC_ORIGIN is required}
+    ports:
+      - '127.0.0.1:3000:3000'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  worker:
+    <<: *runtime-security
+    build:
+      context: .
+      target: operations
+    command: ['npm', 'run', 'operations:worker']
+    environment:
+      <<: *runtime-environment
+      DEPLOYMENT_PROCESS: operations
+      OPERATIONS_INTERVAL_MS: ${WORKER_INTERVAL_MS:-2000}
+
+  scheduler:
+    <<: *runtime-security
+    build:
+      context: .
+      target: operations
+    command: ['npm', 'run', 'operations:scheduler']
+    environment:
+      <<: *runtime-environment
+      DEPLOYMENT_PROCESS: operations
+      OPERATIONS_INTERVAL_MS: ${SCHEDULER_INTERVAL_MS:-60000}
+
+  release:
+    profiles: ['release']
+    build:
+      context: .
+      target: release
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      NODE_ENV: production
+      DEPLOYMENT_ENFORCE_CONFIG: 'true'
+      DEPLOYMENT_PROCESS: release
+      DATABASE_URL_OWNER: ${DATABASE_URL_OWNER:-}
+      DATABASE_PASSWORD_APP: ${DATABASE_PASSWORD_APP:-}
+      DATABASE_PASSWORD_INGEST: ${DATABASE_PASSWORD_INGEST:-}
