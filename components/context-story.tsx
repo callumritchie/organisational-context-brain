@@ -35,12 +35,14 @@ import type { AnswerResponse } from '@/src/modules/ai/types';
 import type { ContextResponse } from '@/src/modules/context/types';
 import type { DiscoveryState } from '@/src/modules/discovery/types';
 import type { MemoryState } from '@/src/modules/memory/types';
+import type { ProjectMemoryState } from '@/src/modules/organisational-memory/types';
 import type { SemanticEvolutionState } from '@/src/modules/ontology/semantic-evolution';
 import {
   DEMO_RANKING_V3,
   type RankingFactor,
 } from '@/src/modules/ranking/demo-ranking-v3';
 import styles from './context-story.module.css';
+import { ProjectMemoryWorkspace } from './project-memory-workspace';
 
 const PRESET =
   "What do we currently know about why users abandon Atlas Bank's onboarding journey?";
@@ -1466,6 +1468,10 @@ export function ContextStory() {
   const [result, setResult] = useState<ContextResponse | null>(null);
   const [answer, setAnswer] = useState<AnswerResponse['answer'] | null>(null);
   const [memory, setMemory] = useState<MemoryState | null>(null);
+  const [projectMemory, setProjectMemory] = useState<ProjectMemoryState | null>(
+    null,
+  );
+  const [projectMemoryOpen, setProjectMemoryOpen] = useState(false);
   const [discovery, setDiscovery] = useState<DiscoveryState | null>(null);
   const [semanticEvolution, setSemanticEvolution] =
     useState<SemanticEvolutionState | null>(null);
@@ -1509,6 +1515,17 @@ export function ContextStory() {
     setDiscovery(payload.discovery);
   }, []);
 
+  const loadProjectMemory = useCallback(async (nextActorId: string) => {
+    const response = await fetch('/api/v1/project-memory', {
+      headers: apiHeaders(nextActorId),
+    });
+    if (!response.ok) return;
+    const payload = (await response.json()) as {
+      projectMemory: ProjectMemoryState;
+    };
+    setProjectMemory(payload.projectMemory);
+  }, []);
+
   const loadSemanticEvolution = useCallback(async (nextActorId: string) => {
     const response = await fetch('/api/v1/ontology/proposals', {
       headers: apiHeaders(nextActorId),
@@ -1543,6 +1560,7 @@ export function ContextStory() {
         setAnswer(payload.answer);
         void loadMemory(nextActorId);
         void loadDiscovery(nextActorId);
+        void loadProjectMemory(nextActorId);
         void loadSemanticEvolution(nextActorId);
         return payload;
       } catch (requestError) {
@@ -1555,7 +1573,14 @@ export function ContextStory() {
         setLoading(false);
       }
     },
-    [actorId, loadDiscovery, loadMemory, loadSemanticEvolution, query],
+    [
+      actorId,
+      loadDiscovery,
+      loadMemory,
+      loadProjectMemory,
+      loadSemanticEvolution,
+      query,
+    ],
   );
 
   const initialised = useRef(false);
@@ -1635,6 +1660,7 @@ export function ContextStory() {
   function changeActor(nextActorId: string) {
     setActorId(nextActorId);
     setMemory(null);
+    setProjectMemory(null);
     setDiscovery(null);
     setSemanticEvolution(null);
     setMutationMessage(null);
@@ -1900,6 +1926,24 @@ export function ContextStory() {
         <div className={styles.topMeta}>
           <code>sources_healthy={healthyCount}</code>
           {result ? <code>trace={result.traceId.slice(0, 8)}</code> : null}
+          {!authRequired ? (
+            <button
+              className={styles.projectMemoryLaunch}
+              onClick={() => setProjectMemoryOpen(true)}
+            >
+              <Database />
+              Project memory
+              {projectMemory ? (
+                <span>
+                  {
+                    projectMemory.memories.filter(
+                      (memoryItem) => memoryItem.status === 'candidate',
+                    ).length
+                  }
+                </span>
+              ) : null}
+            </button>
+          ) : null}
           {session?.actor.authenticationMode === 'session' ? (
             <div className={styles.signedInIdentity}>
               <span>
@@ -2041,6 +2085,14 @@ export function ContextStory() {
         <EvidenceDrawer
           result={result}
           onClose={() => setEvidenceOpen(false)}
+        />
+      ) : null}
+      {projectMemoryOpen ? (
+        <ProjectMemoryWorkspace
+          actorId={actorId}
+          state={projectMemory}
+          onStateChange={setProjectMemory}
+          onClose={() => setProjectMemoryOpen(false)}
         />
       ) : null}
     </main>

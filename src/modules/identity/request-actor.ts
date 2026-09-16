@@ -253,8 +253,19 @@ export async function resolveRequestActor(
         authenticationMode: 'demo',
         capabilities:
           demoActor.id === IDS.users.alex
-            ? ['hypothesis.review', 'monitor.operate', 'ontology.review']
-            : [],
+            ? [
+                'hypothesis.review',
+                'monitor.operate',
+                'ontology.review',
+                'memory.capture',
+                'memory.review',
+                'kickoff.generate',
+              ]
+            : demoActor.id === IDS.users.jamie
+              ? ['memory.capture', 'kickoff.generate']
+              : demoActor.id === IDS.users.morgan
+                ? ['kickoff.generate']
+                : [],
       };
     } else {
       throw new AuthenticationError(

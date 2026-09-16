@@ -57,7 +57,7 @@ Initial capture is deliberately conservative:
 - capture cannot also promote it;
 - person memory is limited to an explicit owner contribution describing a person preference.
 
-The implementation does not yet decide how a conversation contributes to shared project memory. That requires an explicit product choice about user intent, contribution controls and attribution in Milestone 18.
+Milestone 18 treats project files, meeting/research content and shared project conversation records as eligible background inputs only when the host project binding and ordinary Resource access scope both admit them. Explicit debrief capture is attributable to the contributing member. Private user conversations are not imported by the reference adapter; a real product integration must preserve that distinction rather than inferring that every conversation is shared.
 
 ## Promotion matrix
 
@@ -113,11 +113,9 @@ Stale memory can be retrieved only with its time warning. Contradictory memories
 
 ## Deliberately not built yet
 
-- adapters from the existing product's real project, membership, conversation and file models;
-- capture/debrief UX and candidate-generation workers;
-- reviewer queues, correction controls and promotion service APIs;
-- proactive kickoff packs and in-workflow precedent delivery;
+- the proprietary adapter from the existing product's real project, membership, conversation and file APIs;
+- placement of capture, review and kickoff delivery inside that product's actual workflows;
 - a validated client-wide membership model;
-- live connectors, production deployment or proof of user demand.
+- live connectors, production deployment, external notification delivery or proof of user demand.
 
 Before the client layer is enabled, the host product must supply an authoritative answer to: “Which people may know that these projects belong to the same client, and which people may reuse each class of client knowledge?”

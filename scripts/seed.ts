@@ -19,6 +19,8 @@ import { seedInitialSignals } from '@/src/modules/signals/signal-service';
 import { initializeDefaultMonitor } from '@/src/modules/memory/hypothesis-monitor';
 import { initializeDiscoveryDemo } from '@/src/modules/discovery/discovery-demo';
 import { initializeSemanticEvolutionDemo } from '@/src/modules/ontology/semantic-evolution';
+import { initializeProjectMemoryDemo } from '@/src/modules/organisational-memory/project-memory-service';
+import { bootstrapContextFoundation } from '@/src/modules/context-assets/foundation';
 
 dotenv.config({ path: '.env.local' });
 
@@ -29,7 +31,12 @@ try {
   await ownerClient.query('BEGIN');
   await ownerClient.query(`TRUNCATE TABLE
     external_identities, identity_providers, user_capabilities,
+    context_asset_quality_assessments, metric_definitions,
+    context_asset_dependencies, context_asset_sources, context_assets,
     organisational_memory_promotions, organisational_memory_relations,
+    organisational_memory_reviews, kickoff_pack_items, kickoff_packs,
+    project_memory_jobs, project_memory_schedules, memory_capture_runs,
+    host_project_memberships, host_project_bindings,
     organisational_memory_evidence, organisational_memories, memory_scopes,
     ontology_activation_runs, ontology_mapping_rules, ontology_change_proposals,
     hypothesis_discovery_candidate_observations, hypothesis_discovery_schedules,
@@ -89,6 +96,8 @@ try {
   await initializeDefaultMonitor();
   const discovery = await initializeDiscoveryDemo();
   await initializeSemanticEvolutionDemo();
+  const projectMemory = await initializeProjectMemoryDemo();
+  const contextFoundation = await bootstrapContextFoundation();
   console.log(
     `Seeded Northstar Labs: ${research.changed} research, ${meetings.changed} meeting, ${crm.changed} CRM, ${documents.changed} document, ${messages.changed} message, and ${signals.observations} signal observations.`,
   );
@@ -97,6 +106,12 @@ try {
   );
   console.log(
     'Semantic evolution ready: one evidence-linked ontology proposal awaits steward review.',
+  );
+  console.log(
+    `Project memory ready: ${projectMemory.memories.length} scoped memories and ${projectMemory.kickoff?.items.length ?? 0} kickoff items.`,
+  );
+  console.log(
+    `Context foundation ready: ${contextFoundation.assets} governed assets passed deterministic quality assessment.`,
   );
 } catch (error) {
   await ingestionClient.query('ROLLBACK');

@@ -8,6 +8,10 @@ import {
   drainMonitorJobs,
   enqueueDueMonitorSchedules,
 } from '@/src/modules/memory/monitor-worker';
+import {
+  drainProjectMemoryJobs,
+  enqueueDueProjectMemorySchedules,
+} from '@/src/modules/organisational-memory/project-memory-service';
 import { validateProductionConfiguration } from '@/src/modules/operations/production-config';
 
 dotenv.config({ path: '.env.local' });
@@ -69,24 +73,29 @@ async function verifyConnections() {
 
 async function iteration() {
   if (mode === 'worker') {
-    const [monitor, discovery] = await Promise.all([
+    const [monitor, discovery, projectMemory] = await Promise.all([
       drainMonitorJobs({ limit: 25 }),
       drainDiscoveryJobs({ limit: 25 }),
+      drainProjectMemoryJobs({ limit: 25 }),
     ]);
     return {
       monitorProcessed: monitor.processed,
       monitorFailed: monitor.failed,
       discoveryProcessed: discovery.processed,
       discoveryFailed: discovery.failed,
+      projectMemoryProcessed: projectMemory.processed,
+      projectMemoryFailed: projectMemory.failed,
     };
   }
-  const [monitor, discovery] = await Promise.all([
+  const [monitor, discovery, projectMemory] = await Promise.all([
     enqueueDueMonitorSchedules(),
     enqueueDueDiscoverySchedules(),
+    enqueueDueProjectMemorySchedules(),
   ]);
   return {
     monitorEnqueued: monitor.enqueued,
     discoveryEnqueued: discovery.enqueued,
+    projectMemoryEnqueued: projectMemory.enqueued,
   };
 }
 

@@ -13,6 +13,9 @@ const actionCapabilities: Partial<Record<string, ActorCapability>> = {
   'discovery.operate': 'monitor.operate',
   'monitor.operate': 'monitor.operate',
   'ontology.review': 'ontology.review',
+  'memory.capture': 'memory.capture',
+  'memory.review': 'memory.review',
+  'kickoff.generate': 'kickoff.generate',
 };
 
 export async function recordSecurityAudit(input: {

@@ -3,7 +3,10 @@ import { IDS } from '@/src/modules/canonical/ids';
 export type ActorCapability =
   | 'hypothesis.review'
   | 'monitor.operate'
-  | 'ontology.review';
+  | 'ontology.review'
+  | 'memory.capture'
+  | 'memory.review'
+  | 'kickoff.generate';
 
 export interface CapabilityActor {
   id: string;

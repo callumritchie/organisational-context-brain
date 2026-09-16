@@ -28,6 +28,10 @@ Milestones 14–16 add the deployment control plane around that boundary: intera
 
 Milestone 17 grounds the extension in an explicit organisational-memory domain. Person, project, client, domain and organisation scopes are enforceable governance boundaries; initial learning remains in its origin scope. Broader reuse can only create a new reviewed abstraction, never widen the source memory or expose its restricted evidence and lineage. The client-wide layer is intentionally disabled until the host product supplies authoritative client-membership semantics. See the [memory isolation contract](./docs/memory-isolation-contract.md).
 
+Milestone 18 turns that contract into an executable project-memory workflow. A host-product port imports an authoritative project and membership revision; explicit debriefs and background scans form project-scoped candidates; Project Leads approve, reject or correct them; and kickoff packs reuse only approved, actor-visible precedent. Durable schedules and leased jobs run in the existing operations service with deterministic, zero-token routing by default. The included adapter and records are synthetic—the proprietary product adapter is still an external integration task. See the [project-memory workflow](./docs/project-memory-workflow.md).
+
+Milestone 19 adds the minimum context-layer foundation for that workflow: one governed business term, one comparable metric and one diagnostic skill share canonical identity, ownership, scope, provenance, lifecycle, version and explicit dependencies. A deterministic quality gate blocks stale, ownerless, incomplete or disconnected context, and the project-memory workspace exposes the working term → metric → skill chain through progressive disclosure. See the [context asset foundation](./docs/context-asset-foundation.md).
+
 No LLM or API key is required. Optional provider synthesis is a disposable consumer of the permissioned context packet, not a second retrieval system.
 
 ## Quick start
@@ -43,6 +47,8 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+Use **Project memory** in the header to inspect the complete host inputs → governed formation → kickoff output flow. The same local fixture can be restored additively with `npm run project-memory:bootstrap`; independent queue ticks use `npm run project-memory:schedule` and `npm run project-memory:worker`.
 
 The credentials in `.env.example`, Docker Compose, and CI are deliberately disposable local-test values. Replace them with generated secrets for any non-local environment. Publishing this source repository does not deploy the application. The demo persona header is never accepted as production identity. Governed production operations require both verified identity and server-owned capabilities; the prepared synthetic research mutation remains blocked in production.
 
@@ -107,7 +113,7 @@ The ranking is named `demo-ranking-v3`. Its retrieval contribution uses reciproc
 
 ## Current scope
 
-Completed foundations: Milestones 0–10. Milestone 11 is pinned after its harness exposed a 0/20 contradiction-surfacing result; independent case authoring, blind review and the separately unauthorised full-vector run remain incomplete. Milestones 12–16 supply governed semantic evolution, production identity, browser sign-in, portable operations and release certification. Milestone 17 adds the real-product memory domain and executable isolation contract. Still deliberately deferred: host-product adapters, debrief capture, background general-purpose memory formation, reviewer operations, kickoff delivery, a live provider deployment, model-assisted ontology induction, independent quality evaluation, external notification delivery and an independent deployment security review.
+Completed foundations: Milestones 0–10. Milestone 11 is pinned after its harness exposed a 0/20 contradiction-surfacing result; independent case authoring, blind review and the separately unauthorised full-vector run remain incomplete. Milestones 12–16 supply governed semantic evolution, production identity, browser sign-in, portable operations and release certification. Milestones 17–18 add the organisational-memory isolation contract and an executable project-memory workflow. Still deliberately deferred: the proprietary host-product adapter and in-product delivery, formal client-wide access semantics, a live provider deployment, model-assisted ontology induction, independent quality evaluation, external notification delivery and an independent deployment security review.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md), [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md), and [docs/permissions.md](./docs/permissions.md).
 

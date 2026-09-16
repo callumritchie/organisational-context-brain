@@ -1,4 +1,4 @@
 export const currentMigration = {
-  name: '0019_organisational_memory_integrity.sql',
-  checksum: 'bf424a1821237506ab48eae2a87d2703e567e57329f7da182a837c3055d23ee6',
+  name: '0022_context_dependency_scope_integrity.sql',
+  checksum: 'e7ec52403475d17471cf58e55a96d25874c1fa1bcacc5019224323d42b591c83',
 } as const;

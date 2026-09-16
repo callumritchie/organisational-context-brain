@@ -1151,6 +1151,401 @@ export const organisationalMemoryPromotions = pgTable(
   ],
 );
 
+export const hostProjectBindings = pgTable(
+  'host_project_bindings',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    provider: text('provider').notNull(),
+    externalProjectId: text('external_project_id').notNull(),
+    projectResourceId: uuid('project_resource_id')
+      .notNull()
+      .references(() => resources.id),
+    clientResourceId: uuid('client_resource_id')
+      .notNull()
+      .references(() => resources.id),
+    projectScopeId: uuid('project_scope_id')
+      .notNull()
+      .references(() => memoryScopes.id),
+    accessScopeId: uuid('access_scope_id')
+      .notNull()
+      .references(() => accessScopes.id),
+    membershipRevision: text('membership_revision').notNull(),
+    status: text('status').notNull().default('active'),
+    clientMemoryEnabled: boolean('client_memory_enabled')
+      .notNull()
+      .default(false),
+    syncedAt: timestamp('synced_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('host_project_bindings_external').on(
+      table.workspaceId,
+      table.provider,
+      table.externalProjectId,
+    ),
+    uniqueIndex('host_project_bindings_resource').on(table.projectResourceId),
+  ],
+);
+
+export const hostProjectMemberships = pgTable(
+  'host_project_memberships',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    projectBindingId: uuid('project_binding_id')
+      .notNull()
+      .references(() => hostProjectBindings.id),
+    actorId: uuid('actor_id')
+      .notNull()
+      .references(() => users.id),
+    projectRole: text('project_role').notNull(),
+    membershipStatus: text('membership_status').notNull().default('active'),
+    sourceRevision: text('source_revision').notNull(),
+    importedAt: timestamp('imported_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('host_project_memberships_actor').on(
+      table.projectBindingId,
+      table.actorId,
+    ),
+  ],
+);
+
+export const memoryCaptureRuns = pgTable(
+  'memory_capture_runs',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    projectBindingId: uuid('project_binding_id')
+      .notNull()
+      .references(() => hostProjectBindings.id),
+    projectScopeId: uuid('project_scope_id')
+      .notNull()
+      .references(() => memoryScopes.id),
+    accessScopeId: uuid('access_scope_id')
+      .notNull()
+      .references(() => accessScopes.id),
+    captureMode: text('capture_mode').notNull(),
+    initiatedBy: uuid('initiated_by')
+      .notNull()
+      .references(() => users.id),
+    sourceCounts: jsonb('source_counts').notNull().default({}),
+    inputDigest: text('input_digest').notNull(),
+    status: text('status').notNull(),
+    modelRoute: text('model_route').notNull().default('no-model'),
+    rationale: text('rationale').notNull(),
+    startedAt: timestamp('started_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex('memory_capture_runs_input').on(
+      table.projectBindingId,
+      table.captureMode,
+      table.inputDigest,
+    ),
+  ],
+);
+
+export const projectMemorySchedules = pgTable(
+  'project_memory_schedules',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    projectBindingId: uuid('project_binding_id')
+      .notNull()
+      .references(() => hostProjectBindings.id),
+    accessScopeId: uuid('access_scope_id')
+      .notNull()
+      .references(() => accessScopes.id),
+    intervalSeconds: integer('interval_seconds').notNull(),
+    enabled: boolean('enabled').notNull().default(true),
+    nextDueAt: timestamp('next_due_at', { withTimezone: true }).notNull(),
+    lastEnqueuedAt: timestamp('last_enqueued_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('project_memory_schedules_binding').on(table.projectBindingId),
+  ],
+);
+
+export const projectMemoryJobs = pgTable(
+  'project_memory_jobs',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    projectBindingId: uuid('project_binding_id')
+      .notNull()
+      .references(() => hostProjectBindings.id),
+    accessScopeId: uuid('access_scope_id')
+      .notNull()
+      .references(() => accessScopes.id),
+    triggerKind: text('trigger_kind').notNull(),
+    triggerRef: text('trigger_ref').notNull(),
+    requestedBy: uuid('requested_by').references(() => users.id),
+    status: text('status').notNull().default('pending'),
+    attempts: integer('attempts').notNull().default(0),
+    maxAttempts: integer('max_attempts').notNull().default(3),
+    availableAt: timestamp('available_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    leaseOwner: text('lease_owner'),
+    leaseExpiresAt: timestamp('lease_expires_at', { withTimezone: true }),
+    captureRunId: uuid('capture_run_id').references(() => memoryCaptureRuns.id),
+    errorCode: text('error_code'),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('project_memory_jobs_trigger').on(
+      table.workspaceId,
+      table.triggerRef,
+    ),
+  ],
+);
+
+export const organisationalMemoryReviews = pgTable(
+  'organisational_memory_reviews',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    memoryId: uuid('memory_id')
+      .notNull()
+      .references(() => organisationalMemories.resourceId),
+    reviewerActorId: uuid('reviewer_actor_id')
+      .notNull()
+      .references(() => users.id),
+    decision: text('decision').notNull(),
+    reviewNote: text('review_note').notNull(),
+    previousStatement: text('previous_statement'),
+    replacementMemoryId: uuid('replacement_memory_id').references(
+      () => organisationalMemories.resourceId,
+    ),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+);
+
+export const kickoffPacks = pgTable('kickoff_packs', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id')
+    .notNull()
+    .references(() => workspaces.id),
+  projectBindingId: uuid('project_binding_id')
+    .notNull()
+    .references(() => hostProjectBindings.id),
+  accessScopeId: uuid('access_scope_id')
+    .notNull()
+    .references(() => accessScopes.id),
+  generatedForActorId: uuid('generated_for_actor_id')
+    .notNull()
+    .references(() => users.id),
+  status: text('status').notNull().default('ready'),
+  generationReason: text('generation_reason').notNull(),
+  memoryCount: integer('memory_count').notNull(),
+  policyVersion: text('policy_version')
+    .notNull()
+    .default('memory-isolation-v1'),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const kickoffPackItems = pgTable(
+  'kickoff_pack_items',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    kickoffPackId: uuid('kickoff_pack_id')
+      .notNull()
+      .references(() => kickoffPacks.id),
+    memoryId: uuid('memory_id')
+      .notNull()
+      .references(() => organisationalMemories.resourceId),
+    position: integer('position').notNull(),
+    relevanceScore: real('relevance_score').notNull(),
+    rationale: text('rationale').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('kickoff_pack_items_memory').on(
+      table.kickoffPackId,
+      table.memoryId,
+    ),
+    uniqueIndex('kickoff_pack_items_position').on(
+      table.kickoffPackId,
+      table.position,
+    ),
+  ],
+);
+
+export const contextAssets = pgTable(
+  'context_assets',
+  {
+    resourceId: uuid('resource_id')
+      .primaryKey()
+      .references(() => resources.id),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    stableKey: text('stable_key').notNull(),
+    semanticUri: text('semantic_uri').notNull(),
+    assetKind: text('asset_kind').notNull(),
+    scopeKind: text('scope_kind').notNull(),
+    scopeSubjectResourceId: uuid('scope_subject_resource_id').references(
+      () => resources.id,
+    ),
+    ownerActorId: uuid('owner_actor_id').references(() => users.id),
+    lifecycleStatus: text('lifecycle_status').notNull(),
+    authorityClass: text('authority_class').notNull(),
+    definition: text('definition').notNull(),
+    confidence: real('confidence').notNull(),
+    versionNumber: integer('version_number').notNull(),
+    specification: jsonb('specification').notNull().default({}),
+    validFrom: timestamp('valid_from', { withTimezone: true }).notNull(),
+    validTo: timestamp('valid_to', { withTimezone: true }),
+    lastVerifiedAt: timestamp('last_verified_at', { withTimezone: true }),
+    nextReviewAt: timestamp('next_review_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('context_assets_stable_key_version').on(
+      table.workspaceId,
+      table.stableKey,
+      table.versionNumber,
+    ),
+    uniqueIndex('context_assets_semantic_uri_version').on(
+      table.workspaceId,
+      table.semanticUri,
+      table.versionNumber,
+    ),
+  ],
+);
+
+export const contextAssetSources = pgTable(
+  'context_asset_sources',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    assetResourceId: uuid('asset_resource_id')
+      .notNull()
+      .references(() => contextAssets.resourceId),
+    sourceResourceId: uuid('source_resource_id')
+      .notNull()
+      .references(() => resources.id),
+    contribution: text('contribution').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('context_asset_sources_asset_source').on(
+      table.assetResourceId,
+      table.sourceResourceId,
+    ),
+  ],
+);
+
+export const contextAssetDependencies = pgTable(
+  'context_asset_dependencies',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    fromResourceId: uuid('from_resource_id')
+      .notNull()
+      .references(() => contextAssets.resourceId),
+    toResourceId: uuid('to_resource_id')
+      .notNull()
+      .references(() => contextAssets.resourceId),
+    dependencyType: text('dependency_type').notNull(),
+    rationale: text('rationale').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('context_asset_dependencies_edge').on(
+      table.fromResourceId,
+      table.toResourceId,
+      table.dependencyType,
+    ),
+  ],
+);
+
+export const metricDefinitions = pgTable('metric_definitions', {
+  resourceId: uuid('resource_id')
+    .primaryKey()
+    .references(() => contextAssets.resourceId),
+  workspaceId: uuid('workspace_id')
+    .notNull()
+    .references(() => workspaces.id),
+  measure: text('measure').notNull(),
+  unit: text('unit').notNull(),
+  formula: text('formula').notNull(),
+  grain: text('grain').notNull(),
+  dimensions: jsonb('dimensions').notNull(),
+  sourceOfTruth: jsonb('source_of_truth').notNull(),
+  observationWindow: text('observation_window').notNull(),
+  exclusions: jsonb('exclusions').notNull().default([]),
+  ...timestamps,
+});
+
+export const contextAssetQualityAssessments = pgTable(
+  'context_asset_quality_assessments',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    assetResourceId: uuid('asset_resource_id')
+      .notNull()
+      .references(() => contextAssets.resourceId),
+    evaluatorVersion: text('evaluator_version').notNull(),
+    status: text('status').notNull(),
+    score: real('score').notNull(),
+    dimensions: jsonb('dimensions').notNull(),
+    issues: jsonb('issues').notNull(),
+    inputDigest: text('input_digest').notNull(),
+    assessedAt: timestamp('assessed_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('context_asset_quality_input').on(
+      table.assetResourceId,
+      table.evaluatorVersion,
+      table.inputDigest,
+    ),
+  ],
+);
+
 export const hypothesisRecords = pgTable('hypothesis_records', {
   resourceId: uuid('resource_id')
     .primaryKey()

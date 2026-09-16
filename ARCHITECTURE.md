@@ -15,7 +15,7 @@ Project work
 
 `ContextRequest → ContextResponse` is the currently implemented reference path and one eventual consumer of that memory. `ContextResponse` is useful without chat: it contains interpreted entities, ranked evidence, relationships, sources, provenance, an explicit actor-visible epistemic state, deterministic synthesis and a safe execution trace. `POST /api/v1/ask` calls the same context service before optionally passing only selected authorised evidence to a chat provider.
 
-Milestone 17 does not pretend that the reference UI is already integrated into the host product. It defines the portable memory and isolation contract that its project, membership, conversation and file models must satisfy next.
+Milestone 18 implements the portable integration seam and reference workflow. `HostProductAdapter` supplies an authoritative project/client/membership snapshot; the public repository supplies only a synthetic adapter. The real product API, schema and in-product placement are not present.
 
 ## Canonical resource
 
@@ -90,6 +90,22 @@ Restricted evidence and promotion lineage remain in scope A.
 The five scopes form a lattice, not a pipeline. Version 1 keeps person memory owner-only, forbids direct project-to-project copies, disables project-to-client promotion, and retrieves organisation memory rather than copying it downward. A cross-boundary project/client-to-domain/organisation or domain-to-organisation transition can only create a new approved, reviewed, non-confidential abstraction without raw evidence. Forced RLS hides evidence, relations and promotion lineage unless the actor can access both sides.
 
 The policy is encoded in `src/modules/organisational-memory/isolation-policy.ts` and enforced again by migrations `0018` and `0019`. The complete decision matrix and remaining host-product integration decisions are in [docs/memory-isolation-contract.md](./docs/memory-isolation-contract.md).
+
+## Project-memory workflow
+
+```text
+HostProductAdapter(project + client + membership revision)
+  → host project binding + active member roles
+  → current actor-visible project content
+  → debrief capture or scheduled background formation
+  → leased ProjectMemoryJob + attributable CaptureRun
+  → project-scoped candidate
+  → Project Lead approval / rejection / correction
+  → active reviewed memory
+  → actor-specific KickoffPack
+```
+
+The host snapshot is the membership authority; token claims never become project roles. Formation currently uses deterministic material-signal rules and records `no-model`. A debrief becomes a canonical, versioned and provenance-linked content Resource before it can evidence a memory. Corrections create replacement Resources and explicit supersession rather than editing history. Kickoff assembly admits only active, approved project memory and already permitted domain/organisation abstractions. It never admits client memory in policy v1. Details and the remaining proprietary boundary are in [docs/project-memory-workflow.md](./docs/project-memory-workflow.md).
 
 ## Continual hypothesis and memory control plane
 
@@ -191,6 +207,6 @@ Domain work lives under `src/modules`; the application and API may depend on tho
 
 ## Current milestone state
 
-Milestones 0–10 are implemented. Milestone 11 has an independent-evaluation harness and a measured contradiction-handling gap, but is pinned until external authors and reviewers supply genuine judgements. Milestones 12–16 provide governed ontology evolution, production identity, browser authentication, portable runtime operations and exact-release certification. Milestone 17 provides the broader organisational-memory domain and executable isolation contract.
+Milestones 0–10 are implemented. Milestone 11 has an independent-evaluation harness and a measured contradiction-handling gap, but is pinned until external authors and reviewers supply genuine judgements. Milestones 12–16 provide governed ontology evolution, production identity, browser authentication, portable runtime operations and exact-release certification. Milestones 17–18 provide the broader organisational-memory domain, executable isolation contract and reference project-memory workflow. Milestone 19 adds the minimum shared context-asset contract, governed metric semantics, dependency graph and deterministic context-quality receipts for the onboarding-diagnosis scenario.
 
-The repository still does not contain the host product's adapters, debrief capture, general-purpose background memory formation, reviewer service, proactive kickoff pack or a live deployment. Those are the next vertical slices; the existing Context Service and hypothesis machinery are components to reuse, not evidence that the integration already exists.
+The repository still does not contain the proprietary host product adapter, real product placement, client-wide access model, external notification delivery, live metric execution or a live deployment. The synthetic port proves the integration contract and behavior, not compatibility with an API or analytics source that has not been supplied. The context-asset foundation is not yet a general runtime context harness.

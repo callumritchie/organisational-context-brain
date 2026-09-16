@@ -37,6 +37,20 @@ export const ONTOLOGY = ontologySchema.parse({
     Project: { kind: 'entity', description: 'A bounded programme of work.' },
     Hypothesis: { kind: 'entity', description: 'A testable explanation.' },
     Evidence: { kind: 'entity', description: 'A source-grounded observation.' },
+    ContextTerm: {
+      kind: 'entity',
+      description: 'A governed business term with stable meaning and aliases.',
+    },
+    MetricDefinition: {
+      kind: 'entity',
+      description:
+        'A governed measure with formula, grain, dimensions and source of truth.',
+    },
+    DiagnosticSkill: {
+      kind: 'content',
+      description:
+        'A governed procedure that applies context to a bounded diagnostic task.',
+    },
     ResearchNote: {
       kind: 'content',
       description: 'A research repository artefact.',

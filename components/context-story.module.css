@@ -130,6 +130,38 @@
   min-width: 0;
 }
 
+.projectMemoryLaunch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 9px;
+  border: 1px solid #cfd4ea;
+  border-radius: 7px;
+  color: #4053a4;
+  background: #f3f4fb;
+  cursor: pointer;
+  font-size: 8px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.projectMemoryLaunch > svg {
+  width: 12px;
+}
+
+.projectMemoryLaunch > span {
+  display: grid;
+  place-items: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  color: #fff;
+  background: #b8742f;
+  font-size: 6px;
+}
+
 .topMeta > code {
   padding: 4px 6px;
   border: 1px solid #dfdad1;

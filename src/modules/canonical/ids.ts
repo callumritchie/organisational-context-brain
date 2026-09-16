@@ -28,6 +28,7 @@ export const IDS = {
     discoveryCrm: '40000000-0000-4000-8000-000000000008',
     discoveryDocuments: '40000000-0000-4000-8000-000000000009',
     discoveryMessages: '40000000-0000-4000-8000-000000000010',
+    hostProduct: '40000000-0000-4000-8000-000000000011',
   },
   monitors: {
     atlasAbandonment: '45000000-0000-4000-8000-000000000001',
@@ -59,12 +60,36 @@ export const IDS = {
     verdant: '50000000-0000-4000-8000-000000000012',
     supplierOnboarding: '50000000-0000-4000-8000-000000000013',
   },
+  organisationalMemory: {
+    scopes: {
+      atlasClient: '51000000-0000-4000-8000-000000000010',
+      atlasProject: '51000000-0000-4000-8000-000000000011',
+      organisation: '51000000-0000-4000-8000-000000000012',
+    },
+    projectBinding: '57000000-0000-4000-8000-000000000001',
+    schedule: '57000000-0000-4000-8000-000000000002',
+  },
 } as const;
 
 export const PERSONAS = [
-  { id: IDS.users.alex, name: 'Alex Chen', role: 'Project Lead', initials: 'AC' },
-  { id: IDS.users.jamie, name: 'Jamie Patel', role: 'Consultant', initials: 'JP' },
-  { id: IDS.users.morgan, name: 'Morgan Reed', role: 'External Contractor', initials: 'MR' },
+  {
+    id: IDS.users.alex,
+    name: 'Alex Chen',
+    role: 'Project Lead',
+    initials: 'AC',
+  },
+  {
+    id: IDS.users.jamie,
+    name: 'Jamie Patel',
+    role: 'Consultant',
+    initials: 'JP',
+  },
+  {
+    id: IDS.users.morgan,
+    name: 'Morgan Reed',
+    role: 'External Contractor',
+    initials: 'MR',
+  },
 ] as const;
 
 export type PersonaId = (typeof PERSONAS)[number]['id'];

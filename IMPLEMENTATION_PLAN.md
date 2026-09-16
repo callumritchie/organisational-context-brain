@@ -273,3 +273,30 @@ Status: executable domain and security contract implemented; host-product integr
 - Implemented: forced PostgreSQL RLS plus integrity triggers for owner-only person scopes, Resource/scope alignment, evidence declarations, relations and promotion lineage.
 - Implemented: a synthetic database isolation matrix proving that a user can consume an organisation abstraction without seeing another project's memory, evidence, promotion lineage or private person memory.
 - Remaining: integrate the contract with the host product's project, membership, chat and file models; define explicit conversation contribution; build debrief capture and background candidate formation; then add review/correction/promotion workflows and proactive kickoff delivery.
+
+## Milestone 18 — Project-memory product integration
+
+Status: executable reference integration implemented; proprietary host adapter and client-wide semantics remain external gates.
+
+- Implemented: a provider-neutral host-product port for authoritative project, client and membership snapshots, plus a synthetic reference adapter that contains no real organisational data.
+- Implemented: durable host-project bindings and membership revisions. Reads and operations require both the ordinary access scope and an active imported project membership.
+- Implemented: an explicit debrief capture flow that stores a versioned `ProjectDebrief` content Resource, source version, project relationship, assertion and exact provenance span before forming a candidate.
+- Implemented: general-purpose deterministic formation across current project files, meetings, research and conversations. Decision, approach, risk, constraint and anti-pattern signals are formed without scenario IDs or prepared hypothesis labels.
+- Implemented: scheduled and manual work share leased PostgreSQL jobs with bounded retries and dead-letter state. The production scheduler and worker loops include the project-memory queue and default to `no-model`, zero-token execution.
+- Implemented: Project Lead review supports approval, rejection and correction. A correction creates an approved replacement memory, retains evidence, and marks the prior record superseded.
+- Implemented: proactive kickoff packs contain only current, approved memories visible to the target actor. Client-wide memory is excluded and hard-disabled by a database constraint.
+- Implemented: a fixed-viewport product workspace visually separates host-product inputs, Context Brain formation and kickoff output, with capture and review controls revealed in context.
+- Remaining: implement the real host product adapter once its API/schema and contribution semantics are available; deliver kickoff packs inside the host project's actual lifecycle; add notification delivery; validate candidate and kickoff usefulness with independent users; formalise and test relationship-level client access before any client-wide memory is enabled.
+
+## Milestone 19 — Context contract, quality and metrics spine
+
+Status: minimum onboarding-diagnosis vertical slice implemented; enterprise breadth and real metric execution remain.
+
+- Implemented: a common context-asset envelope anchored to canonical Resource identity for terms, taxonomy concepts, ontology components, metrics, policies, norms, skills and memories.
+- Implemented: stable keys and semantic URIs plus owner, scope, authority, lifecycle, version, confidence, validity, verification, provenance and dependency fields.
+- Implemented: a first-class metric definition containing measure, unit, formula, grain, dimensions, observation window, exclusions and declared source of truth.
+- Implemented: an explicit term → governed metric → diagnostic skill dependency chain for diagnosing Atlas onboarding failure before recommending intervention.
+- Implemented: deterministic `context-quality-v1` assessment for ownership, provenance, freshness, kind-specific completeness, dependency integrity and competing current versions. Blocking issues cannot be averaged away by a high score.
+- Implemented: immutable quality receipts, forced row-level security and dual-resource visibility for provenance and dependency rows.
+- Implemented: progressive disclosure inside the existing project-memory workspace rather than a new page; the UI distinguishes governed inputs, dependency meaning and the quality receipt.
+- Remaining: real glossary/taxonomy administration, warehouse-backed metric calculation, automatic extraction, steward lifecycle and impact replay, general skill execution, broader asset kinds and independent quality evaluation.

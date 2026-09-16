@@ -28,7 +28,7 @@ describe('deployment health contracts', () => {
           role_name: 'org_brain_app',
           session_boundary: 'resolve_browser_session(text,text,interval)',
           migration_checksum:
-            'bf424a1821237506ab48eae2a87d2703e567e57329f7da182a837c3055d23ee6',
+            'e7ec52403475d17471cf58e55a96d25874c1fa1bcacc5019224323d42b591c83',
         },
       ],
     });
