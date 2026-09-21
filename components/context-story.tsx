@@ -33,6 +33,7 @@ import { PERSONAS } from '@/src/modules/canonical/ids';
 import type { AnswerResponse } from '@/src/modules/ai/types';
 import type { ContextResponse } from '@/src/modules/context/types';
 import type { DiscoveryState } from '@/src/modules/discovery/types';
+import type { HypothesisSystemState } from '@/src/modules/hypotheses/types';
 import type { MemoryState } from '@/src/modules/memory/types';
 import type {
   ProjectMemoryState,
@@ -569,6 +570,7 @@ function SemanticEvolutionPanel({
 function MemoryDrawer({
   memory,
   discovery,
+  hypothesisSystem,
   canReview,
   canOperate,
   reviewLoading,
@@ -583,6 +585,7 @@ function MemoryDrawer({
 }: {
   memory: MemoryState | null;
   discovery: DiscoveryState | null;
+  hypothesisSystem: HypothesisSystemState | null;
   canReview: boolean;
   canOperate: boolean;
   reviewLoading: string | null;
@@ -647,6 +650,50 @@ function MemoryDrawer({
           </button>
         </header>
         <div className={styles.memoryDrawerBody}>
+          <section className={styles.unifiedHypothesisIndex}>
+            <header>
+              <div>
+                <span className={styles.dataLabel}>
+                  UNIFIED HYPOTHESIS ENGINE · READ MODEL V1
+                </span>
+                <strong>One lifecycle vocabulary across every origin</strong>
+                <p>
+                  Prepared monitors and background discoveries now project into
+                  the same lifecycle, evidence and review axes.
+                </p>
+              </div>
+              <code>
+                records={hypothesisSystem?.summary.total ?? 0} · review=
+                {hypothesisSystem?.summary.awaitingReview ?? 0} · monitored=
+                {hypothesisSystem?.summary.activelyMonitored ?? 0}
+              </code>
+            </header>
+            <div>
+              {hypothesisSystem?.records.map((record) => (
+                <article key={`${record.origin}:${record.id}`}>
+                  <i>{record.origin === 'monitored' ? 'MON' : 'DIS'}</i>
+                  <span>
+                    <small>{record.origin}</small>
+                    <strong>{record.statement}</strong>
+                  </span>
+                  <dl>
+                    <div>
+                      <dt>Lifecycle</dt>
+                      <dd>{record.lifecycleState}</dd>
+                    </div>
+                    <div>
+                      <dt>Evidence</dt>
+                      <dd>{record.evidenceState}</dd>
+                    </div>
+                    <div>
+                      <dt>Review</dt>
+                      <dd>{record.reviewState}</dd>
+                    </div>
+                  </dl>
+                </article>
+              ))}
+            </div>
+          </section>
           <section className={styles.discoveryInbox}>
             <header>
               <div>
@@ -3167,6 +3214,8 @@ export function ContextStory() {
     string | null
   >(null);
   const [discovery, setDiscovery] = useState<DiscoveryState | null>(null);
+  const [hypothesisSystem, setHypothesisSystem] =
+    useState<HypothesisSystemState | null>(null);
   const [semanticEvolution, setSemanticEvolution] =
     useState<SemanticEvolutionState | null>(null);
   const [stageId, setStageId] = useState<StageId | null>(null);
@@ -3194,23 +3243,18 @@ export function ContextStory() {
   const [session, setSession] = useState<SessionContract | null>(null);
   const [authRequired, setAuthRequired] = useState(false);
 
-  const loadMemory = useCallback(async (nextActorId: string) => {
-    const response = await fetch('/api/v1/memory', {
-      headers: apiHeaders(nextActorId),
-    });
-    if (!response.ok) return;
-    const payload = (await response.json()) as { memory: MemoryState };
-    setMemory(payload.memory);
-  }, []);
-
-  const loadDiscovery = useCallback(async (nextActorId: string) => {
-    const response = await fetch('/api/v1/discovery', {
+  const loadHypothesisSystem = useCallback(async (nextActorId: string) => {
+    const response = await fetch('/api/v1/hypotheses', {
       headers: apiHeaders(nextActorId),
     });
     if (!response.ok) return;
     const payload = (await response.json()) as {
+      hypotheses: HypothesisSystemState;
+      memory: MemoryState;
       discovery: DiscoveryState | null;
     };
+    setHypothesisSystem(payload.hypotheses);
+    setMemory(payload.memory);
     setDiscovery(payload.discovery);
   }, []);
 
@@ -3257,8 +3301,7 @@ export function ContextStory() {
         const payload = (await response.json()) as AnswerResponse;
         setResult(payload.context);
         setAnswer(payload.answer);
-        void loadMemory(nextActorId);
-        void loadDiscovery(nextActorId);
+        void loadHypothesisSystem(nextActorId);
         void loadProjectMemory(nextActorId);
         void loadSemanticEvolution(nextActorId);
         return payload;
@@ -3274,8 +3317,7 @@ export function ContextStory() {
     },
     [
       actorId,
-      loadDiscovery,
-      loadMemory,
+      loadHypothesisSystem,
       loadProjectMemory,
       loadSemanticEvolution,
       query,
@@ -3361,6 +3403,7 @@ export function ContextStory() {
     setMemory(null);
     setProjectMemory(null);
     setDiscovery(null);
+    setHypothesisSystem(null);
     setSemanticEvolution(null);
     setChangeReceipt(null);
     setMutationMessage(null);
@@ -3477,6 +3520,7 @@ export function ContextStory() {
         );
       }
       setMemory(payload.memory);
+      void loadHypothesisSystem(actorId);
       setMutationMessage(
         decision === 'accept'
           ? 'The proposal is now a canonical, provenance-linked Hypothesis Resource.'
@@ -3518,6 +3562,7 @@ export function ContextStory() {
         );
       }
       setDiscovery(payload.discovery);
+      void loadHypothesisSystem(actorId);
       setMutationMessage(
         decision === 'accept'
           ? 'The discovery is now a governed Hypothesis Resource with its own continual monitor.'
@@ -3553,6 +3598,7 @@ export function ContextStory() {
         throw new Error(payload.title ?? 'The monitor operation failed.');
       }
       setMemory(payload.memory);
+      void loadHypothesisSystem(actorId);
       setMutationMessage(
         operation === 'run-now'
           ? 'The queued manual evaluation completed.'
@@ -3588,6 +3634,7 @@ export function ContextStory() {
         throw new Error(payload.title ?? 'The discovery operation failed.');
       }
       setDiscovery(payload.discovery);
+      void loadHypothesisSystem(actorId);
       setMutationMessage(
         operation === 'run-now'
           ? 'The background discovery sweep completed without requiring a question.'
@@ -3933,6 +3980,7 @@ export function ContextStory() {
         <MemoryDrawer
           memory={memory}
           discovery={discovery}
+          hypothesisSystem={hypothesisSystem}
           canReview={
             session?.actor.authenticationMode === 'session'
               ? session.actor.capabilities.includes('hypothesis.review')

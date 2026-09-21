@@ -176,6 +176,12 @@ Milestone 10 puts this path behind the same kind of durable control plane as mon
 
 The five-source Verdant supplier-onboarding fixture contains no hypothesis or `SUPPORTS`/`CONTRADICTS` label. The 50-case benchmark proves policy conformance, grounding and falsifiability against generated vocabulary. Its human-quality rubric remains unscored. These boundaries prevent a deterministic golden set from being presented as evidence of causal intelligence.
 
+## Unified hypothesis read model
+
+The monitored and discovered paths now project into one permission-scoped read contract. Every item uses three independent axes: lifecycle (`proposed`, `active`, `superseded`, `retired`), evidence (`untested`, `insufficient`, `supported`, `contested`, `refuted`, `stale`) and review (`not-required`, `required`, `accepted`, `dismissed`). A proposed discovery is therefore visible as an untested item awaiting review, not as an active monitor. Acceptance moves it into the active lifecycle and enables its monitoring contract without erasing its discovered provenance.
+
+`GET /api/v1/hypotheses` is the first compatibility boundary: it reads the two existing stores through their normal actor-scoped services and returns one projection for product surfaces. It does not yet merge their write paths, queues or persistence tables. That narrower migration is intentional; callers can adopt one vocabulary before durable writes are moved behind one service.
+
 ## Intelligence evaluation boundary
 
 Milestone 11 treats evaluation as a separate system boundary. A generated 100-case suite mixes ordinary positives, contradiction-rich positives and negative controls. Machine checks measure candidate detection, false positives, grounding and configured-concept selection, while contradiction surfacing is reported independently. The current deterministic path scores 0/20 on that last measure: it detects the recurring concept but does not preserve evidence that disputes its causal interpretation.

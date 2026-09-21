@@ -316,3 +316,13 @@ Status: credential-free reference integration implemented; live provider adapter
 - Implemented: database-enforced exact-scope and complete-evidence visibility for discovery candidates, preventing the internal CLI artifact or its identifiers from leaking through a public candidate.
 - Verified: cursor replay and tombstone behavior in unit tests; actor-scoped integration proves the internal warehouse artifact never reaches a non-team project member.
 - Remaining: provider-specific authentication, rate limits, pagination, webhooks/polling, entitlement reconciliation and deletion/backfill tests; real OCR/layout/table understanding; model-routed extraction; operational connector administration; independent extraction-quality evaluation; general-purpose hypothesis review and promotion outside the prepared scenario.
+
+## Milestone 21 — Unified hypothesis contract
+
+Status: shared read model implemented; durable write-path consolidation remains next.
+
+- Implemented: one actor-scoped endpoint projects configured monitors and open-ended discoveries into a common hypothesis record without bypassing either source service's permissions.
+- Implemented: lifecycle, evidence and review are independent axes. Discovery acceptance maps to active lifecycle plus accepted review; proposed candidates remain untested, review-required and not candidate-specifically monitored.
+- Implemented: origin and policy provenance remain explicit, so the compatibility layer does not pretend the two legacy persistence paths have already been merged.
+- Implemented: the existing fixed-viewport drawer starts with one hypothesis index and then progressively discloses the legacy operational detail.
+- Remaining: one canonical persistence/service boundary for create, review, supersession, evaluation and monitor control; queue and scheduler consolidation; migration/backfill of existing records; removal of legacy UI lanes only after parity and isolation tests pass.

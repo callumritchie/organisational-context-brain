@@ -137,6 +137,12 @@ test('turns the brain into an inspectable product blueprint without page scrolli
     name: 'Continual hypothesis and memory loop',
   });
   await expect(
+    monitorDialog.getByText('UNIFIED HYPOTHESIS ENGINE · READ MODEL V1'),
+  ).toBeVisible();
+  await expect(
+    monitorDialog.getByText('One lifecycle vocabulary across every origin'),
+  ).toBeVisible();
+  await expect(
     monitorDialog.getByText('Active', { exact: true }),
   ).toBeVisible();
   await expect(
@@ -354,6 +360,34 @@ test('context API is independently consumable', async ({ request }) => {
   expect(context.evidence).toHaveLength(3);
   expect(JSON.stringify(context)).not.toContain(
     'Internal verification operations note',
+  );
+});
+
+test('projects both hypothesis origins through one lifecycle contract', async ({
+  request,
+}) => {
+  const response = await request.get('/api/v1/hypotheses', {
+    headers: { 'x-demo-actor': IDS.users.morgan },
+  });
+  expect(response.ok()).toBe(true);
+  const payload = await response.json();
+  expect(payload.hypotheses.engine).toBe('unified-hypothesis-read-model-v1');
+  expect(
+    payload.hypotheses.records.map(
+      (record: { origin: string }) => record.origin,
+    ),
+  ).toEqual(expect.arrayContaining(['monitored', 'discovered']));
+  for (const record of payload.hypotheses.records) {
+    expect(record).toEqual(
+      expect.objectContaining({
+        lifecycleState: expect.any(String),
+        evidenceState: expect.any(String),
+        reviewState: expect.any(String),
+      }),
+    );
+  }
+  expect(JSON.stringify(payload.hypotheses)).not.toContain(
+    'Manual compliance hand-offs',
   );
 });
 

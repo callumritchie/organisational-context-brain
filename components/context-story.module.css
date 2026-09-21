@@ -4143,6 +4143,121 @@
   }
 }
 
+.unifiedHypothesisIndex {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid #cfd6f3;
+  border-radius: 11px;
+  background: #f5f6ff;
+}
+
+.unifiedHypothesisIndex > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.unifiedHypothesisIndex > header > div {
+  display: grid;
+  gap: 3px;
+}
+
+.unifiedHypothesisIndex > header strong {
+  color: #27399e;
+  font-size: 12px;
+}
+
+.unifiedHypothesisIndex > header p {
+  margin: 0;
+  color: #697180;
+  font-size: 9.5px;
+}
+
+.unifiedHypothesisIndex > header > code {
+  padding: 5px 7px;
+  border-radius: 6px;
+  color: #4054b8;
+  background: #e6e9ff;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.unifiedHypothesisIndex > div {
+  display: grid;
+  gap: 6px;
+}
+
+.unifiedHypothesisIndex article {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #dde1f1;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.unifiedHypothesisIndex article > i {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 7px;
+  color: #4054c7;
+  background: #eef0ff;
+  font-family: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  font-size: 8px;
+  font-style: normal;
+}
+
+.unifiedHypothesisIndex article > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.unifiedHypothesisIndex article > span small {
+  color: #7b8190;
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.unifiedHypothesisIndex article > span strong {
+  overflow: hidden;
+  color: #2c313a;
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unifiedHypothesisIndex article dl {
+  display: flex;
+  gap: 14px;
+  margin: 0;
+}
+
+.unifiedHypothesisIndex article dl > div {
+  display: grid;
+  gap: 2px;
+}
+
+.unifiedHypothesisIndex article dt {
+  color: #8a909b;
+  font-size: 7px;
+  text-transform: uppercase;
+}
+
+.unifiedHypothesisIndex article dd {
+  margin: 0;
+  color: #4054a8;
+  font-size: 8.5px;
+  font-weight: 650;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .outputCard,
   .traceCard,
