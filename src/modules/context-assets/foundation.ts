@@ -444,7 +444,8 @@ export async function readContextFoundationState(
   }>(
     `SELECT asset.resource_id, asset.stable_key, asset.semantic_uri,
        asset.asset_kind, resource.canonical_name, asset.definition,
-       asset.lifecycle_status, asset.authority_class, owner.name AS owner_name,
+       asset.lifecycle_status, asset.authority_class,
+       visible_actor_name(asset.owner_actor_id) AS owner_name,
        asset.scope_kind, asset.scope_subject_resource_id, asset.version_number,
        asset.specification, quality.status AS quality_status,
        quality.score AS quality_score, quality.dimensions AS quality_dimensions,
@@ -452,7 +453,6 @@ export async function readContextFoundationState(
        quality.evaluator_version, quality.assessed_at
      FROM context_assets asset
      JOIN resources resource ON resource.id = asset.resource_id
-     LEFT JOIN users owner ON owner.id = asset.owner_actor_id
      LEFT JOIN LATERAL (
        SELECT * FROM context_asset_quality_assessments assessment
        WHERE assessment.asset_resource_id = asset.resource_id

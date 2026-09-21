@@ -1166,14 +1166,16 @@ export async function getProjectMemoryState(
             project_role: 'lead' | 'contributor' | 'viewer' | 'service';
             membership_status: 'active' | 'removed';
           }>(
-            `SELECT membership.actor_id, actor.name, membership.project_role,
+            `SELECT membership.actor_id,
+             visible_actor_name(membership.actor_id) AS name,
+             membership.project_role,
              membership.membership_status
            FROM host_project_memberships membership
-           JOIN users actor ON actor.id = membership.actor_id
            WHERE membership.project_binding_id = $1
            ORDER BY CASE membership.project_role
              WHEN 'lead' THEN 0 WHEN 'contributor' THEN 1
-             WHEN 'viewer' THEN 2 ELSE 3 END, actor.name`,
+             WHEN 'viewer' THEN 2 ELSE 3 END,
+             visible_actor_name(membership.actor_id)`,
             [binding.id],
           ),
           client.query<{ content_type: string; count: string }>(
@@ -1236,7 +1238,8 @@ export async function getProjectMemoryState(
              (SELECT count(*) FROM organisational_memory_evidence evidence
                WHERE evidence.memory_id = memory.resource_id)::text AS evidence_count,
              review.decision AS review_decision, review.review_note,
-             reviewer.name AS reviewer_name, review.created_at AS reviewed_at
+             visible_actor_name(review.reviewer_actor_id) AS reviewer_name,
+             review.created_at AS reviewed_at
            FROM organisational_memories memory
            JOIN memory_scopes scope ON scope.id = memory.visibility_scope_id
            LEFT JOIN LATERAL (
@@ -1244,7 +1247,6 @@ export async function getProjectMemoryState(
              WHERE review_row.memory_id = memory.resource_id
              ORDER BY review_row.created_at DESC LIMIT 1
            ) review ON true
-           LEFT JOIN users reviewer ON reviewer.id = review.reviewer_actor_id
            WHERE memory.visibility_scope_id = $1
              OR scope.scope_kind IN ('domain', 'organisation')
            ORDER BY CASE memory.lifecycle_status WHEN 'candidate' THEN 0 WHEN 'active' THEN 1 ELSE 2 END,

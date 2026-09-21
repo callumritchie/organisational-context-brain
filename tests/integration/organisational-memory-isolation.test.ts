@@ -7,7 +7,7 @@ const scopeIds = {
   cedarProject: '51000000-0000-4000-8000-000000000002',
   harbourClient: '51000000-0000-4000-8000-000000000003',
   harbourProject: '51000000-0000-4000-8000-000000000004',
-  organisation: '51000000-0000-4000-8000-000000000005',
+  organisation: IDS.organisationalMemory.scopes.organisation,
   alexPerson: '51000000-0000-4000-8000-000000000006',
   alexPersonAccess: '55000000-0000-4000-8000-000000000001',
 };
@@ -37,22 +37,27 @@ async function insertFixture(client: PoolClient) {
     [scopeIds.alexPersonAccess, IDS.users.alex],
   );
   await client.query(
+    `UPDATE memory_scopes
+     SET name = 'Northstar organisation', access_scope_id = $2,
+       updated_at = now()
+     WHERE id = $1`,
+    [scopeIds.organisation, IDS.scopes.internal],
+  );
+  await client.query(
     `INSERT INTO memory_scopes (
        id, workspace_id, scope_kind, name, access_scope_id,
        subject_resource_id, owner_actor_id, parent_scope_id
      ) VALUES
-       ($1, $7, 'client', 'Cedar client', $8, $9, NULL, NULL),
-       ($2, $7, 'project', 'Cedar project', $8, $10, NULL, $1),
-       ($3, $7, 'client', 'Harbour client', $11, $12, NULL, NULL),
-       ($4, $7, 'project', 'Harbour project', $11, $13, NULL, $3),
-       ($5, $7, 'organisation', 'Northstar organisation', $14, NULL, NULL, NULL),
-       ($6, $7, 'person', 'Alex private memory', $15, NULL, $16, NULL)`,
+       ($1, $6, 'client', 'Cedar client', $7, $8, NULL, NULL),
+       ($2, $6, 'project', 'Cedar project', $7, $9, NULL, $1),
+       ($3, $6, 'client', 'Harbour client', $10, $11, NULL, NULL),
+       ($4, $6, 'project', 'Harbour project', $10, $12, NULL, $3),
+       ($5, $6, 'person', 'Alex private memory', $13, NULL, $14, NULL)`,
     [
       scopeIds.cedarClient,
       scopeIds.cedarProject,
       scopeIds.harbourClient,
       scopeIds.harbourProject,
-      scopeIds.organisation,
       scopeIds.alexPerson,
       IDS.workspace,
       IDS.scopes.alexOnly,
@@ -61,7 +66,6 @@ async function insertFixture(client: PoolClient) {
       IDS.scopes.jamieOnly,
       IDS.resources.harbour,
       IDS.resources.harbourProject,
-      IDS.scopes.internal,
       scopeIds.alexPersonAccess,
       IDS.users.alex,
     ],
@@ -161,7 +165,9 @@ async function visibleMemories(client: PoolClient, actorId: string) {
     IDS.workspace,
   ]);
   return client.query<{ resource_id: string; statement: string }>(
-    'SELECT resource_id, statement FROM organisational_memories ORDER BY resource_id',
+    `SELECT resource_id, statement FROM organisational_memories
+     WHERE resource_id = ANY($1::uuid[]) ORDER BY resource_id`,
+    [Object.values(memoryIds)],
   );
 }
 
@@ -305,10 +311,12 @@ describe('database-enforced organisational memory isolation', () => {
         IDS.users.jamie,
       ]);
       const hiddenEvidence = await client.query(
-        'SELECT * FROM organisational_memory_evidence',
+        'SELECT * FROM organisational_memory_evidence WHERE memory_id = $1',
+        [memoryIds.organisation],
       );
       const hiddenLineage = await client.query(
-        'SELECT * FROM organisational_memory_promotions',
+        'SELECT * FROM organisational_memory_promotions WHERE promoted_memory_id = $1',
+        [memoryIds.organisation],
       );
       expect(hiddenEvidence.rows).toEqual([]);
       expect(hiddenLineage.rows).toEqual([]);
@@ -317,12 +325,20 @@ describe('database-enforced organisational memory isolation', () => {
         IDS.users.alex,
       ]);
       expect(
-        (await client.query('SELECT * FROM organisational_memory_evidence'))
-          .rows,
+        (
+          await client.query(
+            'SELECT * FROM organisational_memory_evidence WHERE memory_id = $1',
+            [memoryIds.organisation],
+          )
+        ).rows,
       ).toHaveLength(1);
       expect(
-        (await client.query('SELECT * FROM organisational_memory_promotions'))
-          .rows,
+        (
+          await client.query(
+            'SELECT * FROM organisational_memory_promotions WHERE promoted_memory_id = $1',
+            [memoryIds.organisation],
+          )
+        ).rows,
       ).toHaveLength(1);
       await client.query('ROLLBACK');
     } catch (error) {

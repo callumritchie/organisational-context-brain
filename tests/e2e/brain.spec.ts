@@ -389,6 +389,19 @@ test('projects both hypothesis origins through one lifecycle contract', async ({
   expect(JSON.stringify(payload.hypotheses)).not.toContain(
     'Manual compliance hand-offs',
   );
+
+  const discovered = payload.hypotheses.records.find(
+    (record: { origin: string }) => record.origin === 'discovered',
+  );
+  expect(discovered).toBeDefined();
+  const deniedReview = await request.post(
+    `/api/v1/hypotheses/candidates/discovered/${discovered.id}/review`,
+    {
+      headers: { 'x-demo-actor': IDS.users.morgan },
+      data: { decision: 'dismiss' },
+    },
+  );
+  expect(deniedReview.status()).toBe(403);
 });
 
 test('ask API reuses authorised context and works offline', async ({

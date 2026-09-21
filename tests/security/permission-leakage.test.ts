@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { Pool } from 'pg';
+import { withActorTransaction } from '@/src/db/actor-transaction';
 import { getAppPool } from '@/src/db/pool';
 import { IDS } from '@/src/modules/canonical/ids';
 import { assembleContext } from '@/src/modules/context/context-service';
@@ -72,6 +73,25 @@ describe('permission leakage', () => {
     } finally {
       await owner.end();
     }
+  });
+
+  it('resolves only project-visible display names without exposing users', async () => {
+    await expect(
+      withActorTransaction(
+        { actorId: IDS.users.morgan, workspaceId: IDS.workspace },
+        (client) => client.query('SELECT name FROM users'),
+      ),
+    ).rejects.toThrow('permission denied for table users');
+
+    const visible = await withActorTransaction(
+      { actorId: IDS.users.morgan, workspaceId: IDS.workspace },
+      (client) =>
+        client.query<{ name: string | null }>(
+          'SELECT visible_actor_name($1) AS name',
+          [IDS.users.jamie],
+        ),
+    );
+    expect(visible.rows[0]?.name).toBe('Jamie Patel');
   });
 
   it('forces row-level security on stored embeddings', async () => {

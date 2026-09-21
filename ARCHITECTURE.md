@@ -180,7 +180,7 @@ The five-source Verdant supplier-onboarding fixture contains no hypothesis or `S
 
 The monitored and discovered paths now project into one permission-scoped read contract. Every item uses three independent axes: lifecycle (`proposed`, `active`, `superseded`, `retired`), evidence (`untested`, `insufficient`, `supported`, `contested`, `refuted`, `stale`) and review (`not-required`, `required`, `accepted`, `dismissed`). A proposed discovery is therefore visible as an untested item awaiting review, not as an active monitor. Acceptance moves it into the active lifecycle and enables its monitoring contract without erasing its discovered provenance.
 
-`GET /api/v1/hypotheses` is the first compatibility boundary: it reads the two existing stores through their normal actor-scoped services and returns one projection for product surfaces. It does not yet merge their write paths, queues or persistence tables. That narrower migration is intentional; callers can adopt one vocabulary before durable writes are moved behind one service.
+`GET /api/v1/hypotheses` is the first compatibility boundary: it reads the two existing stores through their normal actor-scoped services and returns one projection for product surfaces. Review decisions now enter through one origin-aware `/api/v1/hypotheses/candidates/{origin}/{id}/review` command and return that same projection. The adapter deliberately delegates to the existing transaction owners, so queues and persistence tables are not yet merged. Callers can adopt one vocabulary and command shape before durable writes move behind one service.
 
 ## Intelligence evaluation boundary
 

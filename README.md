@@ -62,8 +62,11 @@ Useful checks:
 npm run typecheck
 npm run lint
 npm run test
+npm run test:integration:isolated
 npm run build
 ```
+
+`test:integration:isolated` refuses non-local PostgreSQL hosts, creates a freshly migrated and seeded template, clones one disposable database per integration/security file, and drops only databases created by that run. It does not truncate or otherwise modify the working demo database.
 
 Generate and validate the deterministic Milestone 7 benchmark corpus without changing the demo database:
 

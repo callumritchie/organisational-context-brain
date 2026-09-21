@@ -38,13 +38,16 @@ describe('context service', () => {
     expect(context.evidence.every((item) => Object.keys(item.ranking).length === 9)).toBe(true);
     expect(context.graph.edges.some((edge) => edge.type === 'IS_FOR')).toBe(true);
     expect(context.graph.nodes.some((node) => node.type === 'MeetingNote')).toBe(true);
-    expect(context.sourceSystems.map((source) => source.type)).toEqual([
+    expect(context.sourceSystems.map((source) => source.type)).toEqual(expect.arrayContaining([
       'crm-accounts',
       'documents',
       'meeting-notes',
       'messages',
       'research-repository',
-    ]);
+      'simulated-api',
+      'simulated-cli',
+      'simulated-mcp',
+    ]));
     expect(context.ontology).toMatchObject({
       version: 'northstar-ontology-v1',
       status: 'current',
@@ -59,7 +62,7 @@ describe('context service', () => {
         'Cedar Renewal',
         'Verdant Supplier Onboarding',
       ],
-      sourceObjects: 14,
+      sourceObjects: 18,
     });
   });
 

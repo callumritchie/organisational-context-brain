@@ -3503,7 +3503,7 @@ export function ContextStory() {
     setReviewLoading(candidateId);
     try {
       const response = await fetch(
-        `/api/v1/memory/candidates/${candidateId}/review`,
+        `/api/v1/hypotheses/candidates/monitored/${candidateId}/review`,
         {
           method: 'POST',
           headers: apiHeaders(actorId, { json: true, mutation: true }),
@@ -3511,16 +3511,19 @@ export function ContextStory() {
         },
       );
       const payload = (await response.json()) as {
+        hypotheses?: HypothesisSystemState;
         memory?: MemoryState;
+        discovery?: DiscoveryState | null;
         title?: string;
       };
-      if (!response.ok || !payload.memory) {
+      if (!response.ok || !payload.hypotheses || !payload.memory) {
         throw new Error(
           payload.title ?? 'The memory proposal could not be reviewed.',
         );
       }
+      setHypothesisSystem(payload.hypotheses);
       setMemory(payload.memory);
-      void loadHypothesisSystem(actorId);
+      setDiscovery(payload.discovery ?? null);
       setMutationMessage(
         decision === 'accept'
           ? 'The proposal is now a canonical, provenance-linked Hypothesis Resource.'
@@ -3545,7 +3548,7 @@ export function ContextStory() {
     setMutationMessage(null);
     try {
       const response = await fetch(
-        `/api/v1/discovery/candidates/${candidateId}/review`,
+        `/api/v1/hypotheses/candidates/discovered/${candidateId}/review`,
         {
           method: 'POST',
           headers: apiHeaders(actorId, { json: true, mutation: true }),
@@ -3553,16 +3556,24 @@ export function ContextStory() {
         },
       );
       const payload = (await response.json()) as {
+        hypotheses?: HypothesisSystemState;
+        memory?: MemoryState;
         discovery?: DiscoveryState;
         title?: string;
       };
-      if (!response.ok || !payload.discovery) {
+      if (
+        !response.ok ||
+        !payload.hypotheses ||
+        !payload.memory ||
+        !payload.discovery
+      ) {
         throw new Error(
           payload.title ?? 'The discovered hypothesis could not be reviewed.',
         );
       }
+      setHypothesisSystem(payload.hypotheses);
+      setMemory(payload.memory);
       setDiscovery(payload.discovery);
-      void loadHypothesisSystem(actorId);
       setMutationMessage(
         decision === 'accept'
           ? 'The discovery is now a governed Hypothesis Resource with its own continual monitor.'
