@@ -25,7 +25,7 @@ test('resolves evidence and changes safely for Morgan', async ({ page }) => {
   await expect(
     page.getByText(/mode=deterministic|provider=openai/).first(),
   ).toBeVisible();
-  await expect(page.getByText('sources_healthy=5')).toBeVisible();
+  await expect(page.getByText(/Atlas Onboarding/).first()).toBeVisible();
   await expect(
     page.getByRole('button', { name: /Open 5 evidence files/ }),
   ).toBeVisible();
@@ -55,11 +55,54 @@ test('turns the brain into an inspectable product blueprint without page scrolli
   test.setTimeout(60_000);
   await page.goto('/');
   await expect(
-    page.getByRole('heading', { name: 'How this output was produced' }),
+    page.getByRole('button', { name: 'Trace', exact: true }),
   ).toBeVisible({ timeout: 30_000 });
   await expect(
     page.getByRole('button', { name: /Connect meaning/ }),
   ).toBeVisible();
+  await page
+    .getByRole('button', { name: /INPUT · LIVES OUTSIDE THE BRAIN/ })
+    .click();
+  const sourceJourney = page.getByRole('dialog', {
+    name: 'Source to context journey',
+  });
+  await expect(
+    sourceJourney.getByRole('heading', {
+      name: 'How external data became usable context',
+    }),
+  ).toBeVisible();
+  await expect(
+    sourceJourney.getByText('Onboarding research readout'),
+  ).toBeVisible();
+  await expect(sourceJourney.getByText('SOURCE RECEIPT')).toBeVisible();
+  await expect(
+    sourceJourney.getByText('04 · ASSERTIONS FROM THIS OBSERVATION'),
+  ).toBeVisible();
+  await expect(sourceJourney.getByText('06 · ANSWER TRUST GATE')).toBeVisible();
+  await sourceJourney.getByRole('button', { name: 'Hypothesis basis' }).click();
+  await expect(
+    sourceJourney.getByText('BACKGROUND HYPOTHESIS · NOT TRUSTED MEMORY'),
+  ).toBeVisible();
+  await expect(
+    sourceJourney.getByText(/4 support · 0 challenge links/),
+  ).toBeVisible();
+  await expect(sourceJourney.getByText('NEXT EVALUATION')).toBeVisible();
+  await sourceJourney.getByRole('button', { name: 'Governed context' }).click();
+  await expect(
+    sourceJourney.getByRole('heading', {
+      name: 'Diagnose onboarding failure',
+    }),
+  ).toBeVisible();
+  await sourceJourney.getByRole('button', { name: 'PM requirements' }).click();
+  await expect(
+    sourceJourney.getByText('Permission-aware connector contract'),
+  ).toBeVisible();
+  await expect(
+    sourceJourney.getByRole('button', { name: 'Copy all' }),
+  ).toBeVisible();
+  await sourceJourney
+    .getByRole('button', { name: 'Close source journey' })
+    .click();
   await page.getByRole('button', { name: /Connect meaning/ }).click();
   const meaningDialog = page.getByRole('dialog', {
     name: 'Connect meaning details',
@@ -88,7 +131,7 @@ test('turns the brain into an inspectable product blueprint without page scrolli
   ).toBeVisible();
   await page.getByRole('button', { name: 'Close operation details' }).click();
   await page
-    .getByRole('button', { name: /Open continual hypothesis \+ memory loop/ })
+    .getByRole('button', { name: /Hypothesis monitor and memory loop/ })
     .click();
   const monitorDialog = page.getByRole('dialog', {
     name: 'Continual hypothesis and memory loop',
@@ -144,6 +187,151 @@ test('turns the brain into an inspectable product blueprint without page scrolli
   await page.getByRole('button', { name: /Open \d evidence files/ }).click();
   await expect(
     page.getByRole('heading', { name: 'Evidence used for this output' }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollHeight <= window.innerHeight,
+    ),
+  ).toBe(true);
+});
+
+test('connects kickoff, working and debrief in one progressive lifecycle', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  await page.goto('/');
+  await expect(
+    page.getByRole('button', { name: 'Trace', exact: true }),
+  ).toBeVisible({ timeout: 30_000 });
+
+  await page.getByRole('button', { name: '01 Kickoff' }).click();
+  await expect(
+    page.getByRole('heading', {
+      name: 'Useful precedent before the project starts',
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText('Five governance boundaries, not a ladder.'),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Policy', exact: true }).click();
+  await expect(
+    page.getByText('Client-wide memory is not consulted'),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('dialog', { name: 'Project memory workspace' }),
+  ).toHaveCount(0);
+
+  await page.getByRole('button', { name: /^03 Debrief/ }).click();
+  await expect(
+    page.getByRole('heading', {
+      name: 'Decide what this project should teach the next one',
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText('Most activity must not become memory.'),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Review', exact: true }).click();
+  await expect(page.getByText('LIFECYCLE', { exact: true })).toBeVisible();
+  await expect(page.getByText('REVIEW', { exact: true })).toBeVisible();
+  await expect(page.getByText('OUTCOME', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Add human debrief' }).click();
+  await expect(
+    page.getByLabel('What should this project remember?'),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Create reviewable candidate' }),
+  ).toBeDisabled();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollHeight <= window.innerHeight,
+    ),
+  ).toBe(true);
+
+  await page.getByRole('button', { name: '02 Working' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'The organisational answer' }),
+  ).toBeVisible();
+});
+
+test('shows the persisted source-change propagation sequence', async ({
+  page,
+  request,
+}) => {
+  await page.goto('/');
+  await expect(
+    page.getByRole('button', { name: 'Trace', exact: true }),
+  ).toBeVisible({ timeout: 30_000 });
+  const memoryResponse = await request.get('/api/v1/memory', {
+    headers: { 'x-demo-actor': IDS.users.alex },
+  });
+  const { memory } = await memoryResponse.json();
+  await page.route('**/api/v1/demo/research-mutation', (route) =>
+    route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        mutation: {
+          applied: true,
+          finding: 'Clear eligibility guidance enables verification completion',
+          memory,
+          propagation: {
+            source: {
+              connector: 'research-fixture',
+              syncRunId: '10000000-0000-4000-8000-000000000001',
+              eventId: '10000000-0000-4000-8000-000000000002',
+              outcome: 'version-created',
+            },
+            version: {
+              id: '10000000-0000-4000-8000-000000000003',
+              sourceUri:
+                'research://northstar/atlas/studies/eligibility-followup-009',
+              updatedAt: '2026-09-02T15:15:00.000Z',
+            },
+            observation: {
+              id: '10000000-0000-4000-8000-000000000004',
+              title:
+                'Clear eligibility guidance enables verification completion',
+              process: 'research-semantic-mapper@1.0.0',
+            },
+            assertion: {
+              id: '10000000-0000-4000-8000-000000000005',
+              predicate: 'CONTRADICTS',
+            },
+            hypothesis: {
+              evaluationRunId: '10000000-0000-4000-8000-000000000006',
+              candidateId: '10000000-0000-4000-8000-000000000007',
+              candidateStatus: 'proposed',
+            },
+            answerImpact: {
+              before: 'supported',
+              after: 'contested',
+              evidenceDeltas: 1,
+              explanation:
+                'New evidence disputes the previously supported single-cause explanation.',
+            },
+          },
+        },
+      }),
+    }),
+  );
+
+  await page.getByRole('button', { name: 'Simulate source change' }).click();
+  const receipt = page.getByRole('dialog', {
+    name: 'Source change propagation receipt',
+  });
+  await expect(
+    receipt.getByRole('heading', {
+      name: 'What changed—and what it affected',
+    }),
+  ).toBeVisible();
+  await expect(receipt.getByText('Immutable version created')).toBeVisible();
+  await expect(
+    receipt.getByText('Reviewable counter-hypothesis formed'),
+  ).toBeVisible();
+  await expect(receipt.getByText('supported → contested')).toBeVisible();
+  await expect(
+    receipt.getByText(/does not automatically approve/),
   ).toBeVisible();
   expect(
     await page.evaluate(
@@ -249,7 +437,32 @@ test('a controlled research mutation makes later context contested', async ({
         }),
       ],
     },
+    propagation: {
+      source: {
+        connector: 'research-fixture',
+        outcome: 'version-created',
+      },
+      version: {
+        sourceUri:
+          'research://northstar/atlas/studies/eligibility-followup-009',
+      },
+      observation: {
+        title: 'Clear eligibility guidance enables verification completion',
+      },
+      assertion: { predicate: 'CONTRADICTS' },
+      hypothesis: { candidateStatus: 'proposed' },
+      answerImpact: {
+        before: 'supported',
+        after: 'contested',
+        evidenceDeltas: 1,
+      },
+    },
   });
+  expect(appliedPayload.mutation.propagation.version.id).toBeTruthy();
+  expect(appliedPayload.mutation.propagation.assertion.id).toBeTruthy();
+  expect(
+    appliedPayload.mutation.propagation.hypothesis.evaluationRunId,
+  ).toBeTruthy();
 
   const replay = await request.post('/api/v1/demo/research-mutation', {
     headers: { 'x-demo-actor': IDS.users.alex },

@@ -75,14 +75,16 @@ try {
             'project_memory_jobs', 'organisational_memory_reviews',
             'kickoff_packs', 'kickoff_pack_items', 'context_assets',
             'context_asset_sources', 'context_asset_dependencies',
-            'metric_definitions', 'context_asset_quality_assessments')
+            'metric_definitions', 'context_asset_quality_assessments',
+            'external_source_connections', 'external_source_sync_receipts',
+            'perception_runs', 'perception_observations')
           AND relrowsecurity AND relforcerowsecurity)::text AS forced_rls_tables,
       to_regprocedure('resolve_browser_session(text,text,interval)')::text
         AS session_boundary`);
   const boundary = schema.rows[0];
   if (
     !boundary?.session_boundary ||
-    Number(boundary.forced_rls_tables) !== 23
+    Number(boundary.forced_rls_tables) !== 27
   ) {
     throw new Error(
       'Restored schema is missing the session boundary or forced RLS.',

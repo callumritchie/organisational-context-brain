@@ -41,6 +41,7 @@
     "project-memory:worker": "tsx scripts/run-project-memory-worker.ts",
     "project-memory:schedule": "tsx scripts/enqueue-project-memory-schedules.ts",
     "context-foundation:bootstrap": "tsx scripts/bootstrap-context-foundation.ts",
+    "source-integration:bootstrap": "tsx scripts/bootstrap-source-integration.ts",
     "operations:worker": "tsx scripts/run-operational-service.ts --worker",
     "operations:scheduler": "tsx scripts/run-operational-service.ts --scheduler",
     "production:validate:web": "tsx scripts/validate-production-config.ts --profile=web",

@@ -300,3 +300,19 @@ Status: minimum onboarding-diagnosis vertical slice implemented; enterprise brea
 - Implemented: immutable quality receipts, forced row-level security and dual-resource visibility for provenance and dependency rows.
 - Implemented: progressive disclosure inside the existing project-memory workspace rather than a new page; the UI distinguishes governed inputs, dependency meaning and the quality receipt.
 - Remaining: real glossary/taxonomy administration, warehouse-backed metric calculation, automatic extraction, steward lifecycle and impact replay, general skill execution, broader asset kinds and independent quality evaluation.
+
+## Milestone 20 — Simulated external-source perception
+
+Status: credential-free reference integration implemented; live provider adapters and general extraction remain external gates.
+
+- Implemented: provider-neutral adapter contracts for API, CLI and MCP transports with explicit synchronised-copy, authoritative-snapshot and federated-query strategies.
+- Implemented: three synthetic connections with cursor replay, freshness SLA, entitlement revision, capability and deletion-mode contracts; no network call or credential is used.
+- Implemented: immutable canonical document, image, table and transcript artifacts with source payload/version lineage and project graph relationships.
+- Implemented: deterministic modality-specific perception producing six securable observation Resources with exact page offsets, table coordinates, transcript segments/timecodes and image regions.
+- Implemented: observation-to-artifact and observation-to-governed-term graph assertions with source-version provenance and zero-token `no-model` receipts.
+- Implemented: forced-RLS control-plane records for connections, sync receipts, perception runs and observations. A derived observation cannot cross the artifact's access boundary.
+- Implemented: fixed-viewport progressive disclosure that shows source contract → canonical artifact → permissioned observations and clearly labels every connection as simulated.
+- Implemented: a scheduled, deterministic discovery policy compounds permitted API and MCP artifacts into an explicitly untrusted hypothesis with evidence, predictions and falsification conditions; it remains pending human review.
+- Implemented: database-enforced exact-scope and complete-evidence visibility for discovery candidates, preventing the internal CLI artifact or its identifiers from leaking through a public candidate.
+- Verified: cursor replay and tombstone behavior in unit tests; actor-scoped integration proves the internal warehouse artifact never reaches a non-team project member.
+- Remaining: provider-specific authentication, rate limits, pagination, webhooks/polling, entitlement reconciliation and deletion/backfill tests; real OCR/layout/table understanding; model-routed extraction; operational connector administration; independent extraction-quality evaluation; general-purpose hypothesis review and promotion outside the prepared scenario.

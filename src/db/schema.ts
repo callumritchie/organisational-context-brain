@@ -1220,6 +1220,165 @@ export const hostProjectMemberships = pgTable(
   ],
 );
 
+export const externalSourceConnections = pgTable(
+  'external_source_connections',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    projectBindingId: uuid('project_binding_id')
+      .notNull()
+      .references(() => hostProjectBindings.id),
+    sourceId: uuid('source_id')
+      .notNull()
+      .references(() => sources.id),
+    accessScopeId: uuid('access_scope_id')
+      .notNull()
+      .references(() => accessScopes.id),
+    provider: text('provider').notNull(),
+    name: text('name').notNull(),
+    transport: text('transport').notNull(),
+    strategy: text('strategy').notNull(),
+    endpointLabel: text('endpoint_label').notNull(),
+    entitlementRevision: text('entitlement_revision').notNull(),
+    freshnessSlaSeconds: integer('freshness_sla_seconds').notNull(),
+    deletionMode: text('deletion_mode').notNull(),
+    capabilities: jsonb('capabilities').notNull(),
+    status: text('status').notNull().default('active'),
+    cursor: text('cursor'),
+    lastSuccessfulSyncAt: timestamp('last_successful_sync_at', {
+      withTimezone: true,
+    }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('external_source_connections_project_provider').on(
+      table.projectBindingId,
+      table.provider,
+    ),
+  ],
+);
+
+export const externalSourceSyncReceipts = pgTable(
+  'external_source_sync_receipts',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    connectionId: uuid('connection_id')
+      .notNull()
+      .references(() => externalSourceConnections.id),
+    accessScopeId: uuid('access_scope_id')
+      .notNull()
+      .references(() => accessScopes.id),
+    operationKind: text('operation_kind').notNull(),
+    cursorBefore: text('cursor_before'),
+    cursorAfter: text('cursor_after').notNull(),
+    entitlementRevision: text('entitlement_revision').notNull(),
+    simulated: boolean('simulated').notNull().default(true),
+    commandSummary: text('command_summary').notNull(),
+    responseShape: text('response_shape').notNull(),
+    artifactCount: integer('artifact_count').notNull(),
+    status: text('status').notNull(),
+    inputDigest: text('input_digest').notNull(),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+    finishedAt: timestamp('finished_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('external_source_sync_receipts_digest').on(
+      table.connectionId,
+      table.inputDigest,
+    ),
+  ],
+);
+
+export const perceptionRuns = pgTable(
+  'perception_runs',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    connectionId: uuid('connection_id')
+      .notNull()
+      .references(() => externalSourceConnections.id),
+    sourceObjectVersionId: uuid('source_object_version_id')
+      .notNull()
+      .references(() => sourceObjectVersions.id),
+    artifactResourceId: uuid('artifact_resource_id')
+      .notNull()
+      .references(() => resources.id),
+    accessScopeId: uuid('access_scope_id')
+      .notNull()
+      .references(() => accessScopes.id),
+    modality: text('modality').notNull(),
+    processName: text('process_name').notNull(),
+    processVersion: text('process_version').notNull(),
+    modelRoute: text('model_route').notNull().default('no-model'),
+    status: text('status').notNull(),
+    observationCount: integer('observation_count').notNull(),
+    inputDigest: text('input_digest').notNull(),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+    finishedAt: timestamp('finished_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('perception_runs_input').on(
+      table.sourceObjectVersionId,
+      table.processName,
+      table.processVersion,
+      table.inputDigest,
+    ),
+  ],
+);
+
+export const perceptionObservations = pgTable(
+  'perception_observations',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    perceptionRunId: uuid('perception_run_id')
+      .notNull()
+      .references(() => perceptionRuns.id),
+    observationResourceId: uuid('observation_resource_id')
+      .notNull()
+      .references(() => resources.id),
+    artifactResourceId: uuid('artifact_resource_id')
+      .notNull()
+      .references(() => resources.id),
+    accessScopeId: uuid('access_scope_id')
+      .notNull()
+      .references(() => accessScopes.id),
+    observationType: text('observation_type').notNull(),
+    statement: text('statement').notNull(),
+    excerpt: text('excerpt').notNull(),
+    confidence: real('confidence').notNull(),
+    locator: jsonb('locator').notNull(),
+    governedTermKeys: jsonb('governed_term_keys').notNull(),
+    relationshipType: text('relationship_type'),
+    processName: text('process_name').notNull(),
+    processVersion: text('process_version').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('perception_observations_run_resource').on(
+      table.perceptionRunId,
+      table.observationResourceId,
+    ),
+  ],
+);
+
 export const memoryCaptureRuns = pgTable(
   'memory_capture_runs',
   {
@@ -1984,4 +2143,40 @@ export const hypothesisDiscoveryCandidateObservations = pgTable(
       .notNull()
       .defaultNow(),
   },
+);
+
+export const hypothesisDiscoveryEvidenceLinks = pgTable(
+  'hypothesis_discovery_evidence_links',
+  {
+    id: uuid('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    accessScopeId: uuid('access_scope_id')
+      .notNull()
+      .references(() => accessScopes.id),
+    candidateId: uuid('candidate_id')
+      .notNull()
+      .references(() => hypothesisDiscoveryCandidates.id),
+    evidenceResourceId: uuid('evidence_resource_id')
+      .notNull()
+      .references(() => resources.id),
+    observationResourceId: uuid('observation_resource_id')
+      .notNull()
+      .references(() => resources.id),
+    assertionId: uuid('assertion_id')
+      .notNull()
+      .references(() => assertions.id),
+    evidenceRole: text('evidence_role').notNull(),
+    rationale: text('rationale').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('hypothesis_discovery_evidence_links_unique').on(
+      table.candidateId,
+      table.observationResourceId,
+      table.assertionId,
+      table.evidenceRole,
+    ),
+  ],
 );

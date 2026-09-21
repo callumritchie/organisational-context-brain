@@ -25,7 +25,7 @@ import type { DiscoveryDocument, DiscoveryState } from './types';
 
 export const DISCOVERY_PROCESS = {
   name: 'governed-concept-discovery',
-  version: '1.0.0',
+  version: '1.1.0',
 } as const;
 
 const sourceConfiguration = {

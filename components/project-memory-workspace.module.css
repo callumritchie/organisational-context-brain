@@ -672,6 +672,233 @@
   font-size: 6px;
   font-weight: 700;
 }
+.sourcePipeline {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) 28px minmax(0, 1fr) 28px minmax(
+      0,
+      1.18fr
+    );
+  gap: 5px;
+  align-items: stretch;
+}
+.sourceStage {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 5px;
+  overflow: hidden;
+  border: 1px solid #ddd9d0;
+  border-top: 3px solid #b8742f;
+  border-radius: 7px;
+  background: #fff;
+}
+.sourceStage:nth-of-type(2) {
+  border-top-color: #5268c5;
+}
+.observationStage {
+  border-top-color: #327667;
+}
+.sourceStage > article {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 29px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  border: 1px solid #e7e2da;
+  border-radius: 6px;
+  background: #fdfbf7;
+}
+.sourceStage > article > b {
+  padding: 3px 2px;
+  border-radius: 4px;
+  color: #8a5728;
+  background: #f6e7d6;
+  font-size: 5.5px;
+  text-align: center;
+}
+.sourceStage > article > span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.sourceStage > article strong {
+  overflow: hidden;
+  font-size: 6.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sourceStage > article small {
+  color: #7b7f8b;
+  font-size: 5px;
+}
+.sourceStage > article > i {
+  color: #777d88;
+  font-size: 5px;
+  font-style: normal;
+}
+.sourceStage > article > i[data-freshness='current'] {
+  color: #2f7967;
+}
+.sourceArrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #747b9e;
+}
+.sourceArrow small {
+  width: 35px;
+  color: #777c89;
+  font-size: 5px;
+  line-height: 1.2;
+  text-align: center;
+}
+.sourceArrow svg {
+  width: 18px;
+}
+.artifactGrid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+.artifactGrid button {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px;
+  overflow: hidden;
+  border: 1px solid #dfe1e9;
+  border-radius: 6px;
+  color: #34394c;
+  background: #fafaff;
+  cursor: pointer;
+  text-align: left;
+}
+.artifactGrid button[data-selected='true'] {
+  border-color: #7383ca;
+  background: #eef1fc;
+  box-shadow: 0 0 0 2px rgba(82, 104, 197, 0.08);
+}
+.artifactGrid button > span {
+  color: #5268c5;
+  font-size: 5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.artifactGrid button strong {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 6.5px;
+  line-height: 1.2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.artifactGrid button small {
+  margin-top: auto;
+  color: #7c8190;
+  font-size: 5px;
+}
+.selectedArtifactTitle {
+  overflow: hidden;
+  color: #365f56;
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.observationList {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+.observationList article {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px;
+  border: 1px solid #dbe6e1;
+  border-radius: 6px;
+  background: #f4faf7;
+}
+.observationList article > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+}
+.observationList b {
+  color: #327667;
+  font-size: 5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.observationList code {
+  color: #62736e;
+  font-size: 5px;
+}
+.observationList p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: #4f5663;
+  font-size: 5.7px;
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.sourceReceipt {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) repeat(2, minmax(80px, 0.9fr)) auto;
+  gap: 6px;
+}
+.sourceReceipt > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px 7px;
+  border: 1px solid #e3dfd7;
+  border-radius: 6px;
+  background: #faf9f6;
+}
+.sourceReceipt small {
+  color: #7b7f8b;
+  font-size: 5px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+}
+.sourceReceipt strong {
+  font-size: 6.5px;
+}
+.sourceReceipt .compoundingHypothesis {
+  border-color: #c9dcd5;
+  background: #eef7f4;
+}
+.compoundingHypothesis strong {
+  overflow: hidden;
+  color: #285f53;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sourceReceipt button {
+  padding: 0 9px;
+  border: 1px solid #cfd4ea;
+  border-radius: 6px;
+  color: #4356a5;
+  background: #fff;
+  cursor: pointer;
+  font-size: 6px;
+  font-weight: 700;
+}
 .recordFields {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

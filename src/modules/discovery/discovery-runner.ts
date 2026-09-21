@@ -91,6 +91,79 @@ async function loadPolicyDocuments(
   );
 }
 
+async function replaceObservationEvidenceLinks(
+  client: PoolClient,
+  input: {
+    candidateId: string;
+    workspaceId: string;
+    accessScopeId: string;
+    evidenceResourceIds: string[];
+  },
+) {
+  await client.query(
+    `DELETE FROM hypothesis_discovery_evidence_links WHERE candidate_id = $1`,
+    [input.candidateId],
+  );
+  if (!input.evidenceResourceIds.length) return;
+  const links = await client.query<{
+    evidence_resource_id: string;
+    observation_resource_id: string;
+    assertion_id: string;
+    statement: string;
+    predicate: string;
+    object_name: string;
+  }>(
+    `SELECT observation.artifact_resource_id AS evidence_resource_id,
+       observation.observation_resource_id, assertion_row.id AS assertion_id,
+       observation.statement, assertion_row.predicate,
+       object_resource.canonical_name AS object_name
+     FROM perception_observations observation
+     JOIN LATERAL (
+       SELECT assertion_candidate.id, assertion_candidate.predicate,
+         assertion_candidate.object_resource_id
+       FROM assertions assertion_candidate
+       WHERE assertion_candidate.subject_resource_id = observation.observation_resource_id
+         AND assertion_candidate.access_scope_id = $2
+         AND assertion_candidate.predicate <> 'DERIVED_FROM'
+         AND assertion_candidate.valid_to IS NULL
+       ORDER BY assertion_candidate.confidence DESC, assertion_candidate.id
+       LIMIT 1
+     ) assertion_row ON true
+     JOIN resources object_resource
+       ON object_resource.id = assertion_row.object_resource_id
+     WHERE observation.artifact_resource_id = ANY($1::uuid[])
+       AND observation.access_scope_id = $2
+     ORDER BY observation.artifact_resource_id,
+       observation.observation_resource_id`,
+    [input.evidenceResourceIds, input.accessScopeId],
+  );
+  for (const link of links.rows) {
+    await client.query(
+      `INSERT INTO hypothesis_discovery_evidence_links
+        (id, workspace_id, access_scope_id, candidate_id,
+         evidence_resource_id, observation_resource_id, assertion_id,
+         evidence_role, rationale)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'supports', $8)
+       ON CONFLICT (candidate_id, observation_resource_id, assertion_id,
+         evidence_role) DO UPDATE SET rationale = EXCLUDED.rationale,
+         updated_at = now()`,
+      [
+        stableId(
+          'hypothesis-discovery-evidence-link',
+          `${input.candidateId}:${link.observation_resource_id}:${link.assertion_id}:supports`,
+        ),
+        input.workspaceId,
+        input.accessScopeId,
+        input.candidateId,
+        link.evidence_resource_id,
+        link.observation_resource_id,
+        link.assertion_id,
+        `${link.statement} This observation establishes ${link.predicate} → ${link.object_name} and contributed to the candidate's governed concept match.`,
+      ],
+    );
+  }
+}
+
 export async function executeDiscoveryPolicy(
   client: PoolClient,
   input: {
@@ -308,6 +381,12 @@ export async function executeDiscoveryPolicy(
         candidate.confidence,
       ],
     );
+    await replaceObservationEvidenceLinks(client, {
+      candidateId,
+      workspaceId: policy.workspace_id,
+      accessScopeId: policy.access_scope_id,
+      evidenceResourceIds,
+    });
     if (!previous || reactivated) {
       await client.query(
         `INSERT INTO notification_outbox

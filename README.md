@@ -32,6 +32,8 @@ Milestone 18 turns that contract into an executable project-memory workflow. A h
 
 Milestone 19 adds the minimum context-layer foundation for that workflow: one governed business term, one comparable metric and one diagnostic skill share canonical identity, ownership, scope, provenance, lifecycle, version and explicit dependencies. A deterministic quality gate blocks stale, ownerless, incomplete or disconnected context, and the project-memory workspace exposes the working term → metric → skill chain through progressive disclosure. See the [context asset foundation](./docs/context-asset-foundation.md).
 
+Milestone 20 adds a credential-free source-perception boundary. Simulated API, CLI and MCP adapters exercise cursor, freshness, entitlement and deletion contracts over synthetic document, image, table and transcript artifacts. Each input becomes an immutable permissioned Resource; six deterministic observations retain exact modality locators and connect the source artifact to governed context. A six-hour, zero-token policy now compounds the permitted API and MCP evidence into an explicitly untrusted hypothesis with predictions and falsification conditions; exact-boundary controls prevent the internal CLI evidence from leaking into it. The workspace shows source → artifact → observation → system output and explicitly reports zero external calls. See [simulated source perception](./docs/simulated-source-perception.md).
+
 No LLM or API key is required. Optional provider synthesis is a disposable consumer of the permissioned context packet, not a second retrieval system.
 
 ## Quick start
@@ -48,7 +50,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Use **Project memory** in the header to inspect the complete host inputs → governed formation → kickoff output flow. The same local fixture can be restored additively with `npm run project-memory:bootstrap`; independent queue ticks use `npm run project-memory:schedule` and `npm run project-memory:worker`.
+Use **Project memory** in the header to inspect the complete host inputs → governed formation → kickoff output flow. **Source perception** reveals the simulated API/CLI/MCP → canonical artifact → permissioned observation path. The same local fixture can be restored additively with `npm run project-memory:bootstrap` and `npm run source-integration:bootstrap`; independent queue ticks use `npm run project-memory:schedule` and `npm run project-memory:worker`.
 
 The credentials in `.env.example`, Docker Compose, and CI are deliberately disposable local-test values. Replace them with generated secrets for any non-local environment. Publishing this source repository does not deploy the application. The demo persona header is never accepted as production identity. Governed production operations require both verified identity and server-owned capabilities; the prepared synthetic research mutation remains blocked in production.
 
@@ -113,7 +115,7 @@ The ranking is named `demo-ranking-v3`. Its retrieval contribution uses reciproc
 
 ## Current scope
 
-Completed foundations: Milestones 0–10. Milestone 11 is pinned after its harness exposed a 0/20 contradiction-surfacing result; independent case authoring, blind review and the separately unauthorised full-vector run remain incomplete. Milestones 12–16 supply governed semantic evolution, production identity, browser sign-in, portable operations and release certification. Milestones 17–18 add the organisational-memory isolation contract and an executable project-memory workflow. Still deliberately deferred: the proprietary host-product adapter and in-product delivery, formal client-wide access semantics, a live provider deployment, model-assisted ontology induction, independent quality evaluation, external notification delivery and an independent deployment security review.
+Completed foundations: Milestones 0–10. Milestone 11 is pinned after its harness exposed a 0/20 contradiction-surfacing result; independent case authoring, blind review and the separately unauthorised full-vector run remain incomplete. Milestones 12–16 supply governed semantic evolution, production identity, browser sign-in, portable operations and release certification. Milestones 17–20 add the organisational-memory isolation contract, an executable project-memory workflow, governed context assets and a simulated multimodal source-perception boundary. Still deliberately deferred: real vendor/host adapters and in-product delivery, formal client-wide access semantics, a live provider deployment, model-assisted ontology induction and extraction, independent quality evaluation, external notification delivery and an independent deployment security review.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md), [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md), and [docs/permissions.md](./docs/permissions.md).
 

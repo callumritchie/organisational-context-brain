@@ -80,8 +80,8 @@ export function discoverHypotheses(
   );
   const selected = secondary ? [primary, secondary] : [primary];
   const statement = secondary
-    ? `${policy.subject} is driven by ${primary.rule.hypothesisFragment}, amplified by ${secondary.rule.hypothesisFragment}.`
-    : `${policy.subject} is driven by ${primary.rule.hypothesisFragment}.`;
+    ? `${policy.subject} may be driven by ${primary.rule.hypothesisFragment}, and may be amplified by ${secondary.rule.hypothesisFragment}.`
+    : `${policy.subject} may be driven by ${primary.rule.hypothesisFragment}.`;
   const evidence = [
     ...new Map(
       selected

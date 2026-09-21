@@ -107,6 +107,25 @@ HostProductAdapter(project + client + membership revision)
 
 The host snapshot is the membership authority; token claims never become project roles. Formation currently uses deterministic material-signal rules and records `no-model`. A debrief becomes a canonical, versioned and provenance-linked content Resource before it can evidence a memory. Corrections create replacement Resources and explicit supersession rather than editing history. Kickoff assembly admits only active, approved project memory and already permitted domain/organisation abstractions. It never admits client memory in policy v1. Details and the remaining proprietary boundary are in [docs/project-memory-workflow.md](./docs/project-memory-workflow.md).
 
+## External-source perception boundary
+
+Milestone 20 adds the seam between external material and the canonical context graph without claiming a live vendor integration:
+
+```text
+API / CLI / MCP adapter contract
+  → ExternalSourceConnection + immutable SyncReceipt
+  → SourceObjectVersion
+  → permissioned document / table / transcript / image Resource
+  → deterministic PerceptionRun
+  → exact-locator PerceivedObservation Resource
+  → DERIVED_FROM source assertion
+  → INDICATES / CHALLENGES / MEASURES governed context assertion
+  → scheduled governed-concept discovery
+  → untrusted hypothesis + predictions + falsification conditions
+```
+
+The included implementations are entirely synthetic. They exercise cursor idempotency, freshness, entitlement revisions, deletion modes and four modality locators while recording zero external calls and zero model tokens. Access is inherited before perception: the artifact, run, observation, relationship assertion and locator all share the artifact's access boundary. A six-hour deterministic policy may then form an untrusted candidate from multi-source public evidence. Candidate and evidence must share an exact access scope, and RLS exposes the candidate only when every evidence Resource is visible. Forced RLS removes all other inaccessible state before it reaches the UI. Details and the live-connector work still required are in [docs/simulated-source-perception.md](./docs/simulated-source-perception.md).
+
 ## Continual hypothesis and memory control plane
 
 Milestone 8 makes learning an explicit product operation rather than a side effect of answering a question:
@@ -207,6 +226,6 @@ Domain work lives under `src/modules`; the application and API may depend on tho
 
 ## Current milestone state
 
-Milestones 0–10 are implemented. Milestone 11 has an independent-evaluation harness and a measured contradiction-handling gap, but is pinned until external authors and reviewers supply genuine judgements. Milestones 12–16 provide governed ontology evolution, production identity, browser authentication, portable runtime operations and exact-release certification. Milestones 17–18 provide the broader organisational-memory domain, executable isolation contract and reference project-memory workflow. Milestone 19 adds the minimum shared context-asset contract, governed metric semantics, dependency graph and deterministic context-quality receipts for the onboarding-diagnosis scenario.
+Milestones 0–10 are implemented. Milestone 11 has an independent-evaluation harness and a measured contradiction-handling gap, but is pinned until external authors and reviewers supply genuine judgements. Milestones 12–16 provide governed ontology evolution, production identity, browser authentication, portable runtime operations and exact-release certification. Milestones 17–18 provide the broader organisational-memory domain, executable isolation contract and reference project-memory workflow. Milestones 19–20 add the minimum shared context-asset contract, governed metric semantics, dependency graph, deterministic quality receipts and a simulated multimodal source-perception boundary for the onboarding-diagnosis scenario.
 
-The repository still does not contain the proprietary host product adapter, real product placement, client-wide access model, external notification delivery, live metric execution or a live deployment. The synthetic port proves the integration contract and behavior, not compatibility with an API or analytics source that has not been supplied. The context-asset foundation is not yet a general runtime context harness.
+The repository still does not contain the proprietary host product adapter, real product placement, client-wide access model, external notification delivery, live metric execution or a live deployment. The synthetic ports prove integration contracts and behavior, not compatibility with an API, CLI, MCP server or analytics source that has not been supplied. The context-asset and perception foundations are not yet a general runtime extraction harness.

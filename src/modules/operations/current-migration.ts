@@ -1,4 +1,4 @@
 export const currentMigration = {
-  name: '0022_context_dependency_scope_integrity.sql',
-  checksum: 'e7ec52403475d17471cf58e55a96d25874c1fa1bcacc5019224323d42b591c83',
+  name: '0026_hypothesis_observation_evidence.sql',
+  checksum: 'b0eda831df875fb9affcd7330ca949499a1ed6257337ad8d11eebb346e5a4602',
 } as const;

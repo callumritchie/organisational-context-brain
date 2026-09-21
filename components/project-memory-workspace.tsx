@@ -48,11 +48,31 @@ function titleCase(value: string) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+function locatorLabel(locator: {
+  modality: string;
+  page?: number;
+  row?: number;
+  sheet?: string;
+  segmentId?: string;
+  startMs?: number;
+  endMs?: number;
+  regionId?: string;
+}) {
+  if (locator.modality === 'document') return `page ${locator.page}`;
+  if (locator.modality === 'table')
+    return `${locator.sheet} · row ${locator.row}`;
+  if (locator.modality === 'transcript') {
+    return `${locator.segmentId} · ${Math.round((locator.startMs ?? 0) / 1_000)}–${Math.round((locator.endMs ?? 0) / 1_000)}s`;
+  }
+  return `region ${locator.regionId}`;
+}
+
 interface Props {
   actorId: string;
   state: ProjectMemoryState | null;
   onStateChange: (state: ProjectMemoryState) => void;
   onClose: () => void;
+  initialMode?: 'inspect' | 'debrief';
 }
 
 export function ProjectMemoryWorkspace({
@@ -60,15 +80,17 @@ export function ProjectMemoryWorkspace({
   state,
   onStateChange,
   onClose,
+  initialMode = 'inspect',
 }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mode, setMode] = useState<
-    'inspect' | 'foundation' | 'debrief' | 'correct'
-  >(
-    'inspect',
-  );
+    'inspect' | 'foundation' | 'sources' | 'debrief' | 'correct'
+  >(initialMode);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(
+    null,
+  );
   const [reviewNote, setReviewNote] = useState(
     'Evidence is attributable and the learning is reusable within this project.',
   );
@@ -89,6 +111,13 @@ export function ProjectMemoryWorkspace({
     state?.memories.find((memory) => memory.id === selectedId) ??
     candidates[0] ??
     state?.memories[0] ??
+    null;
+  const sourceIntegration = state?.sourceIntegration;
+  const selectedSourceArtifact =
+    sourceIntegration?.artifacts.find(
+      (artifact) => artifact.id === selectedArtifactId,
+    ) ??
+    sourceIntegration?.artifacts[0] ??
     null;
 
   async function operate(body: Record<string, unknown>, label: string) {
@@ -289,6 +318,11 @@ export function ProjectMemoryWorkspace({
                         Context contract
                       </button>
                     ) : null}
+                    {state.sourceIntegration?.configured ? (
+                      <button type="button" onClick={() => setMode('sources')}>
+                        Source perception
+                      </button>
+                    ) : null}
                   </span>
                 </div>
                 {state.memories.slice(0, 7).map((memory) => (
@@ -385,7 +419,156 @@ export function ProjectMemoryWorkspace({
             </section>
 
             <aside className={styles.detail}>
-              {mode === 'foundation' && state.contextFoundation ? (
+              {mode === 'sources' && sourceIntegration?.configured ? (
+                <>
+                  <header>
+                    <div>
+                      <span className={styles.fieldLabel}>
+                        SIMULATED SOURCE PERCEPTION · NO LIVE CONNECTIONS
+                      </span>
+                      <strong>
+                        How external material becomes permissioned context
+                      </strong>
+                    </div>
+                    <code>external_calls=0</code>
+                  </header>
+                  <div
+                    className={styles.sourcePipeline}
+                    aria-label="External source perception pipeline"
+                  >
+                    <section className={styles.sourceStage}>
+                      <span className={styles.fieldLabel}>
+                        1 · SOURCE CONTRACT
+                      </span>
+                      {sourceIntegration.connections.map((connection) => (
+                        <article key={connection.id}>
+                          <b>{connection.transport.toUpperCase()}</b>
+                          <span>
+                            <strong>{connection.name}</strong>
+                            <small>{titleCase(connection.strategy)}</small>
+                          </span>
+                          <i data-freshness={connection.freshness}>
+                            {connection.freshness}
+                          </i>
+                        </article>
+                      ))}
+                    </section>
+                    <div className={styles.sourceArrow} aria-hidden="true">
+                      <small>cursor + permissions</small>
+                      <ArrowRight />
+                    </div>
+                    <section className={styles.sourceStage}>
+                      <span className={styles.fieldLabel}>
+                        2 · CANONICAL ARTIFACT
+                      </span>
+                      <div className={styles.artifactGrid}>
+                        {sourceIntegration.artifacts.map((artifact) => (
+                          <button
+                            key={artifact.id}
+                            type="button"
+                            data-selected={
+                              selectedSourceArtifact?.id === artifact.id
+                            }
+                            onClick={() => setSelectedArtifactId(artifact.id)}
+                          >
+                            <span>{artifact.modality.toUpperCase()}</span>
+                            <strong>{artifact.title}</strong>
+                            <small>{artifact.observationCount} signals</small>
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                    <div className={styles.sourceArrow} aria-hidden="true">
+                      <small>deterministic perception</small>
+                      <ArrowRight />
+                    </div>
+                    <section
+                      className={`${styles.sourceStage} ${styles.observationStage}`}
+                    >
+                      <span className={styles.fieldLabel}>
+                        3 · PERMISSIONED OBSERVATIONS
+                      </span>
+                      <strong className={styles.selectedArtifactTitle}>
+                        {selectedSourceArtifact?.title}
+                      </strong>
+                      <div className={styles.observationList}>
+                        {(selectedSourceArtifact?.observations ?? []).map(
+                          (observation) => (
+                            <article key={observation.id}>
+                              <span>
+                                <b>{titleCase(observation.type)}</b>
+                                <code>{locatorLabel(observation.locator)}</code>
+                              </span>
+                              <p>{observation.statement}</p>
+                            </article>
+                          ),
+                        )}
+                      </div>
+                    </section>
+                  </div>
+                  <div className={styles.sourceReceipt}>
+                    {sourceIntegration.compounding?.hypothesis ? (
+                      <>
+                        <span className={styles.compoundingHypothesis}>
+                          <small>
+                            4 · SYSTEM OUTPUT · UNTRUSTED HYPOTHESIS · AWAITS
+                            LEAD REVIEW
+                          </small>
+                          <strong>
+                            {sourceIntegration.compounding.hypothesis.statement}
+                          </strong>
+                        </span>
+                        <span>
+                          <small>EVIDENCE BASIS</small>
+                          <strong>
+                            {
+                              sourceIntegration.compounding.hypothesis
+                                .evidenceCount
+                            }{' '}
+                            artifacts ·{' '}
+                            {
+                              sourceIntegration.compounding.hypothesis
+                                .sourceDiversity
+                            }{' '}
+                            sources
+                          </strong>
+                        </span>
+                        <span>
+                          <small>BACKGROUND LOOP</small>
+                          <strong>
+                            {sourceIntegration.compounding.schedule} ·{' '}
+                            {sourceIntegration.compounding.pendingJobs} queued
+                          </strong>
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span>
+                          <small>SYNTHETIC CONTRACTS</small>
+                          <strong>
+                            {sourceIntegration.summary.connectionCount}
+                          </strong>
+                        </span>
+                        <span>
+                          <small>VISIBLE ARTIFACTS</small>
+                          <strong>
+                            {sourceIntegration.summary.artifactCount}
+                          </strong>
+                        </span>
+                        <span>
+                          <small>VISIBLE OBSERVATIONS</small>
+                          <strong>
+                            {sourceIntegration.summary.observationCount}
+                          </strong>
+                        </span>
+                      </>
+                    )}
+                    <button type="button" onClick={() => setMode('inspect')}>
+                      Back to memory
+                    </button>
+                  </div>
+                </>
+              ) : mode === 'foundation' && state.contextFoundation ? (
                 <>
                   <header>
                     <div>
@@ -401,7 +584,10 @@ export function ProjectMemoryWorkspace({
                     aria-label="Governed context dependency flow"
                   >
                     {state.contextFoundation.assets.map((asset, index) => (
-                      <div className={styles.foundationStep} key={asset.resourceId}>
+                      <div
+                        className={styles.foundationStep}
+                        key={asset.resourceId}
+                      >
                         {index > 0 ? (
                           <span className={styles.foundationArrow}>
                             <small>

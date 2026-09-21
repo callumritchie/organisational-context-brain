@@ -21,6 +21,7 @@ import { initializeDiscoveryDemo } from '@/src/modules/discovery/discovery-demo'
 import { initializeSemanticEvolutionDemo } from '@/src/modules/ontology/semantic-evolution';
 import { initializeProjectMemoryDemo } from '@/src/modules/organisational-memory/project-memory-service';
 import { bootstrapContextFoundation } from '@/src/modules/context-assets/foundation';
+import { syncSimulatedExternalSources } from '@/src/modules/source-integration/service';
 
 dotenv.config({ path: '.env.local' });
 
@@ -31,6 +32,8 @@ try {
   await ownerClient.query('BEGIN');
   await ownerClient.query(`TRUNCATE TABLE
     external_identities, identity_providers, user_capabilities,
+    perception_observations, perception_runs, external_source_sync_receipts,
+    external_source_connections,
     context_asset_quality_assessments, metric_definitions,
     context_asset_dependencies, context_asset_sources, context_assets,
     organisational_memory_promotions, organisational_memory_relations,
@@ -98,6 +101,7 @@ try {
   await initializeSemanticEvolutionDemo();
   const projectMemory = await initializeProjectMemoryDemo();
   const contextFoundation = await bootstrapContextFoundation();
+  const sourceIntegration = await syncSimulatedExternalSources();
   console.log(
     `Seeded Northstar Labs: ${research.changed} research, ${meetings.changed} meeting, ${crm.changed} CRM, ${documents.changed} document, ${messages.changed} message, and ${signals.observations} signal observations.`,
   );
@@ -112,6 +116,9 @@ try {
   );
   console.log(
     `Context foundation ready: ${contextFoundation.assets} governed assets passed deterministic quality assessment.`,
+  );
+  console.log(
+    `Simulated sources ready: ${sourceIntegration.connections} API/CLI/MCP contracts produced ${sourceIntegration.artifacts} artifacts and ${sourceIntegration.observations} observations with ${sourceIntegration.externalCallsMade} external calls.`,
   );
 } catch (error) {
   await ingestionClient.query('ROLLBACK');

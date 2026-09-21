@@ -5,6 +5,7 @@ import { getIngestionPool } from '@/src/db/pool';
 import { IDS } from '@/src/modules/canonical/ids';
 import { stableId } from '@/src/modules/canonical/stable-id';
 import { readContextFoundationState } from '@/src/modules/context-assets/foundation';
+import { readSourceIntegrationState } from '@/src/modules/source-integration/service';
 import { actorHasCapability } from '@/src/modules/identity/authorization';
 import type { RequestActor } from '@/src/modules/identity/request-actor';
 import {
@@ -1263,7 +1264,10 @@ export async function getProjectMemoryState(
           ),
         ]);
       const latestPack = pack.rows[0];
-      const contextFoundation = await readContextFoundationState(client);
+      const [contextFoundation, sourceIntegration] = await Promise.all([
+        readContextFoundationState(client),
+        readSourceIntegrationState(client),
+      ]);
       const packItems = latestPack
         ? await client.query<{
             memory_id: string;
@@ -1382,6 +1386,7 @@ export async function getProjectMemoryState(
             : {}),
         })),
         contextFoundation,
+        sourceIntegration,
         ...(latestPack
           ? {
               kickoff: {

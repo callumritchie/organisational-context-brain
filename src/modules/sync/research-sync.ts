@@ -788,6 +788,7 @@ async function runSourceSync<T extends KnowledgeSourceRecord>(
       seen: page.records.length,
       changed,
       events,
+      changes: knowledgeChanges,
     };
   } catch (error) {
     await client.query(

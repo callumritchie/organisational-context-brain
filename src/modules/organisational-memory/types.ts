@@ -4,6 +4,7 @@ import type {
   MemoryType,
 } from './isolation-policy';
 import type { ContextFoundationState } from '@/src/modules/context-assets/types';
+import type { SourceIntegrationState } from '@/src/modules/source-integration/types';
 
 export interface HostProjectMemberView {
   actorId: string;
@@ -62,6 +63,7 @@ export interface ProjectMemoryState {
   };
   memories: ProjectMemoryView[];
   contextFoundation?: ContextFoundationState;
+  sourceIntegration?: SourceIntegrationState;
   kickoff?: {
     id: string;
     generatedAt: string;
