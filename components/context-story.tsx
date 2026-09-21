@@ -3596,20 +3596,23 @@ export function ContextStory() {
     setOperationLoading(operation);
     setMutationMessage(null);
     try {
-      const response = await fetch('/api/v1/memory/operations', {
+      const response = await fetch('/api/v1/hypotheses/operations/monitored', {
         method: 'POST',
         headers: apiHeaders(actorId, { json: true, mutation: true }),
         body: JSON.stringify({ operation }),
       });
       const payload = (await response.json()) as {
+        hypotheses?: HypothesisSystemState;
         memory?: MemoryState;
+        discovery?: DiscoveryState | null;
         title?: string;
       };
-      if (!response.ok || !payload.memory) {
+      if (!response.ok || !payload.hypotheses || !payload.memory) {
         throw new Error(payload.title ?? 'The monitor operation failed.');
       }
+      setHypothesisSystem(payload.hypotheses);
       setMemory(payload.memory);
-      void loadHypothesisSystem(actorId);
+      setDiscovery(payload.discovery ?? null);
       setMutationMessage(
         operation === 'run-now'
           ? 'The queued manual evaluation completed.'
@@ -3632,20 +3635,28 @@ export function ContextStory() {
     setDiscoveryOperationLoading(operation);
     setMutationMessage(null);
     try {
-      const response = await fetch('/api/v1/discovery/operations', {
+      const response = await fetch('/api/v1/hypotheses/operations/discovered', {
         method: 'POST',
         headers: apiHeaders(actorId, { json: true, mutation: true }),
         body: JSON.stringify({ operation }),
       });
       const payload = (await response.json()) as {
+        hypotheses?: HypothesisSystemState;
+        memory?: MemoryState;
         discovery?: DiscoveryState;
         title?: string;
       };
-      if (!response.ok || !payload.discovery) {
+      if (
+        !response.ok ||
+        !payload.hypotheses ||
+        !payload.memory ||
+        !payload.discovery
+      ) {
         throw new Error(payload.title ?? 'The discovery operation failed.');
       }
+      setHypothesisSystem(payload.hypotheses);
+      setMemory(payload.memory);
       setDiscovery(payload.discovery);
-      void loadHypothesisSystem(actorId);
       setMutationMessage(
         operation === 'run-now'
           ? 'The background discovery sweep completed without requiring a question.'

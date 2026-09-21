@@ -326,5 +326,6 @@ Status: shared read model implemented; durable write-path consolidation remains 
 - Implemented: origin and policy provenance remain explicit, so the compatibility layer does not pretend the two legacy persistence paths have already been merged.
 - Implemented: the existing fixed-viewport drawer starts with one hypothesis index and then progressively discloses the legacy operational detail.
 - Implemented: one origin-aware review command accepts or dismisses either proposal type, retains the existing capability and transaction checks, and returns the unified state so clients no longer coordinate two review APIs.
+- Implemented: monitor and discovery pause, resume and manual-run controls now enter through one origin-aware operation command; monitor notification acknowledgement remains an explicit monitored-only operation.
 - Implemented: integration and security files run against disposable databases cloned from a freshly migrated and seeded local template; the harness refuses remote hosts and can drop only databases created by its own run.
 - Remaining: one canonical persistence/service boundary for create, review, supersession, evaluation and monitor control; queue and scheduler consolidation; migration/backfill of existing records; removal of legacy UI lanes only after parity and isolation tests pass.

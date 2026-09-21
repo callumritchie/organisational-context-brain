@@ -402,6 +402,14 @@ test('projects both hypothesis origins through one lifecycle contract', async ({
     },
   );
   expect(deniedReview.status()).toBe(403);
+  const deniedOperation = await request.post(
+    '/api/v1/hypotheses/operations/discovered',
+    {
+      headers: { 'x-demo-actor': IDS.users.morgan },
+      data: { operation: 'pause' },
+    },
+  );
+  expect(deniedOperation.status()).toBe(403);
 });
 
 test('ask API reuses authorised context and works offline', async ({
